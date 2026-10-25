@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>Справочник по системному программированию · Макаров Максим Николаевич</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .cover { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .8fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
+    .cover h1 { margin: 12px 0 10px; font-family: var(--display); font-size: clamp(36px, 5.6vw, 74px); line-height: 1.02; letter-spacing: -.5px; }
+    .cover h1 .r { color: var(--acc); }
+    .cover h1 .g { color: var(--ng); }
+    .cover__sub { margin: 0 0 22px; font-family: var(--display); font-size: clamp(17px, 1.8vw, 26px); color: var(--ink-soft); }
+    .cover__meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 0; }
+    .cover__meta span { padding: 8px 12px; border: 2px solid var(--ink); background: #fff; font: 600 11px/1 var(--mono); letter-spacing: .5px; }
+    @media (max-width: 820px) { .cover { grid-template-columns: 1fr; } }
+
+    /* Карточка на обложке: путь вызова от программы до диска. */
+    .card-c { border: 3px solid var(--ink); background: var(--page); box-shadow: 7px 7px 0 var(--ink); transform: rotate(-.7deg); }
+    .card-c__tag { margin: 0; padding: 8px 14px; background: var(--ink); color: var(--acc-bright); font: 600 10.5px/1.4 var(--pixel); letter-spacing: 1.3px; text-transform: uppercase; }
+    .card-c ol { list-style: none; margin: 0; padding: 12px 14px; display: grid; gap: 6px; }
+    .card-c li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; border: 2px solid var(--ink); background: #fff; font: 500 12.5px/1.3 var(--mono); }
+    .card-c li i { font-style: normal; color: var(--ink-faint); }
+    .card-c li.u { border-left: 7px solid var(--acc); }
+    .card-c li.k { border-left: 7px solid var(--ng); }
+    .card-c .edge { padding: 2px; border: 0; background: none; justify-content: center; font: 600 10px/1.3 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--ng); }
+
+
+    .modules { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: 16px; margin-top: 22px; }
+    .module { display: grid; grid-template-columns: 40px minmax(0, 1fr); border: 3px solid var(--ink); background: var(--page); box-shadow: 6px 6px 0 var(--ink); }
+    .module--acc { box-shadow: 6px 6px 0 var(--acc); }
+    .module--ng { box-shadow: 6px 6px 0 var(--ng); }
+    .module__spine { background: var(--ink); color: var(--acc-bright); display: flex; align-items: center; justify-content: center; }
+    .module--ng .module__spine { color: var(--ng-bright); }
+    .module__spine b { writing-mode: vertical-rl; transform: rotate(180deg); font: 700 12px/1 var(--mono); letter-spacing: 2px; }
+    .module__body { padding: 18px 20px 16px; }
+    .module h3 { margin: 0 0 6px; font-family: var(--display); font-size: 19px; }
+    .module__body > p { margin: 0 0 12px; font-size: 14.5px; line-height: 1.45; color: var(--ink-soft); }
+    .module__tag { display: inline-block; margin-bottom: 12px; padding: 3px 9px; border: 2px solid var(--ink-soft); font: 600 11px/1.5 var(--mono); color: var(--ink-soft); }
+    .toc { margin: 0; padding: 0; list-style: none; border-top: 2px solid var(--rule); }
+    .toc li { margin: 0; border-bottom: 2px solid var(--rule); }
+    .toc li:last-child { border-bottom: 0; }
+    .toc a, .toc s { display: flex; align-items: baseline; gap: 10px; padding: 9px 0; text-decoration: none; font-size: 15px; }
+    .toc a { color: var(--ink); font-weight: 600; }
+    .toc a:hover { color: var(--acc); }
+    .toc s { color: var(--ink-faint); }
+    .toc a > span, .toc s > span { flex: 1 1 auto; min-width: 0; line-height: 1.35; }
+    .toc b { flex: 0 0 auto; font: 600 12px/1.4 var(--mono); color: var(--ink-faint); }
+    .toc em { flex: 0 0 auto; margin-left: auto; font: 600 10px/1 var(--pixel); letter-spacing: 1px; text-transform: uppercase; font-style: normal; color: var(--acc); }
+    .toc s em { color: var(--ink-faint); }
+    .toc--work { margin-top: 10px; border-top: 0; }
+    .toc--work li { border-bottom: 0; }
+    .toc--work s { padding: 7px 10px; margin-top: 6px; border: 2px solid var(--ink); font-size: 14px; color: var(--ink-soft); }
+    .toc--work .work-kind { flex: 0 0 112px; white-space: nowrap; font: 600 10px/1.6 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--acc); }
+    .module--ng .toc--work .work-kind { color: var(--ng); }
+    .module--intro { box-shadow: 6px 6px 0 var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Справочник по системному программированию · Макаров М. Н.</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow">Издание для старших курсов</p>
+          <p class="running__folio">Макаров Максим Николаевич</p>
+        </div>
+
+        <section class="cover">
+          <div>
+            <h1>Справочник<br>по <span class="r">системному</span><br>программированию</h1>
+            <p class="cover__sub">Windows изнутри:<br>C, WinAPI, агент мониторинга и ИИ</p>
+            <p>Книга о том, что происходит внутри Windows, когда работает программа: процессы и потоки, память, файлы, реестр, сеть, службы и устройства. Каждая тема разбирается в три шага: вызов функций WinAPI на C, сверка результата со служебными программами Microsoft и новая проверка в сквозном проекте.</p>
+            <p>Сквозной проект — агент-сторож компьютера. За 24 пары он получает 13 проверок, которые после каждой пары автоматически подтверждает программа-нарушитель в GitHub Actions. Тревоги агента уходят в сервис n8n, где модель ИИ пишет объяснение для человека.</p>
+            <div class="cover__meta">
+              <span>C · WinAPI · MSVC</span><span>Sysinternals</span><span>x64dbg · Ghidra</span><span>n8n · Ollama</span><span>GitHub Actions</span>
+            </div>
+          </div>
+
+          <aside class="card-c" aria-label="Путь вызова CreateFileW от программы до диска">
+            <p class="card-c__tag">Путь одного вызова · глава 0.1</p>
+            <ol>
+              <li class="u">agent.exe<i>CreateFileW</i></li>
+              <li class="u">KernelBase.dll<i>проверка аргументов</i></li>
+              <li class="u">ntdll.dll<i>syscall</i></li>
+              <li class="edge">граница режима ядра</li>
+              <li class="k">ядро Windows<i>ввод-вывод</i></li>
+              <li class="k">ntfs.sys<i>файл и права</i></li>
+              <li class="k">драйвер диска<i>чтение</i></li>
+            </ol>
+          </aside>
+        </section>
+
+        <h2><span class="sec">План</span>Модули и главы</h2>
+        <p>Дисциплина рассчитана на 24 пары. Модуль 0 — вводная пара, модули 1–5 — темы Windows и проверки агента, модуль 6 — курсовая работа. Распределение пар, проверок и тестов — в главе <a href="temy/03-kak-ustroena-disciplina/index.html">0.3</a>.</p>
+
+        <div class="modules">
+          <article class="module module--intro">
+            <div class="module__spine"><b>МОДУЛЬ 0</b></div>
+            <div class="module__body">
+              <h3>Системное программирование сегодня</h3>
+              <span class="module__tag">пара 1</span>
+              <p>Системные программы и слои Windows, режимы пользователя и ядра, WinAPI, события в отрасли и устройство дисциплины.</p>
+              <ul class="toc">
+                <li><a href="temy/01-sistemnye-programmy/index.html"><b>0.1</b><span>Системные программы и WinAPI</span><em>читать</em></a></li>
+                <li><a href="temy/02-otrasl-segodnya/index.html"><b>0.2</b><span>Системное программирование сегодня</span><em>читать</em></a></li>
+                <li><a href="temy/03-kak-ustroena-disciplina/index.html"><b>0.3</b><span>Как устроена дисциплина</span><em>читать</em></a></li>
+              </ul>
+              <ul class="toc toc--work">
+                <li><s><span class="work-kind">ЗАДАНИЕ</span><span>Первая программа на WinAPI</span></s></li>
+              </ul>
+            </div>
+          </article>
+          <article class="module module--acc">
+            <div class="module__spine"><b>МОДУЛЬ 1</b></div>
+            <div class="module__body">
+              <h3>C и WinAPI</h3>
+              <span class="module__tag">пара 2</span>
+              <p>Указатели, структуры и строки WCHAR в вызовах WinAPI, коды ошибок. Репозиторий и первая автоматическая проверка.</p>
+              <ul class="toc">
+                <li><s><b>1.1</b><span>C для системного программиста</span><em>готовится</em></s></li>
+              </ul>
+              <ul class="toc toc--work">
+                <li><s><span class="work-kind">АГЕНТ</span><span>Сведения о системе, сверка с PowerShell</span></s></li>
+              </ul>
+            </div>
+          </article>
+          <article class="module module--acc">
+            <div class="module__spine"><b>МОДУЛЬ 2</b></div>
+            <div class="module__body">
+              <h3>Процессы, потоки и память</h3>
+              <span class="module__tag">пары 3–8</span>
+              <p>Процессы и их создание, потоки и процессорное время, синхронизация, виртуальная память, ошибки памяти в C.</p>
+              <ul class="toc">
+                <li><s><b>2.1</b><span>Процессы</span><em>готовится</em></s></li>
+                <li><s><b>2.2</b><span>Создание процессов</span><em>готовится</em></s></li>
+                <li><s><b>2.3</b><span>Потоки и процессорное время</span><em>готовится</em></s></li>
+                <li><s><b>2.4</b><span>Синхронизация</span><em>готовится</em></s></li>
+                <li><s><b>2.5</b><span>Виртуальная память</span><em>готовится</em></s></li>
+                <li><s><b>2.6</b><span>Ошибки памяти в C</span><em>готовится</em></s></li>
+              </ul>
+              <ul class="toc toc--work">
+                <li><s><span class="work-kind">ПРОВЕРКИ</span><span>1–3: процессы, процессор, утечка памяти</span></s></li>
+                <li><s><span class="work-kind">ТЕСТ</span><span>Тест 1</span></s></li>
+              </ul>
+            </div>
+          </article>
+          <article class="module module--acc">
+            <div class="module__spine"><b>МОДУЛЬ 3</b></div>
+            <div class="module__body">
+              <h3>Файлы, реестр и журналы</h3>
+              <span class="module__tag">пары 9–12</span>
+              <p>Файловый ввод-вывод и хэши, наблюдение за папками, реестр, журнал событий Windows.</p>
+              <ul class="toc">
+                <li><s><b>3.1</b><span>Файлы и хэши</span><em>готовится</em></s></li>
+                <li><s><b>3.2</b><span>Наблюдение за папками</span><em>готовится</em></s></li>
+                <li><s><b>3.3</b><span>Реестр</span><em>готовится</em></s></li>
+                <li><s><b>3.4</b><span>Журнал событий</span><em>готовится</em></s></li>
+              </ul>
+              <ul class="toc toc--work">
+                <li><s><span class="work-kind">ПРОВЕРКИ</span><span>4–7: hosts, автозагрузка, ключ Run, неудачные входы</span></s></li>
+                <li><s><span class="work-kind">ТЕСТ</span><span>Тест 2</span></s></li>
+              </ul>
+            </div>
+          </article>
+          <article class="module module--acc">
+            <div class="module__spine"><b>МОДУЛЬ 4</b></div>
+            <div class="module__body">
+              <h3>Сеть и ИИ</h3>
+              <span class="module__tag">пары 13–18</span>
+              <p>Сетевые соединения, HTTP-клиент, сервис n8n, локальная и облачная модели ИИ, сервер внутри агента.</p>
+              <ul class="toc">
+                <li><s><b>4.1</b><span>Сетевые соединения</span><em>готовится</em></s></li>
+                <li><s><b>4.2</b><span>HTTP-клиент WinHTTP</span><em>готовится</em></s></li>
+                <li><s><b>4.3</b><span>n8n: тревога → уведомление</span><em>готовится</em></s></li>
+                <li><s><b>4.4</b><span>Локальная модель ИИ</span><em>готовится</em></s></li>
+                <li><s><b>4.5</b><span>Облачная модель ИИ</span><em>готовится</em></s></li>
+                <li><s><b>4.6</b><span>Сервер в агенте</span><em>готовится</em></s></li>
+              </ul>
+              <ul class="toc toc--work">
+                <li><s><span class="work-kind">ПРОВЕРКИ</span><span>8–10: порт, память модели, личные данные</span></s></li>
+                <li><s><span class="work-kind">ТЕСТ</span><span>Тест 3</span></s></li>
+              </ul>
+            </div>
+          </article>
+          <article class="module module--acc">
+            <div class="module__spine"><b>МОДУЛЬ 5</b></div>
+            <div class="module__body">
+              <h3>Служба, устройства, исполняемые файлы</h3>
+              <span class="module__tag">пары 19–22</span>
+              <p>Межпроцессное взаимодействие, службы Windows, устройства и питание, формат PE, подписи и отладка.</p>
+              <ul class="toc">
+                <li><s><b>5.1</b><span>Межпроцессное взаимодействие</span><em>готовится</em></s></li>
+                <li><s><b>5.2</b><span>Службы Windows</span><em>готовится</em></s></li>
+                <li><s><b>5.3</b><span>Устройства и питание</span><em>готовится</em></s></li>
+                <li><s><b>5.4</b><span>Исполняемые файлы и отладка</span><em>готовится</em></s></li>
+              </ul>
+              <ul class="toc toc--work">
+                <li><s><span class="work-kind">ПРОВЕРКИ</span><span>11–13: служба, устройство, подпись</span></s></li>
+                <li><s><span class="work-kind">ТЕСТ</span><span>Тест 4</span></s></li>
+              </ul>
+            </div>
+          </article>
+          <article class="module module--ng">
+            <div class="module__spine"><b>МОДУЛЬ 6</b></div>
+            <div class="module__body">
+              <h3>Курсовая работа</h3>
+              <span class="module__tag">пары 23–24</span>
+              <p>Агент со всеми проверками и одной своей, сценарий n8n с моделью ИИ, отчёт и защита.</p>
+              <ul class="toc toc--work">
+                <li><s><span class="work-kind">РАБОТА</span><span>Своя проверка, по желанию MCP-сервер</span></s></li>
+                <li><s><span class="work-kind">ЗАЩИТА</span><span>Нарушитель при всех, ответы по коду</span></s></li>
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        <div class="colophon">
+          <span>Справочник по системному программированию</span>
+          <span class="author-line">© Макаров Максим Николаевич</span>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
