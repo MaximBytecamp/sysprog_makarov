@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     .cover { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .8fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
-    .cover h1 { margin: 12px 0 10px; font-family: var(--display); font-size: clamp(28px, 4.1vw, 54px); hyphens: none; line-height: 1.02; letter-spacing: -.5px; }
+    .cover h1 { margin: 12px 0 10px; font-family: var(--display); font-size: clamp(28px, 3.7vw, 46px); hyphens: none; line-height: 1.02; letter-spacing: -.5px; }
     .cover h1 .r { color: var(--acc); }
     .cover h1 .g { color: var(--ng); }
     .cover__sub { margin: 0 0 22px; font-family: var(--display); font-size: clamp(17px, 1.8vw, 26px); color: var(--ink-soft); }
@@ -74,16 +74,17 @@
         <section class="cover">
           <div>
             <h1>Справочник<br>по <span class="r">системному</span><br>программированию</h1>
-            <p class="cover__sub">Windows изнутри:<br>C и Python, агент мониторинга и ИИ-агенты</p>
-            <p>Книга о том, что происходит внутри Windows, когда работает программа: процессы и потоки, память, файлы, реестр, сеть, службы и устройства. Каждая тема разбирается в три шага: вызов функций WinAPI на C, сверка результата со служебными программами Microsoft и новая проверка в сквозном проекте.</p>
-            <p>Сквозной проект — агент-сторож компьютера. Ядро на C обращается к Windows, мозг на Python принимает решения и связывает агент с сервисом n8n и моделями ИИ. ИИ участвует с первой пары: помогает писать код, объясняет тревоги, расследует их через функции агента и подключается к нему по протоколу MCP. За 24 пары агент получает 13 проверок, которые после каждой пары подтверждает нарушитель в GitHub Actions.</p>
+            <p class="cover__sub">Windows, macOS и Linux изнутри:<br>C и Python, агент мониторинга и ИИ-агенты</p>
+            <p>Книга о том, что происходит внутри операционной системы, когда работает программа: процессы и потоки, память, файлы, автозагрузка, сеть, службы и устройства. Каждая тема разбирается в три шага: вызов системных функций на C, сверка результата со служебными программами системы и новая проверка в сквозном проекте. Курс идёт сразу для трёх систем — Windows, macOS и Linux: переключатель на страницах глав меняет функции, команды и программы.</p>
+            <p>Сквозной проект — агент-сторож компьютера. Ядро на C обращается к системе, мозг на Python принимает решения и связывает агент с сервисом n8n и моделями ИИ. ИИ участвует с первой пары: помогает писать код, объясняет тревоги, расследует их через функции агента и подключается к нему по протоколу MCP. За 24 пары агент получает 13 проверок, которые после каждой пары подтверждает нарушитель в GitHub Actions на всех трёх системах.</p>
             <div class="cover__meta">
-              <span>C · WinAPI</span><span>Python · ctypes</span><span>Sysinternals</span><span>n8n · ИИ-агенты · MCP</span><span>GigaCode · Ollama</span><span>GitHub Actions</span>
+              <span>Windows · macOS · Linux</span><span>C · WinAPI · POSIX</span><span>Python · ctypes</span><span>Sysinternals · strace · lsof</span><span>n8n · ИИ-агенты · MCP</span><span>GigaCode · Ollama</span><span>GitHub Actions</span>
             </div>
           </div>
 
-          <aside class="card-c" aria-label="Путь вызова CreateFileW от программы до диска">
-            <p class="card-c__tag">Путь одного вызова · глава 0.1</p>
+<div>
+          <aside class="card-c" data-os="win" aria-label="Путь вызова от программы до диска">
+            <p class="card-c__tag">Путь CreateFileW · глава 0.1</p>
             <ol>
               <li class="cu">agent.exe<i>CreateFileW</i></li>
               <li class="cu">KernelBase.dll<i>проверка аргументов</i></li>
@@ -94,10 +95,35 @@
               <li class="ck">драйвер диска<i>чтение</i></li>
             </ol>
           </aside>
+          <aside class="card-c" data-os="mac" aria-label="Путь вызова от программы до диска">
+            <p class="card-c__tag">Путь open · глава 0.1</p>
+            <ol>
+              <li class="cu">agent<i>open</i></li>
+              <li class="cu">libSystem<i>POSIX</i></li>
+              <li class="cu">libsystem_kernel<i>svc #0x80</i></li>
+              <li class="edge">граница режима ядра</li>
+              <li class="ck">XNU · BSD<i>путь и права</i></li>
+              <li class="ck">APFS<i>файл</i></li>
+              <li class="ck">драйвер NVMe<i>чтение</i></li>
+            </ol>
+          </aside>
+          <aside class="card-c" data-os="linux" aria-label="Путь вызова от программы до диска">
+            <p class="card-c__tag">Путь open · глава 0.1</p>
+            <ol>
+              <li class="cu">agent<i>open</i></li>
+              <li class="cu">libc.so.6<i>openat</i></li>
+              <li class="cu">переход в ядро<i>syscall</i></li>
+              <li class="edge">граница режима ядра</li>
+              <li class="ck">VFS<i>путь и права</i></li>
+              <li class="ck">ext4<i>inode</i></li>
+              <li class="ck">драйвер nvme<i>чтение</i></li>
+            </ol>
+          </aside>
+          </div>
         </section>
 
         <h2><span class="sec">План</span>Модули и главы</h2>
-        <p>Дисциплина рассчитана на 24 пары. Модуль 0 — вводная пара, модули 1–5 — темы Windows, проверки агента и ИИ, модуль 6 — курсовая работа. Распределение пар, проверок и тестов — в главе <a href="temy/04-kak-ustroena-disciplina/index.html">0.4</a>, работа с ИИ — в главе <a href="temy/03-ii-agenty/index.html">0.3</a>.</p>
+        <p>Дисциплина рассчитана на 24 пары. Модуль 0 — вводная пара, модули 1–5 — темы системы, проверки агента и ИИ, модуль 6 — курсовая работа. Распределение пар, проверок и тестов — в главе <a href="temy/04-kak-ustroena-disciplina/index.html">0.4</a>, работа с ИИ — в главе <a href="temy/03-ii-agenty/index.html">0.3</a>.</p>
 
         <div class="modules">
           <article class="module module--intro">
@@ -105,15 +131,15 @@
             <div class="module__body">
               <h3>Системное программирование сегодня</h3>
               <span class="module__tag">пара 1</span>
-              <p>Слои Windows и режим ядра, WinAPI из C и Python, события в отрасли, ИИ-агенты и режимы работы с ними, устройство дисциплины.</p>
+              <p>Слои системы и режим ядра, WinAPI и POSIX из C и Python, события в отрасли, ИИ-агенты и режимы работы с ними, устройство дисциплины.</p>
               <ul class="toc">
-                <li><a href="temy/01-sistemnye-programmy/index.html"><b>0.1</b><span>Системные программы и WinAPI</span><em>читать</em></a></li>
+                <li><a href="temy/01-sistemnye-programmy/index.html"><b>0.1</b><span>Системные программы и системный интерфейс</span><em>читать</em></a></li>
                 <li><a href="temy/02-otrasl-segodnya/index.html"><b>0.2</b><span>Системное программирование сегодня</span><em>читать</em></a></li>
                 <li><a href="temy/03-ii-agenty/index.html"><b>0.3</b><span>ИИ-агенты и системный код</span><em>читать</em></a></li>
                 <li><a href="temy/04-kak-ustroena-disciplina/index.html"><b>0.4</b><span>Как устроена дисциплина</span><em>читать</em></a></li>
               </ul>
               <ul class="toc toc--work">
-                <li><s><span class="work-kind">ЗАДАНИЕ</span><span>Одна функция WinAPI из C и из Python, вопрос помощнику ИИ</span></s></li>
+                <li><s><span class="work-kind">ЗАДАНИЕ</span><span>Одна системная функция из C и из Python, вопрос помощнику ИИ</span></s></li>
               </ul>
             </div>
           </article>
@@ -122,14 +148,14 @@
             <div class="module__body">
               <h3>Рабочее место: C, Python и ИИ</h3>
               <span class="module__tag">пары 2–3</span>
-              <p>C для системного программиста, DLL на C и вызов из Python, помощник ИИ в VS Code, первый сценарий n8n с моделью.</p>
+              <p>C для системного программиста, динамическая библиотека на C и вызов из Python, помощник ИИ в VS Code, первый сценарий n8n с моделью.</p>
               <ul class="toc">
                 <li><s><b>1.1</b><span>C для системного программиста</span><em>готовится</em></s></li>
-                <li><s><b>1.2</b><span>C и Python вместе: DLL и ctypes</span><em>готовится</em></s></li>
+                <li><s><b>1.2</b><span>C и Python вместе: библиотека и ctypes</span><em>готовится</em></s></li>
                 <li><s><b>1.3</b><span>n8n и Ollama: первая автоматизация</span><em>готовится</em></s></li>
               </ul>
               <ul class="toc toc--work">
-                <li><s><span class="work-kind">АГЕНТ</span><span>Ядро sentry_core.dll и мозг brain.py</span></s></li>
+                <li><s><span class="work-kind">АГЕНТ</span><span>Ядро-библиотека на C и мозг brain.py</span></s></li>
                 <li><s><span class="work-kind">ИИ</span><span>Сообщение агента с объяснением модели</span></s></li>
               </ul>
             </div>
@@ -158,17 +184,17 @@
           <article class="module module--acc">
             <div class="module__spine"><b>МОДУЛЬ 3</b></div>
             <div class="module__body">
-              <h3>Файлы, реестр и журналы</h3>
+              <h3>Файлы, автозагрузка и журналы</h3>
               <span class="module__tag">пары 10–13</span>
-              <p>Файловый ввод-вывод и хэши, Python изнутри в Process Monitor, наблюдение за папками, реестр, журнал событий.</p>
+              <p>Файловый ввод-вывод и хэши, Python изнутри, наблюдение за папками, автозагрузка трёх систем, системный журнал.</p>
               <ul class="toc">
                 <li><s><b>3.1</b><span>Файлы и хэши</span><em>готовится</em></s></li>
                 <li><s><b>3.2</b><span>Наблюдение за папками</span><em>готовится</em></s></li>
-                <li><s><b>3.3</b><span>Реестр</span><em>готовится</em></s></li>
-                <li><s><b>3.4</b><span>Журнал событий</span><em>готовится</em></s></li>
+                <li><s><b>3.3</b><span>Системная автозагрузка</span><em>готовится</em></s></li>
+                <li><s><b>3.4</b><span>Журнал системы</span><em>готовится</em></s></li>
               </ul>
               <ul class="toc toc--work">
-                <li><s><span class="work-kind">ПРОВЕРКИ</span><span>4–7: hosts, автозагрузка, ключ Run, неудачные входы</span></s></li>
+                <li><s><span class="work-kind">ПРОВЕРКИ</span><span>4–7: hosts, две автозагрузки, неудачные входы</span></s></li>
                 <li><s><span class="work-kind">ИИ</span><span>Р2: мозг на Python пишет ИИ-агент</span></s></li>
                 <li><s><span class="work-kind">ТЕСТ</span><span>Тест 2</span></s></li>
               </ul>
@@ -200,9 +226,9 @@
             <div class="module__body">
               <h3>Служба, устройства, исполняемые файлы</h3>
               <span class="module__tag">пары 20–22</span>
-              <p>Службы Windows и именованные каналы, устройства и питание, формат PE, подписи, отладка.</p>
+              <p>Фоновая работа ядра: служба Windows, launchd, systemd; устройства и питание; форматы PE, Mach-O, ELF; подписи и отладка.</p>
               <ul class="toc">
-                <li><s><b>5.1</b><span>Служба и именованный канал</span><em>готовится</em></s></li>
+                <li><s><b>5.1</b><span>Фоновая работа ядра</span><em>готовится</em></s></li>
                 <li><s><b>5.2</b><span>Устройства и питание</span><em>готовится</em></s></li>
                 <li><s><b>5.3</b><span>Исполняемые файлы и отладка</span><em>готовится</em></s></li>
               </ul>
@@ -233,5 +259,6 @@
       </main>
     </div>
   </div>
+  <script src="book.js"></script>
 </body>
 </html>

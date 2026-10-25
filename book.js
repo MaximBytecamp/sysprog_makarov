@@ -95,7 +95,7 @@
   /* ---- Переключатель операционной системы ---------------------- */
   /* Блоки помечены data-os="win|mac|linux" (можно несколько через пробел).
      Пока читатель не выбрал систему кнопкой, она определяется по браузеру. */
-  const OS_KEY = 'ar-book-os';
+  const OS_KEY = 'sp-book-os';
   const OS_ITEMS = [['win', 'Windows'], ['mac', 'macOS'], ['linux', 'Linux']];
   const detectOs = () => {
     const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
@@ -126,6 +126,8 @@
     const applyOs = (value, save) => {
       document.documentElement.setAttribute('data-os', value);
       buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.value === value)));
+      // Схемы глав перерисовываются под выбранную систему.
+      document.dispatchEvent(new CustomEvent('book:os', { detail: value }));
       if (save) {
         try { localStorage.setItem(OS_KEY, value); } catch (_) { /* приватный режим */ }
       }

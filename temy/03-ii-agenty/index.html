@@ -24,7 +24,7 @@
         <header class="chapter-head">
           <span class="chapter-num">0.3</span>
           <h1>ИИ-агенты<br>и системный код</h1>
-          <p class="lead">В этой главе разобрано, как ИИ участвует в курсе с первой пары. Его роли две: помощник в редакторе пишет и объясняет код вместе со студентом, а ИИ-агент внутри проекта расследует тревоги и сам запрашивает данные у агента-сторожа. Описаны три режима работы с ИИ, типичные ошибки ИИ в коде WinAPI и приборы, которыми эти ошибки находятся. В конце — список проверки кода от ИИ и инструменты, доступные из России.</p>
+          <p class="lead">В этой главе разобрано, как ИИ участвует в курсе с первой пары. Его роли две: помощник в редакторе пишет и объясняет код вместе со студентом, а ИИ-агент внутри проекта расследует тревоги и сам запрашивает данные у агента-сторожа. Описаны три режима работы с ИИ, типичные ошибки ИИ в системном коде для Windows, macOS и Linux и приборы, которыми эти ошибки находятся. В конце — список проверки кода от ИИ и инструменты, доступные из России.</p>
         </header>
 
         <dl class="passport">
@@ -40,7 +40,7 @@
             <li><a href="#s1">Чат, помощник и агент</a></li>
             <li><a href="#s2">Две роли ИИ в курсе</a></li>
             <li><a href="#s3">Три режима работы</a></li>
-            <li><a href="#s4">Ошибки ИИ в коде WinAPI</a></li>
+            <li><a href="#s4">Ошибки ИИ в системном коде</a></li>
             <li><a href="#s5">Список проверки</a></li>
             <li><a href="#s6">Инструменты</a></li>
             <li><a href="#s7">Проверьте себя</a></li>
@@ -63,7 +63,7 @@
 
         <h2 id="s2"><span class="sec">§2</span>Две роли ИИ в курсе</h2>
 
-        <p>В первой роли ИИ помогает студенту писать агент-сторож: объясняет функции WinAPI, пишет код мозга на Python, ищет причину ошибки. Это инструмент разработчика, и его работа заканчивается, когда код сдан. Во второй роли ИИ — часть самого проекта. Он работает внутри системы после сдачи: получает тревогу, сам вызывает функции агента-сторожа, чтобы собрать подробности, и пишет человеку вывод.</p>
+        <p>В первой роли ИИ помогает студенту писать агент-сторож: объясняет системные функции, пишет код мозга на Python, ищет причину ошибки. Это инструмент разработчика, и его работа заканчивается, когда код сдан. Во второй роли ИИ — часть самого проекта. Он работает внутри системы после сдачи: получает тревогу, сам вызывает функции агента-сторожа, чтобы собрать подробности, и пишет человеку вывод.</p>
 
         <div class="table-scroll">
           <table>
@@ -82,11 +82,11 @@
 
         <h2 id="s3"><span class="sec">§3</span>Три режима работы</h2>
 
-        <p>У каждого задания курса указан режим: сколько работы можно поручить ИИ. Режим выбирается по цели задания. Если цель — понять новую функцию WinAPI, код пишет студент. Если функция уже понятна и нужно много однотипного кода, его может написать агент.</p>
+        <p>У каждого задания курса указан режим: сколько работы можно поручить ИИ. Режим выбирается по цели задания. Если цель — понять новую системную функцию, код пишет студент. Если функция уже понятна и нужно много однотипного кода, его может написать агент.</p>
 
         <div class="modes3">
-          <div class="m0"><b>Без ИИ<i>Р0</i></b><div><p>Студент пишет код сам. ИИ не используется.</p><p>Первый вызов каждой новой функции WinAPI, тесты, часть защиты.</p></div></div>
-          <div class="m1"><b>ИИ объясняет<i>Р1</i></b><div><p>Студент пишет код сам, ИИ объясняет функции, ошибки компилятора и коды GetLastError, проверяет готовый код.</p><p>Ядро на C в большинстве пар.</p></div></div>
+          <div class="m0"><b>Без ИИ<i>Р0</i></b><div><p>Студент пишет код сам. ИИ не используется.</p><p>Первый вызов каждой новой системной функции, тесты, часть защиты.</p></div></div>
+          <div class="m1"><b>ИИ объясняет<i>Р1</i></b><div><p>Студент пишет код сам, ИИ объясняет функции, ошибки компилятора и коды ошибок, проверяет готовый код.</p><p>Ядро на C в большинстве пар.</p></div></div>
           <div class="m2"><b>ИИ пишет<i>Р2</i></b><div><p>Код пишет ИИ-агент по задаче студента. Студент проверяет приборами, исправляет и объясняет каждую строку.</p><p>Мозг на Python, сценарии n8n, MCP-сервер, курсовая.</p></div></div>
         </div>
 
@@ -94,12 +94,12 @@
 
         <p class="bridge">В режимах Р1 и Р2 студент принимает код от ИИ. В системном коде ошибки ИИ часто не видны при запуске, но хорошо видны приборам.</p>
 
-        <h2 id="s4"><span class="sec">§4</span>Ошибки ИИ в коде WinAPI</h2>
+        <h2 id="s4"><span class="sec">§4</span>Ошибки ИИ в системном коде</h2>
 
-        <p>Код WinAPI, написанный ИИ, обычно компилируется и часто работает при первом запуске. Ошибки в нём другого рода: забытый размер структуры, незакрытый дескриптор, код ошибки, прочитанный слишком поздно. Такой код работает на компьютере разработчика и ломается у пользователя или через час работы. Ниже функция, которую ИИ написал по запросу «посчитай число процессов через WinAPI». В ней три ошибки. Нажмите на строку, в которой, по-вашему, ошибка.</p>
+        <p>Системный код, написанный ИИ, обычно компилируется и часто работает при первом запуске. Ошибки в нём другого рода: забытый размер структуры или буфера, незакрытый дескриптор, код ошибки, прочитанный слишком поздно. Такой код работает на компьютере разработчика и ломается у пользователя или через час работы. Ниже функция, которую ИИ написал по запросу «посчитай число процессов» для выбранной системы. В ней три ошибки. Нажмите на строку, в которой, по-вашему, ошибка.</p>
 
         <figure class="live" id="hunt">
-          <p class="live__head">Код от ИИ: число процессов<span class="sp" id="huntScore">найдено 0 из 3</span></p>
+          <p class="live__head"><span id="huntTitle">Код от ИИ: число процессов</span><span class="sp" id="huntScore">найдено 0 из 3</span></p>
           <div class="live__body">
             <div class="bughunt">
               <pre class="bughunt__code" id="huntCode"></pre>
@@ -109,13 +109,15 @@
           <div class="live__bar"><button class="btn" type="button" id="huntShow">Показать все ошибки</button><button class="btn" type="button" id="huntReset">Сначала</button></div>
         </figure>
 
-        <p>Все три ошибки находятся приборами курса, а не чтением кода. Первая видна сразу: функция возвращает −1, а <code>GetLastError</code>, вызванный в правильном месте, даёт код 24 — неверная длина. Вторая видна в Process Explorer: если вызывать функцию в цикле, число дескрипторов процесса в столбце Handles растёт на единицу при каждом вызове. Третья проявляется не всегда: <code>printf</code> внутри вызывает функции Windows, и код ошибки может замениться другим.</p>
+        <p data-os="win">Все три ошибки находятся приборами курса, а не чтением кода. Первая видна сразу: функция возвращает −1, а <code>GetLastError</code>, вызванный в правильном месте, даёт код 24 — неверная длина. Вторая видна в Process Explorer: если вызывать функцию в цикле, число дескрипторов процесса в столбце Handles растёт на единицу при каждом вызове. Третья проявляется не всегда: <code>printf</code> внутри вызывает функции Windows, и код ошибки может замениться другим.</p>
+        <p data-os="linux">Все три ошибки находятся приборами курса. Утечку видно в папке <code>/proc/&lt;pid&gt;/fd</code>: в ней по файлу на каждый открытый дескриптор. В проверке курса после четырёх вызовов функции в ней было на четыре записи больше. Без <code>errno = 0</code> функция иногда сообщает об ошибке, которой не было: в <code>errno</code> осталось значение от прошлого вызова. Отсутствие проверки <code>opendir</code> проявляется только там, где <code>/proc</code> недоступна, например в некоторых контейнерах, и тогда программа падает.</p>
+        <p data-os="mac">Все три ошибки находятся сверкой с системой. В проверке курса на macOS 26 функция вернула 1024, а команда <code>ps -A | wc -l</code> показала около 517 строк: результат — байты, а не число процессов, и вдобавок буфер на 256 номеров обрезал список. Правильный способ — сначала вызвать <code>proc_listpids</code> с пустым буфером, чтобы узнать нужный размер, затем выделить память и разделить результат на <code>sizeof(pid_t)</code>.</p>
 
         <hr class="sep">
 
-        <p>В Python через <code>ctypes</code> у ИИ своя типичная ошибка: он не указывает, какой тип возвращает функция WinAPI. По умолчанию <code>ctypes</code> считает результат числом <code>int</code> размером 4 байта, а дескриптор в 64-битной Windows занимает 8 байт.</p>
+        <p>В Python через <code>ctypes</code> у ИИ своя типичная ошибка: он не указывает, какой тип возвращает системная функция. По умолчанию <code>ctypes</code> считает результат числом <code>int</code> размером 4 байта, а <span data-os="win">дескриптор в 64-битной Windows</span><span data-os="mac linux">указатель в 64-битной системе</span> занимает 8 байт.</p>
 
-        <figure class="code" data-read>
+        <figure class="code" data-read data-os="win">
           <figcaption><span>brain.py · ошибка ИИ</span></figcaption>
 <pre><span class="k">import</span> ctypes
 k32 = ctypes.windll.kernel32
@@ -126,21 +128,32 @@ snap = k32.<span class="f">CreateToolhelp32Snapshot</span>(<span class="n">2</sp
     <span class="k">raise</span> <span class="t">OSError</span>(ctypes.<span class="f">GetLastError</span>())</pre>
         </figure>
 
-        <p>Если функция завершится ошибкой и вернёт <code>INVALID_HANDLE_VALUE</code>, в Python придёт число −1, а сравнение идёт с тем же значением, записанным как 8-байтовое число без знака. Проверка ошибки никогда не сработает, и программа пойдёт дальше с неверным дескриптором. Исправление — объявить типы до вызова: <code>k32.CreateToolhelp32Snapshot.restype = ctypes.c_void_p</code> и <code>argtypes</code> для аргументов. Эта ошибка разбирается на паре 9 вместе с ошибками памяти в C.</p>
+        <p data-os="win">Если функция завершится ошибкой и вернёт <code>INVALID_HANDLE_VALUE</code>, в Python придёт число −1, а сравнение идёт с тем же значением, записанным как 8-байтовое число без знака. Проверка ошибки никогда не сработает, и программа пойдёт дальше с неверным дескриптором. Исправление — объявить типы до вызова: <code>k32.CreateToolhelp32Snapshot.restype = ctypes.c_void_p</code> и <code>argtypes</code> для аргументов. Эта ошибка разбирается на паре 9 вместе с ошибками памяти в C.</p>
+        <figure class="code" data-read data-os="mac linux">
+          <figcaption><span>brain.py · ошибка ИИ</span></figcaption>
+<pre><span class="k">import</span> ctypes, ctypes.util
+libc = ctypes.<span class="f">CDLL</span>(ctypes.util.<span class="f">find_library</span>(<span class="s">"c"</span>))
+
+d = libc.<span class="f">opendir</span>(<span class="s">b"/proc"</span>)    <span class="c"># restype не задан: адрес DIR* обрезан до int</span>
+<span class="f">print</span>(<span class="f">hex</span>(d &amp; <span class="n">0xffffffffffffffff</span>))  <span class="c"># 0xffffffffe196fbe0 — такого адреса нет</span>
+libc.<span class="f">readdir</span>(d)                     <span class="c"># обращение по неверному адресу: процесс падает</span></pre>
+        </figure>
+
+        <p data-os="mac linux"><code>opendir</code> возвращает указатель на структуру <code>DIR</code> — 8 байт. Без <code>restype</code> Python берёт от него только младшие 4 байта, и получается число, похожее на адрес, но указывающее в никуда. В проверке курса на Linux вызов вернул <code>0xffffffffe196fbe0</code> вместо настоящего адреса <code>0xaaaae1977c20</code>. Следующий вызов <code>readdir</code> с таким значением роняет весь интерпретатор. Исправление — объявить типы до вызова: <code>libc.opendir.restype = ctypes.c_void_p</code> и <code>argtypes</code> для аргументов. Эта ошибка разбирается на паре 9 вместе с ошибками памяти в C.</p>
 
         <h2 id="s5"><span class="sec">§5</span>Список проверки</h2>
 
         <p>Код от ИИ в режимах Р1 и Р2 принимается по списку. Справа у пункта — прибор или способ проверки.</p>
 
         <ul class="checklist2">
-          <li>Результат каждой функции WinAPI проверен, <code>GetLastError</code> вызван сразу после неудачи<i>чтение кода</i></li>
-          <li>Каждый дескриптор закрыт на всех путях выхода из функции, включая ветки с ошибкой<i>Process Explorer, Handles</i></li>
-          <li>Поля размера структур заданы: <code>dwSize</code>, <code>cbSize</code>; длины буферов W-функций указаны в символах<i>GetLastError 24, 122</i></li>
-          <li>В <code>ctypes</code> заданы <code>argtypes</code> и <code>restype</code> у каждой функции<i>чтение кода</i></li>
-          <li>Сборка с AddressSanitizer проходит без сообщений<i>MSVC /fsanitize=address</i></li>
-          <li>Результат совпадает со служебной программой: тот же список процессов, тот же файл, тот же порт<i>Sysinternals</i></li>
-          <li>Нарушитель в GitHub Actions проходит все прежние проверки<i>Actions</i></li>
-          <li>Студент объясняет каждую строку и записал работу ИИ в журнал<i>защита</i></li>
+          <li><span>Результат каждой системной функции проверен, код ошибки — <span data-os="win"><code>GetLastError</code></span><span data-os="mac linux"><code>errno</code></span> — прочитан сразу после неудачи</span><i>чтение кода</i></li>
+          <li><span>Каждый дескриптор закрыт на всех путях выхода из функции, включая ветки с ошибкой</span><i><span data-os="win">Process Explorer, Handles</span><span data-os="linux">ls /proc/&lt;pid&gt;/fd</span><span data-os="mac">lsof -p &lt;pid&gt;</span></i></li>
+          <li><span>Размеры структур и буферов заданы и проверены: <span data-os="win"><code>dwSize</code>, <code>cbSize</code>, длины буферов W-функций в символах</span><span data-os="mac linux">размер буфера запрошен у системы, результат в байтах переведён в число элементов</span></span><i>сверка со служебной программой</i></li>
+          <li><span>В <code>ctypes</code> заданы <code>argtypes</code> и <code>restype</code> у каждой функции</span><i>чтение кода</i></li>
+          <li><span>Сборка с AddressSanitizer проходит без сообщений</span><i><span data-os="win">MSVC /fsanitize=address</span><span data-os="mac linux">-fsanitize=address</span></i></li>
+          <li><span>Результат совпадает со служебной программой: тот же список процессов, тот же файл, тот же порт</span><i><span data-os="win">Sysinternals</span><span data-os="linux">ps, ss, strace</span><span data-os="mac">ps, lsof, fs_usage</span></i></li>
+          <li><span>Нарушитель в GitHub Actions проходит все прежние проверки</span><i>Actions</i></li>
+          <li><span>Студент объясняет каждую строку и записал работу ИИ в журнал</span><i>защита</i></li>
         </ul>
 
         <h2 id="s6"><span class="sec">§6</span>Инструменты</h2>
@@ -179,19 +192,20 @@ snap = k32.<span class="f">CreateToolhelp32Snapshot</span>(<span class="n">2</sp
         </details>
         <details>
           <summary>ИИ написал функцию, которая работает при запуске. Как проверить, что в ней не теряются дескрипторы?</summary>
-          <p>Вызвать функцию в цикле и смотреть в Process Explorer столбец Handles у процесса. Если число растёт с каждым вызовом, какой-то дескриптор не закрывается.</p>
+          <p>Вызвать функцию в цикле и смотреть число открытых дескрипторов процесса: <span data-os="win">столбец Handles в Process Explorer</span><span data-os="linux">число файлов в <code>/proc/&lt;pid&gt;/fd</code></span><span data-os="mac">число строк в выводе <code>lsof -p &lt;pid&gt;</code></span>. Если число растёт с каждым вызовом, какой-то дескриптор не закрывается.</p>
         </details>
         <details>
-          <summary>Почему в режиме Р0 пишется первый вызов каждой новой функции WinAPI?</summary>
+          <summary>Почему в режиме Р0 пишется первый вызов каждой новой системной функции?</summary>
           <p>Чтобы студент сам разобрался с аргументами, структурами и кодами ошибок этой функции. Без этого он не сможет проверить код, который ИИ напишет с той же функцией в режиме Р2.</p>
         </details>
 
         <h3>Итог главы</h3>
-        <p>Чат отвечает текстом, помощник работает в редакторе, агент выполняет задачу по шагам с инструментами. В курсе ИИ работает в двух ролях: помощник разработчика с первой пары и агент внутри проекта, который объясняет и расследует тревоги через функции агента-сторожа. Режим задания — Р0, Р1 или Р2 — определяет, сколько работы можно поручить ИИ. Ошибки ИИ в коде WinAPI находятся приборами: Process Explorer, AddressSanitizer, коды GetLastError, сверка со служебными программами. Код принимается по списку из восьми пунктов, и за каждую строку отвечает студент.</p>
+        <p>Чат отвечает текстом, помощник работает в редакторе, агент выполняет задачу по шагам с инструментами. В курсе ИИ работает в двух ролях: помощник разработчика с первой пары и агент внутри проекта, который объясняет и расследует тревоги через функции агента-сторожа. Режим задания — Р0, Р1 или Р2 — определяет, сколько работы можно поручить ИИ. Ошибки ИИ в системном коде находятся приборами: счётчик дескрипторов, AddressSanitizer, коды ошибок, сверка со служебными программами. Код принимается по списку из восьми пунктов, и за каждую строку отвечает студент.</p>
 
         <h3>Источники</h3>
         <ol class="biblio">
           <li><a href="https://learn.microsoft.com/ru-ru/windows/win32/api/tlhelp32/nf-tlhelp32-process32firstw" target="_blank" rel="noreferrer">Microsoft Learn — функция Process32FirstW (поле dwSize)</a></li>
+          <li><a href="https://man7.org/linux/man-pages/man3/readdir.3.html" target="_blank" rel="noreferrer">Linux man-pages — readdir(3): errno и конец каталога</a></li>
           <li><a href="https://learn.microsoft.com/ru-ru/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror" target="_blank" rel="noreferrer">Microsoft Learn — функция GetLastError</a></li>
           <li><a href="https://docs.python.org/3/library/ctypes.html" target="_blank" rel="noreferrer">Python — ctypes: return types, argtypes</a></li>
           <li><a href="https://learn.microsoft.com/ru-ru/cpp/sanitizers/asan" target="_blank" rel="noreferrer">Microsoft Learn — AddressSanitizer в MSVC</a></li>
@@ -217,44 +231,92 @@ snap = k32.<span class="f">CreateToolhelp32Snapshot</span>(<span class="n">2</sp
   <script>
   (() => {
     const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const CODE = [
-      '#include <windows.h>',
-      '#include <tlhelp32.h>',
-      '#include <stdio.h>',
-      '',
-      'int count_processes(void) {',
-      '    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);',
-      '    PROCESSENTRY32W pe;',
-      '    int n = 0;',
-      '    if (!Process32FirstW(snap, &pe)) {',
-      '        printf("Process32FirstW failed\\n");',
-      '        printf("error %lu\\n", GetLastError());',
-      '        return -1;',
-      '    }',
-      '    do { n++; } while (Process32NextW(snap, &pe));',
-      '    return n;',
-      '}',
-    ];
-    const BUGS = {
-      7: ['Не задан размер структуры', 'Перед первым вызовом Process32FirstW поле <code>pe.dwSize</code> должно содержать размер структуры: <code>pe.dwSize = sizeof(pe);</code>. Без этого функция вернёт FALSE, и программа всегда выйдет по ветке ошибки.', 'прибор: GetLastError → 24, ERROR_BAD_LENGTH'],
-      11: ['Код ошибки читается слишком поздно', '<code>GetLastError</code> нужно вызывать сразу после неудачной функции. <code>printf</code> в строке 10 внутри вызывает функции Windows и может заменить код ошибки другим. Правильно — сохранить <code>DWORD err = GetLastError();</code> до любого вывода.', 'прибор: сравнить код с выводом Process Monitor'],
-      15: ['Дескриптор снимка не закрыт', 'Снимок процессов — объект ядра, и его дескриптор нужно закрыть <code>CloseHandle(snap)</code> перед каждым <code>return</code>, в том числе в строке 12. Иначе каждый вызов функции оставляет в агенте открытый дескриптор, и за сутки их накапливаются тысячи.', 'прибор: Process Explorer, столбец Handles растёт'],
+    const os = () => document.documentElement.getAttribute('data-os') || 'win';
+    const HUNT = {
+      win: { title: 'Код от ИИ: число процессов · Windows', code: [
+        '#include <windows.h>',
+        '#include <tlhelp32.h>',
+        '#include <stdio.h>',
+        '',
+        'int count_processes(void) {',
+        '    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);',
+        '    PROCESSENTRY32W pe;',
+        '    int n = 0;',
+        '    if (!Process32FirstW(snap, &pe)) {',
+        '        printf("Process32FirstW failed\\n");',
+        '        printf("error %lu\\n", GetLastError());',
+        '        return -1;',
+        '    }',
+        '    do { n++; } while (Process32NextW(snap, &pe));',
+        '    return n;',
+        '}',
+      ], bugs: {
+        7: ['Не задан размер структуры', 'Перед первым вызовом Process32FirstW поле <code>pe.dwSize</code> должно содержать размер структуры: <code>pe.dwSize = sizeof(pe);</code>. Без этого функция вернёт FALSE, и программа всегда выйдет по ветке ошибки.', 'прибор: GetLastError → 24, ERROR_BAD_LENGTH'],
+        11: ['Код ошибки читается слишком поздно', '<code>GetLastError</code> нужно вызывать сразу после неудачной функции. <code>printf</code> в строке 10 внутри вызывает функции Windows и может заменить код ошибки другим. Правильно — сохранить <code>DWORD err = GetLastError();</code> до любого вывода.', 'прибор: сравнить код с Process Monitor'],
+        15: ['Дескриптор снимка не закрыт', 'Снимок процессов — объект ядра, и его дескриптор нужно закрыть <code>CloseHandle(snap)</code> перед каждым <code>return</code>, в том числе в строке 12. Иначе каждый вызов оставляет в агенте открытый дескриптор, и за сутки их накапливаются тысячи.', 'прибор: Process Explorer, столбец Handles растёт'],
+      } },
+      linux: { title: 'Код от ИИ: число процессов · Linux', code: [
+        '#include <ctype.h>',
+        '#include <dirent.h>',
+        '#include <errno.h>',
+        '#include <stdio.h>',
+        '',
+        'int count_processes(void) {',
+        '    DIR *d = opendir("/proc");',
+        '    struct dirent *e;',
+        '    int n = 0;',
+        '    while ((e = readdir(d)) != NULL) {',
+        '        if (isdigit((unsigned char)e->d_name[0])) n++;',
+        '    }',
+        '    if (errno != 0) {',
+        '        printf("readdir failed\\n");',
+        '        return -1;',
+        '    }',
+        '    return n;',
+        '}',
+      ], bugs: {
+        7: ['Результат opendir не проверен', '<code>opendir</code> возвращает NULL, если каталог открыть не удалось. Следующий <code>readdir(NULL)</code> обращается по нулевому адресу, и процесс падает. Нужна проверка <code>if (d == NULL) return -1;</code> с чтением <code>errno</code>.', 'прибор: запуск в контейнере без /proc'],
+        10: ['errno не обнулён перед readdir', '<code>readdir</code> возвращает NULL и в конце каталога, и при ошибке. Различить их можно только так: обнулить <code>errno = 0;</code> перед циклом и проверить после. Иначе в <code>errno</code> может остаться значение от прошлого вызова, и функция сообщит об ошибке, которой не было.', 'источник: man 3 readdir'],
+        17: ['Каталог не закрыт', 'Каждый <code>opendir</code> занимает дескриптор файла. Перед каждым <code>return</code>, в том числе в строке 15, нужен <code>closedir(d);</code>. Иначе агент за сутки упрётся в лимит открытых файлов (обычно 1024) и перестанет открывать что-либо.', 'прибор: ls /proc/<pid>/fd растёт на 1 за вызов'],
+      } },
+      mac: { title: 'Код от ИИ: число процессов · macOS', code: [
+        '#include <libproc.h>',
+        '#include <stdio.h>',
+        '',
+        'int count_processes(void) {',
+        '    pid_t pids[256];',
+        '    int bytes = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));',
+        '    if (bytes <= 0) {',
+        '        printf("proc_listpids failed\\n");',
+        '        perror("proc_listpids");',
+        '        return -1;',
+        '    }',
+        '    return bytes;',
+        '}',
+      ], bugs: {
+        5: ['Буфер фиксированного размера', 'На обычном Mac работает 400–600 процессов, а в буфер помещается 256 номеров. Лишние номера отбрасываются без ошибки. Правильно — сначала вызвать <code>proc_listpids(PROC_ALL_PIDS, 0, NULL, 0)</code>, чтобы узнать нужный размер, и выделить буфер с запасом.', 'прибор: сравнить с ps -A | wc -l'],
+        9: ['Код ошибки читается слишком поздно', '<code>perror</code> печатает текст по текущему значению <code>errno</code>, а <code>printf</code> в строке 8 может его изменить. Правильно — сохранить <code>int err = errno;</code> сразу после неудачного вызова.', 'источник: man 3 errno'],
+        12: ['Возвращаются байты, а не процессы', '<code>proc_listpids</code> возвращает размер заполненной части буфера в байтах. Число процессов — <code>bytes / sizeof(pid_t)</code>. В проверке курса функция вернула 1024 при 256 обрезанных номерах.', 'прибор: результат в 4 раза больше, чем ps'],
+      } },
     };
     const code = document.getElementById('huntCode'), side = document.getElementById('huntSide');
     let found = new Set();
     const render = () => {
-      code.innerHTML = CODE.map((l, i) => `<span class="ln${found.has(i + 1) ? ' found' : ''}" data-l="${i + 1}">${esc(l) || ' '}</span>`).join('');
+      const H = HUNT[os()];
+      document.getElementById('huntTitle').textContent = H.title;
+      code.innerHTML = H.code.map((l, i) => `<span class="ln${found.has(i + 1) ? ' found' : ''}" data-l="${i + 1}">${esc(l) || ' '}</span>`).join('');
       document.getElementById('huntScore').textContent = `найдено ${found.size} из 3`;
-      side.innerHTML = found.size ? [...found].sort((a, b) => a - b).map(l => `<div class="bughunt__card"><b>Строка ${l} · ${BUGS[l][0]}</b>${BUGS[l][1]}<em>${BUGS[l][2]}</em></div>`).join('') : '<p class="bughunt__hint">Объяснение найденных ошибок появится здесь.</p>';
+      side.innerHTML = found.size ? [...found].sort((a, b) => a - b).map(l => `<div class="bughunt__card"><b>Строка ${l} · ${H.bugs[l][0]}</b>${H.bugs[l][1]}<em>${esc(H.bugs[l][2])}</em></div>`).join('') : '<p class="bughunt__hint">Объяснение найденных ошибок появится здесь.</p>';
     };
     code.addEventListener('click', e => {
       const ln = e.target.closest('.ln'); if (!ln) return;
       const l = +ln.dataset.l;
-      if (BUGS[l]) { found.add(l); render(); }
+      if (HUNT[os()].bugs[l]) { found.add(l); render(); }
       else { ln.classList.add('miss'); setTimeout(() => ln.classList.remove('miss'), 500); }
     });
-    document.getElementById('huntShow').onclick = () => { found = new Set([7, 11, 15]); render(); };
+    document.getElementById('huntShow').onclick = () => { found = new Set(Object.keys(HUNT[os()].bugs).map(Number)); render(); };
     document.getElementById('huntReset').onclick = () => { found = new Set(); render(); };
+    document.addEventListener('book:os', () => { found = new Set(); render(); });
     render();
   })();
   </script>
