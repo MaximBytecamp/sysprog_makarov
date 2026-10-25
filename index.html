@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     .cover { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .8fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
-    .cover h1 { margin: 12px 0 10px; font-family: var(--display); font-size: clamp(36px, 5.6vw, 74px); line-height: 1.02; letter-spacing: -.5px; }
+    .cover h1 { margin: 12px 0 10px; font-family: var(--display); font-size: clamp(28px, 4.1vw, 54px); hyphens: none; line-height: 1.02; letter-spacing: -.5px; }
     .cover h1 .r { color: var(--acc); }
     .cover h1 .g { color: var(--ng); }
     .cover__sub { margin: 0 0 22px; font-family: var(--display); font-size: clamp(17px, 1.8vw, 26px); color: var(--ink-soft); }
@@ -25,8 +25,8 @@
     .card-c ol { list-style: none; margin: 0; padding: 12px 14px; display: grid; gap: 6px; }
     .card-c li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; border: 2px solid var(--ink); background: #fff; font: 500 12.5px/1.3 var(--mono); }
     .card-c li i { font-style: normal; color: var(--ink-faint); }
-    .card-c li.u { border-left: 7px solid var(--acc); }
-    .card-c li.k { border-left: 7px solid var(--ng); }
+    .card-c li.cu { border-left: 7px solid var(--acc); }
+    .card-c li.ck { border-left: 7px solid var(--ng); }
     .card-c .edge { padding: 2px; border: 0; background: none; justify-content: center; font: 600 10px/1.3 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--ng); }
 
 
@@ -85,13 +85,13 @@
           <aside class="card-c" aria-label="Путь вызова CreateFileW от программы до диска">
             <p class="card-c__tag">Путь одного вызова · глава 0.1</p>
             <ol>
-              <li class="u">agent.exe<i>CreateFileW</i></li>
-              <li class="u">KernelBase.dll<i>проверка аргументов</i></li>
-              <li class="u">ntdll.dll<i>syscall</i></li>
+              <li class="cu">agent.exe<i>CreateFileW</i></li>
+              <li class="cu">KernelBase.dll<i>проверка аргументов</i></li>
+              <li class="cu">ntdll.dll<i>syscall</i></li>
               <li class="edge">граница режима ядра</li>
-              <li class="k">ядро Windows<i>ввод-вывод</i></li>
-              <li class="k">ntfs.sys<i>файл и права</i></li>
-              <li class="k">драйвер диска<i>чтение</i></li>
+              <li class="ck">ядро Windows<i>ввод-вывод</i></li>
+              <li class="ck">ntfs.sys<i>файл и права</i></li>
+              <li class="ck">драйвер диска<i>чтение</i></li>
             </ol>
           </aside>
         </section>

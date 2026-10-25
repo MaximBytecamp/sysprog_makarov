@@ -171,13 +171,13 @@
           <p class="live__head">CreateFileW: от программы до диска<span class="sp" id="callLbl">шаг 0 из 6</span></p>
           <div class="live__body">
             <ol class="callchain">
-              <li class="u" data-s="1"><b>agent.exe</b><span>Код агента на C вызывает <code>CreateFileW(L"C:\\Windows\\System32\\drivers\\etc\\hosts", GENERIC_READ, …)</code>.</span></li>
-              <li class="u" data-s="2"><b>KernelBase.dll</b><span>Функция WinAPI проверяет аргументы, переводит путь в формат ядра <code>\??\C:\Windows\…\hosts</code> и вызывает <code>NtCreateFile</code>.</span></li>
-              <li class="u" data-s="3"><b>ntdll.dll</b><span><code>NtCreateFile</code> кладёт номер системного вызова в регистр процессора и выполняет команду <code>syscall</code>.</span></li>
+              <li class="cu" data-s="1"><b>agent.exe</b><span>Код агента на C вызывает <code>CreateFileW(L"C:\\Windows\\System32\\drivers\\etc\\hosts", GENERIC_READ, …)</code>.</span></li>
+              <li class="cu" data-s="2"><b>KernelBase.dll</b><span>Функция WinAPI проверяет аргументы, переводит путь в формат ядра <code>\??\C:\Windows\…\hosts</code> и вызывает <code>NtCreateFile</code>.</span></li>
+              <li class="cu" data-s="3"><b>ntdll.dll</b><span><code>NtCreateFile</code> кладёт номер системного вызова в регистр процессора и выполняет команду <code>syscall</code>.</span></li>
               <li class="edge">граница режима ядра</li>
-              <li class="k" data-s="4"><b>ядро Windows</b><span>Диспетчер ввода-вывода ядра оформляет запрос на открытие файла и передаёт его драйверу файловой системы того диска, где лежит файл.</span></li>
-              <li class="k" data-s="5"><b>ntfs.sys</b><span>Драйвер файловой системы NTFS находит файл и вместе с ядром проверяет права: может ли этот пользователь его читать. Затем определяет, в каких блоках диска лежат данные.</span></li>
-              <li class="k" data-s="6"><b>драйвер диска</b><span>Драйвер передаёт команду контроллеру SSD. Результат идёт обратно по той же цепочке, и программа получает дескриптор — номер открытого файла.</span></li>
+              <li class="ck" data-s="4"><b>ядро Windows</b><span>Диспетчер ввода-вывода ядра оформляет запрос на открытие файла и передаёт его драйверу файловой системы того диска, где лежит файл.</span></li>
+              <li class="ck" data-s="5"><b>ntfs.sys</b><span>Драйвер файловой системы NTFS находит файл и вместе с ядром проверяет права: может ли этот пользователь его читать. Затем определяет, в каких блоках диска лежат данные.</span></li>
+              <li class="ck" data-s="6"><b>драйвер диска</b><span>Драйвер передаёт команду контроллеру SSD. Результат идёт обратно по той же цепочке, и программа получает дескриптор — номер открытого файла.</span></li>
             </ol>
           </div>
           <p class="live__note" id="callNote">Нажмите «Шаг», чтобы пройти вызов по слоям.</p>

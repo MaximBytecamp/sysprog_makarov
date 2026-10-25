@@ -363,7 +363,7 @@ notepad hello.c</pre></figure>
       const p = +range.value, m = mod(p);
       document.querySelectorAll('#pairs i').forEach(i => { const k = +i.dataset.p; i.classList.toggle('past', k < p); i.classList.toggle('now', k === p); });
       $('trackNo').textContent = `пара ${p}`;
-      $('trackCard').innerHTML = `<h5>Модуль ${m[0]} · ${m[1]}</h5><b class="t">${P[p - 1][0]}</b><p>${P[p - 1][1]}</p>`;
+      $('trackCard').innerHTML = `<h5>Модуль ${m[0]} · ${m[1]}</h5><b class="pt">${P[p - 1][0]}</b><p>${P[p - 1][1]}</p>`;
       $('trackScore').textContent = `${C.filter(c => c[0] <= p).length} / 13`;
       $('trackChecks').innerHTML = C.map((c, i) => `<li class="${c[0] <= p ? 'on' : ''}${c[0] === p ? ' new' : ''}">${i + 1}. ${c[1]}</li>`).join('');
     };
