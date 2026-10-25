@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>0.4 Как устроена дисциплина · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    /* Архитектура агента по этапам курса. */
+    .arch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .arch .node { margin: 0; transition: opacity .25s, background .2s, box-shadow .2s, transform .2s; }
+    .arch .node::after { content: none; }
+    .arch .node.dim { opacity: .3; }
+    .arch .node.new { background: var(--acc-pale); box-shadow: 4px 4px 0 var(--acc); transform: translateY(-3px); }
+    .arch .node.lang-c { border-left: 7px solid var(--acc); }
+    .arch .node.lang-py { border-left: 7px solid #2D7FC1; }
+    .arch .node.lang-ai { border-left: 7px solid var(--ng); }
+    .arch__links { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+    .arch__links li { padding: 8px 12px; border: 2px solid var(--rule); background: #fff; font-size: 14.5px; line-height: 1.45; }
+    .arch__links li b { font-family: var(--mono); font-size: 13px; }
+    .live__head .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+    .live__head .tabs button { padding: 5px 9px; border: 2px solid rgba(255, 255, 255, .4); background: transparent; color: #fff; font: 600 11.5px/1 var(--mono); letter-spacing: 0; text-transform: none; cursor: pointer; }
+    .live__head .tabs button[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); }
+    .chain--6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .lines3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 22px 0; }
+    .lines3 > div { border: 3px solid var(--ink); background: var(--page); }
+    .lines3 > div > b { display: block; padding: 8px 12px; background: var(--ink); color: #fff; font: 600 11px/1.4 var(--pixel); letter-spacing: 1px; text-transform: uppercase; }
+    .lines3 > div > div { padding: 10px 12px; font-size: 14.5px; line-height: 1.5; }
+    .lines3 > div > div p { margin: 0 0 6px; }
+    .lines3 > div > div small { display: block; font: 500 12.5px/1.45 var(--mono); color: var(--ink-soft); }
+    .lines3 > div:nth-child(1) { box-shadow: 5px 5px 0 var(--acc); }
+    .lines3 > div:nth-child(2) { box-shadow: 5px 5px 0 #2D7FC1; }
+    .lines3 > div:nth-child(3) { box-shadow: 5px 5px 0 var(--ng); }
+    .mod__row--ai > b { color: #2D7FC1; }
+    @media (max-width: 900px) { .arch, .lines3 { grid-template-columns: 1fr; } .chain--6 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 0 · Системное программирование сегодня</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 0 · системное программирование сегодня</p>
+          <p class="running__folio">0.4</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">0.4</span>
+          <h1>Как устроена<br>дисциплина</h1>
+          <p class="lead">В этой главе описано, чему учит дисциплина и как она построена. Весь курс студенты пишут одну программу — агент-сторож компьютера с Windows. Его ядро написано на C и обращается к WinAPI, мозг написан на Python и связывает ядро с сервисом автоматизации n8n и моделями ИИ. ИИ участвует с первой пары: помогает писать код, объясняет тревоги, а со второй половины курса сам расследует их через функции агента. Глава заканчивается заданием к модулю 0.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Категория</dt><dd>Организация</dd></div>
+          <div><dt>Уровень</dt><dd>Вводный</dd></div>
+          <div><dt>Связанные темы</dt><dd>WinAPI (глава 0.1), ИИ-агенты и режимы работы (глава 0.3)</dd></div>
+          <div><dt>Зачем это знать</dt><dd>Понимать, что будет сделано за 24 пары и как будет проверяться работа</dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>В этой главе</b>
+          <ol>
+            <li><a href="#s1">Чему учит дисциплина</a></li>
+            <li><a href="#s2">Классический план и план курса</a></li>
+            <li><a href="#s3">Агент-сторож: ядро на C и мозг на Python</a></li>
+            <li><a href="#s4">Путь тревоги</a></li>
+            <li><a href="#s5">ИИ на каждой паре</a></li>
+            <li><a href="#s6">Как растут проверки</a></li>
+            <li><a href="#s7">Модули</a></li>
+            <li><a href="#s8">Инструменты</a></li>
+            <li><a href="#s9">Задание к модулю 0</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Чему учит дисциплина</h2>
+
+        <p>Дисциплина длится 24 пары. За это время невозможно научиться писать драйверы или ядро, поэтому цель другая: понять, что происходит внутри Windows, когда работает программа, научиться получать эти сведения из своего кода, проверять их служебными программами и отдавать другим программам, в том числе моделям ИИ. Все темы курса собираются в один проект, который к концу семестра работает как настоящий агент мониторинга с ИИ-расследованием тревог.</p>
+
+        <p>После дисциплины студент должен уметь шесть вещей:</p>
+        <ol>
+          <li><strong>Объяснить, что происходит внутри Windows</strong> во время работы программы: процессы и потоки, виртуальная память, файлы и реестр, сетевые соединения, службы.</li>
+          <li><strong>Писать на C код, который вызывает WinAPI</strong>, и разбирать ошибки этих вызовов по кодам <code>GetLastError</code>.</li>
+          <li><strong>Связывать C и Python</strong>: собирать DLL на C и вызывать её из Python через <code>ctypes</code>, связывать два процесса именованным каналом.</li>
+          <li><strong>Проверять результат приборами</strong>: Process Explorer, Process Monitor, Autoruns, TCPView, AddressSanitizer, отладчиком x64dbg.</li>
+          <li><strong>Работать с ИИ и встраивать его в систему</strong>: ставить задачу ИИ-агенту и принимать его код по списку проверки, давать модели инструменты для расследования, писать MCP-сервер.</li>
+          <li><strong>Защитить проект</strong>: показать агент в работе, объяснить любую строку кода, в том числе написанную ИИ.</li>
+        </ol>
+
+        <h2 id="s2"><span class="sec">§2</span>Классический план и план курса</h2>
+
+        <p>В классическом плане этой дисциплины лекции пересказывают теорию операционных систем, а практика проходит в Windows Forms. <span class="term">Windows Forms</span> — библиотека .NET для окон, кнопок и списков. Она берёт обращения к системе на себя: строка <code>Process.GetProcesses()</code> возвращает готовый список процессов, а как Windows его собирает, программист не видит. В результате теория остаётся текстом лекции, а практика учит располагать элементы на форме, то есть прикладному программированию.</p>
+
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Пультом от телевизора пользоваться удобно, но по нему не узнать, как устроен телевизор. Чтобы разобраться, нужно снять заднюю крышку и проверить плату прибором. Windows Forms — это пульт. В курсе роль снятой крышки играет WinAPI, а роль прибора — программы Sysinternals и отладчик.</p>
+          <p class="miss">Снятая крышка телевизора лишает гарантии, а вызовы WinAPI — обычный способ работы с Windows, им пользуется сама Microsoft.</p>
+        </div></div>
+
+        <p>В курсе каждая тема теории проверяется на настоящем компьютере. В таблице одна и та же тема в двух планах.</p>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Тема</th><th>Классический план</th><th>План курса</th></tr></thead>
+            <tbody>
+              <tr><td>Процессы</td><td>Лекция о состояниях процесса. Форма со списком из <code>Process.GetProcesses()</code></td><td><code>CreateToolhelp32Snapshot</code> в ядре на C, сверка с Process Explorer, проверки 1 и 2. ИИ-агент спрашивает у агента, какой процесс открыл порт</td></tr>
+              <tr><td>Потоки</td><td>Лекция о планировании потоков. Форма с фоновым потоком</td><td>Потоки и критическая секция на C, потоки Python с блокировкой GIL и без неё в Process Explorer</td></tr>
+              <tr><td>Файлы</td><td>Лекция о FAT и NTFS. Форма с диалогом «Открыть»</td><td><code>CreateFileW</code>, хэш SHA-256, <code>ReadDirectoryChangesW</code>, Process Monitor на программе на C и на <code>import</code> в Python, проверки 4 и 5</td></tr>
+              <tr><td>Сеть</td><td>Лекция о модели OSI. Форма чата на <code>TcpClient</code></td><td><code>GetExtendedTcpTable</code>, сверка с TCPView, проверка 8; мозг на Python отдаёт данные ИИ-агенту по HTTP и через MCP</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>В правой колонке у каждой темы три шага. Они повторяются на каждой паре и задают её порядок.</p>
+
+        <div class="triad">
+          <div><i>WinAPI на C</i><b>Вызов функций системы</b><span>Студент пишет код ядра, который получает сведения у Windows напрямую, и разбирает коды ошибок.</span></div>
+          <div><i>Сверка</i><b>Служебная программа</b><span>Результат сравнивается с Process Explorer, Process Monitor, Autoruns или TCPView.</span></div>
+          <div><i>Проверка</i><b>Новое нарушение</b><span>Мозг на Python начинает замечать ещё одну ситуацию, нарушитель в GitHub Actions это подтверждает, модель объясняет тревогу.</span></div>
+        </div>
+
+        <h2 id="s3"><span class="sec">§3</span>Агент-сторож: ядро на C и мозг на Python</h2>
+
+        <p><span class="term">Агент мониторинга</span> — программа, которая постоянно работает на компьютере, собирает сведения о его состоянии и сообщает о нарушениях. Такие программы есть в каждой организации, где больше нескольких компьютеров: агент Zabbix следит за нагрузкой серверов, Защитник Windows — за подозрительными файлами, системы инвентаризации — за установленными программами.</p>
+
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Охрана здания состоит из датчиков и дежурного. Датчики на дверях и окнах простые и быстрые: они только сообщают, что дверь открылась. Дежурный получает сигналы, сверяет их с расписанием, звонит начальнику и вызывает наряд. Датчики не умеют звонить, а дежурный не может стоять у каждой двери.</p>
+          <p class="miss">Датчики охраны ставит монтажник, а ядро и мозг агента пишет один и тот же студент.</p>
+        </div></div>
+
+        <p>Агент курса состоит из двух частей, и каждая написана на том языке, который для неё удобнее. <span class="term">Ядро</span> написано на C. Оно вызывает функции WinAPI и возвращает факты: список процессов, загрузку процессора, хэш файла, записи автозагрузки, открытые порты, подпись программы. В ядре нет расписания, сети и ИИ, только точные и быстрые вызовы Windows. <span class="term">Мозг</span> написан на Python. Он по расписанию вызывает функции ядра, сравнивает результат с прошлым снимком, решает, что считать нарушением, отправляет тревоги в n8n и отвечает на запросы ИИ-агента.</p>
+
+        <p>Связь частей меняется по ходу курса. Сначала ядро собирается в библиотеку DLL, и Python вызывает её функции через <code>ctypes</code> в своём процессе. В конце курса ядро становится службой Windows, а мозг — отдельным процессом, который связывается со службой по именованному каналу. Переключатель в заголовке схемы показывает четыре этапа.</p>
+
+        <figure class="live" id="arch">
+          <p class="live__head">Архитектура агента<span class="tabs" role="group" aria-label="Этап курса">
+            <button type="button" data-s="3" aria-pressed="true">пара 3</button>
+            <button type="button" data-s="17" aria-pressed="false">пара 17</button>
+            <button type="button" data-s="19" aria-pressed="false">пара 19</button>
+            <button type="button" data-s="20" aria-pressed="false">пара 20</button>
+          </span></p>
+          <div class="live__body">
+            <div class="arch" id="archNodes">
+              <div class="node lang-c" data-k="core"><h5>Ядро · C</h5><b data-f="coreName">sentry_core.dll</b><small>вызывает WinAPI, возвращает факты в JSON</small></div>
+              <div class="node lang-py" data-k="brain"><h5>Мозг · Python</h5><b>brain.py</b><small>расписание, снимки, решения о нарушениях</small></div>
+              <div class="node lang-ai" data-k="n8n"><h5>n8n + модель</h5><b>сценарий тревоги</b><small>объяснение для человека, уведомление</small></div>
+              <div class="node lang-py" data-k="tools"><h5>Инструменты · Python</h5><b>HTTP-доступ к данным</b><small>процессы, порты, автозагрузка по запросу</small></div>
+              <div class="node lang-ai" data-k="agent"><h5>ИИ-агент · n8n</h5><b>расследователь</b><small>сам вызывает инструменты и выносит вердикт</small></div>
+              <div class="node lang-ai" data-k="mcp"><h5>MCP-сервер · Python</h5><b>агент для ассистентов</b><small>любой ИИ-ассистент спрашивает компьютер сам</small></div>
+            </div>
+            <ul class="arch__links" id="archLinks"></ul>
+          </div>
+        </figure>
+
+        <p>Ядро на C отвечает за точность данных, мозг на Python — за решения и связи с другими программами. Если модель ИИ сделала неверный вывод, сначала проверяется, верные ли данные ей дало ядро. Поэтому ядро проверяется нарушителем и служебными программами отдельно от модели.</p>
+
+        <h2 id="s4"><span class="sec">§4</span>Путь тревоги</h2>
+
+        <p>Ниже путь одной тревоги в агенте второй половины курса. Программа прописала себя в автозагрузку через реестр. Ядро и мозг её замечают, а ИИ-агент в n8n собирает подробности, вызывая функции агента-сторожа, и пишет вывод. Кнопка «Шаг» продвигает тревогу на одно звено.</p>
+
+        <figure class="live" id="flow">
+          <p class="live__head">Путь тревоги<span class="sp" id="flowLbl">шаг 0 из 6</span></p>
+          <div class="live__body">
+            <div class="chain chain--6" id="chain">
+              <div class="node" data-n="1"><h5>Событие</h5><b>Запись в автозагрузке</b><small>программа добавила себя в ключ Run</small><em>Windows</em></div>
+              <div class="node" data-n="2"><h5>Ядро · C</h5><b>Видит изменение</b><small>уведомление реестра, снимок ключа</small><em>пара 12</em></div>
+              <div class="node" data-n="3"><h5>Мозг · Python</h5><b>Решает и отправляет</b><small>сравнение, JSON без личных данных</small><em>пары 3, 18</em></div>
+              <div class="node" data-n="4"><h5>ИИ-агент</h5><b>Расследует</b><small>вызывает инструменты агента-сторожа</small><em>пара 17</em></div>
+              <div class="node" data-n="5"><h5>Модель</h5><b>Выносит вердикт</b><small>уровень, факты, что делать</small><em>пары 15, 18</em></div>
+              <div class="node" data-n="6"><h5>Уведомление</h5><b>Человеку</b><small>почта или Google Таблица</small><em>пара 3</em></div>
+            </div>
+            <div class="flowout">
+              <div><b id="flowDataHead">Данные</b><pre id="flowData"></pre></div>
+              <div><b id="flowMsgHead">Сообщение</b><div class="msg" id="flowMsg"></div></div>
+            </div>
+          </div>
+          <p class="live__note" id="flowNote"></p>
+          <div class="live__bar">
+            <button class="btn" type="button" id="flowBack">← Назад</button>
+            <button class="btn" type="button" id="flowStep">Шаг →</button>
+            <button class="btn" type="button" id="flowReset">Сначала</button>
+          </div>
+        </figure>
+
+        <p>На шаге 4 модель сама выбирает, какие функции вызвать: список автозагрузки, сведения о файле, процесс по пути. Каждую функцию написал студент: ядро на C получает данные у Windows, мозг на Python отдаёт их агенту. Чем точнее и полнее функции, тем точнее вердикт.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>ИИ на каждой паре</h2>
+
+        <p>ИИ в курсе идёт тремя линиями. Первая начинается на первой паре, вторая — на третьей, третья — во второй половине курса. Режимы работы и список проверки кода от ИИ описаны в главе <a href="../03-ii-agenty/index.html">0.3</a>.</p>
+
+        <div class="lines3">
+          <div><b>Помощник разработчика</b><div><p>GigaCode, SourceCraft или локальная модель в VS Code. Объясняет WinAPI, пишет код мозга, ищет ошибки. Режим указан у каждого задания: Р0, Р1 или Р2.</p><small>с пары 1 · ядро на C в основном Р1, мозг на Python Р1–Р2</small></div></div>
+          <div><b>Модель в сценарии n8n</b><div><p>Каждая тревога мозга уходит в n8n, модель пишет объяснение и уровень опасности. С каждой новой проверкой у модели появляется новый вид тревог.</p><small>с пары 3 · Ollama, затем GigaChat или YandexGPT</small></div></div>
+          <div><b>ИИ-агент в проекте</b><div><p>Агент в n8n расследует тревоги через инструменты агента-сторожа, затем агент-сторож становится MCP-сервером для любого ассистента.</p><small>пары 16–19 · инструменты, расследование, MCP</small></div></div>
+        </div>
+
+        <p class="bridge">ИИ не заменяет проверки. Каждая проверка агента-сторожа подтверждается нарушителем, как описано в следующем разделе.</p>
+
+        <h2 id="s6"><span class="sec">§6</span>Как растут проверки</h2>
+
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Инструктор по вождению сначала проверяет только трогание с места, потом добавляет повороты, парковку, движение в потоке. На экзамене маршрут включает всё сразу, и трогание с места из него не исчезает.</p>
+          <p class="miss">На экзамене по вождению маршрут один, а здесь нарушитель после каждой пары получает новую ситуацию, и старые ситуации проверяются заново.</p>
+        </div></div>
+
+        <p>В репозитории студента настроен <span class="term">GitHub Actions</span> — автоматический запуск на сервере GitHub с Windows. После каждой отправки кода сервер собирает ядро, запускает мозг и программу-<span class="term">нарушитель</span>. Нарушитель по очереди создаёт ситуации из пройденных тем: запускает процесс, который загружает процессор, меняет файл <code>hosts</code>, добавляет запись в автозагрузку. Мозг должен выдать тревогу на каждую. Нарушитель проверяет тревоги, а не язык и не текст модели, поэтому код можно писать с ИИ в разрешённом режиме, но работать он должен точно.</p>
+
+        <p>Ползунок ниже выбирает пару. Цветная полоса под клеткой — модуль, ромбик над клеткой — пара, на которой появляется новая проверка.</p>
+
+        <figure class="live" id="track">
+          <p class="live__head">24 пары · 13 проверок</p>
+          <div class="live__body">
+            <div class="track__ctrl">
+              <input type="range" id="trackRange" min="1" max="24" value="1" aria-label="Номер пары">
+              <output id="trackNo">пара 1</output>
+            </div>
+            <div class="pairs" id="pairs"></div>
+            <div class="pairs__mods" id="pairsMods"></div>
+            <div class="track__now">
+              <div id="trackCard"></div>
+              <div><div class="track__score"><strong id="trackScore">0 / 13</strong><span>проверок<br>агент проходит</span></div><ul class="checks" id="trackChecks"></ul></div>
+            </div>
+          </div>
+        </figure>
+
+        <p>После модулей 2, 3, 4 и 5 проходит тест по их темам — на парах 9, 13, 19 и 22. Курсовая работа собирается из агента со всеми проверками, поэтому к паре 23 она почти готова: остаётся добавить одну свою проверку и один свой инструмент для ИИ-агента, отчёт и защиту.</p>
+
+        <h2 id="s7"><span class="sec">§7</span>Модули</h2>
+
+        <p>Курс состоит из вводного модуля 0 и шести модулей. В карточке модуля — темы, что получает агент, как участвует ИИ и какие проверки появляются у нарушителя.</p>
+
+        <div class="mod mod--intro">
+          <div class="mod__head"><b>Модуль 0. Системное программирование сегодня</b><span>пара 1</span></div>
+          <div class="mod__row mod__row--th"><b>Темы</b><div><p>Системные программы, слои Windows, режимы пользователя и ядра, WinAPI из C и Python, события в отрасли, ИИ-агенты и режимы работы, устройство дисциплины.</p></div></div>
+          <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Первая программа на WinAPI на C и та же функция из Python — задание к модулю 0 (§9).</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р1: помощник объясняет программу по строкам, ответ сверяется с главой 0.1.</p></div></div>
+        </div>
+
+        <div class="mod mod--intro">
+          <div class="mod__head"><b>Модуль 1. Рабочее место: C, Python и ИИ</b><span>пары 2–3</span></div>
+          <div class="mod__row mod__row--th"><b>Темы</b><div><p>C для системного программиста: указатели, структуры, строки <code>WCHAR</code>, типы Windows, <code>GetLastError</code>. Сборка DLL на C и вызов из Python через <code>ctypes</code>. Сервис n8n и модель в Ollama.</p></div></div>
+          <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Ядро <code>sentry_core.dll</code> отдаёт сведения о системе, мозг <code>brain.py</code> вызывает его и отправляет первое сообщение «агент запущен» в n8n. Репозиторий и первый запуск GitHub Actions.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Помощник в VS Code (Р1). Первый сценарий n8n с моделью: сообщение агента приходит на почту с объяснением.</p></div></div>
+        </div>
+
+        <div class="mod">
+          <div class="mod__head"><b>Модуль 2. Процессы, потоки и память</b><span>пары 4–9</span></div>
+          <div class="mod__row mod__row--th"><b>Темы</b><div><p>Процессы и их создание, объекты Job. Потоки, приоритеты, процессорное время. Потоки в Python: блокировка GIL и Python 3.14 без неё. Синхронизация в C. Виртуальная память. Ошибки памяти в C и в <code>ctypes</code>.</p></div></div>
+          <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Ядро: список процессов, процессорное время и память каждого процесса. Мозг считает загрузку и находит рост памяти.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р2 на паре 5: ИИ пишет запуск процессов, студент ищет утечку дескрипторов в Process Explorer. Пара 9: разбор кода ИИ с ошибками памяти через AddressSanitizer.</p></div></div>
+          <div class="mod__row mod__row--ch"><b>Проверки</b><div><p>1 — список процессов совпадает с системным; 2 — процесс загружает процессор больше 80%; 3 — память процесса растёт без остановки.</p><small>тест 1 — пара 9</small></div></div>
+        </div>
+
+        <div class="mod">
+          <div class="mod__head"><b>Модуль 3. Файлы, реестр и журналы</b><span>пары 10–13</span></div>
+          <div class="mod__row mod__row--th"><b>Темы</b><div><p>Файловый ввод-вывод, хэши через BCrypt. Python изнутри: Process Monitor на <code>import</code>. Наблюдение за папками и асинхронный ввод-вывод. Реестр и уведомления об изменениях. Журнал событий Windows.</p></div></div>
+          <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Следит за файлом <code>hosts</code>, папкой и ключами автозагрузки, читает события входа в Windows.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р2 для мозга на Python: ИИ-агент пишет сравнение снимков и формат тревог, студент принимает по списку проверки.</p></div></div>
+          <div class="mod__row mod__row--ch"><b>Проверки</b><div><p>4 — изменён <code>hosts</code>; 5 — новый файл в папке автозагрузки; 6 — новая запись в ключе Run; 7 — пять неудачных входов подряд.</p><small>тест 2 — пара 13</small></div></div>
+        </div>
+
+        <div class="mod">
+          <div class="mod__head"><b>Модуль 4. Сеть и ИИ-агенты</b><span>пары 14–19</span></div>
+          <div class="mod__row mod__row--th"><b>Темы</b><div><p>Сетевые соединения и порты. Модель ИИ как процесс: память, процессор, выбор модели. HTTP-доступ к данным агента. Узел AI Agent в n8n и вызов инструментов. Облачная модель и личные данные. MCP-сервер на Python.</p></div></div>
+          <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Видит порты и соединения, отдаёт данные по запросу, убирает личные данные из тревог, работает как MCP-сервер.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>ИИ-агент в n8n расследует тревоги через инструменты агента-сторожа. ИИ-ассистент подключается к агенту по MCP и отвечает на вопрос «что загружает компьютер» по настоящим данным.</p></div></div>
+          <div class="mod__row mod__row--ch"><b>Проверки</b><div><p>8 — открыт новый порт; 9 — модель ИИ занимает больше заданного объёма памяти; 10 — в отправленных данных нет имени пользователя.</p><small>тест 3 — пара 19</small></div></div>
+        </div>
+
+        <div class="mod">
+          <div class="mod__head"><b>Модуль 5. Служба, устройства, исполняемые файлы</b><span>пары 20–22</span></div>
+          <div class="mod__row mod__row--th"><b>Темы</b><div><p>Службы Windows и именованные каналы. Уведомления об устройствах и питании. Формат PE, цифровые подписи, отладчик x64dbg и Ghidra.</p></div></div>
+          <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Ядро становится службой и запускается вместе с Windows, мозг связан с ним каналом. Агент замечает флешки и запуск программ без подписи.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Новые инструменты для ИИ-агента: подпись файла, устройство. Разбор в Ghidra кода, который написал ИИ.</p></div></div>
+          <div class="mod__row mod__row--ch"><b>Проверки</b><div><p>11 — служба ядра запущена и отвечает; 12 — подключено новое устройство; 13 — запущен .exe без цифровой подписи.</p><small>тест 4 — пара 22</small></div></div>
+        </div>
+
+        <div class="mod mod--own">
+          <div class="mod__head"><b>Модуль 6. Курсовая работа</b><span>пары 23–24</span></div>
+          <div class="mod__row mod__row--ag"><b>Работа</b><div><p>Агент со всеми проверками, одной своей проверкой и одним своим инструментом для ИИ-агента. Сценарий n8n с расследованием, журнал работы с ИИ, отчёт.</p></div></div>
+          <div class="mod__row mod__row--ch"><b>Защита</b><div><p>Нарушитель запускается при всех, агент замечает каждую ситуацию, ИИ-агент присылает вердикт. Ответы по любой строке кода, в том числе написанной ИИ.</p></div></div>
+        </div>
+
+        <h2 id="s8"><span class="sec">§8</span>Инструменты</h2>
+
+        <p>Все инструменты курса бесплатны и используются в работе: службами поддержки, специалистами по безопасности, системными администраторами и разработчиками.</p>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Задача</th><th>Инструмент</th><th>С какой пары</th></tr></thead>
+            <tbody>
+              <tr><td>Компиляция C</td><td>MSVC из Build Tools for Visual Studio</td><td class="num-cell">1</td></tr>
+              <tr><td>Мозг агента</td><td>Python 3.14, модуль <code>ctypes</code></td><td class="num-cell">1</td></tr>
+              <tr><td>Помощник разработчика</td><td>GigaCode, SourceCraft Code Assistant или Continue с Ollama в VS Code</td><td class="num-cell">1</td></tr>
+              <tr><td>Хранение кода и автоматическая проверка</td><td>GitHub, GitHub Actions на сервере с Windows</td><td class="num-cell">2</td></tr>
+              <tr><td>Машинный код функции</td><td>Compiler Explorer (godbolt.org)</td><td class="num-cell">2</td></tr>
+              <tr><td>Сценарии и модель</td><td>n8n на своём компьютере, Ollama</td><td class="num-cell">3</td></tr>
+              <tr><td>Процессы, потоки, дескрипторы</td><td>Process Explorer (Sysinternals)</td><td class="num-cell">4</td></tr>
+              <tr><td>Память процесса</td><td>VMMap (Sysinternals)</td><td class="num-cell">8</td></tr>
+              <tr><td>Ошибки памяти в C</td><td>AddressSanitizer в MSVC</td><td class="num-cell">9</td></tr>
+              <tr><td>Обращения к файлам и реестру</td><td>Process Monitor (Sysinternals)</td><td class="num-cell">10</td></tr>
+              <tr><td>Автозагрузка</td><td>Autoruns (Sysinternals)</td><td class="num-cell">12</td></tr>
+              <tr><td>Журналы Windows</td><td>Просмотр событий</td><td class="num-cell">13</td></tr>
+              <tr><td>Сетевые соединения</td><td>TCPView (Sysinternals)</td><td class="num-cell">14</td></tr>
+              <tr><td>ИИ-агент и облачная модель</td><td>узел AI Agent в n8n, GigaChat или YandexGPT</td><td class="num-cell">17</td></tr>
+              <tr><td>MCP-сервер</td><td>MCP SDK для Python</td><td class="num-cell">19</td></tr>
+              <tr><td>Отладка и разбор .exe</td><td>x64dbg, Ghidra, Sigcheck</td><td class="num-cell">22</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="margin-note margin-note--warn">
+          <b>Что нужно для работы</b>
+          <p>Windows 10 или 11, права администратора: они нужны для служб, журнала безопасности и Process Monitor. Оперативной памяти — от 8 ГБ: на 8 ГБ работает модель на 1–3 млрд параметров, на 16 ГБ — до 8 млрд; ИИ-агенту с инструментами на 8 ГБ лучше дать облачную GigaChat. Модели, n8n и программы для кабинета скачиваются заранее и раздаются из общей папки, поэтому при плохом интернете работает всё, кроме GitHub и облачных моделей.</p>
+        </div>
+
+        <h2 id="s9"><span class="sec">§9</span>Задание к модулю 0</h2>
+
+        <div class="margin-note">
+          <b>Одна функция WinAPI из C и из Python · Р1 · сдаётся файлами hello.c, hello.py и report.md</b>
+          <p>Нужно установить компилятор, собрать программу из главы 0.1, вызвать ту же функцию из Python и найти оба процесса в Диспетчере задач. Помощник ИИ объясняет программу по строкам, объяснение сверяется с главой 0.1.</p>
+        </div>
+
+        <ol class="steps">
+          <li><b>Установите компилятор</b><p>Откройте страницу <a href="https://visualstudio.microsoft.com/downloads/" target="_blank" rel="noreferrer">visualstudio.microsoft.com/downloads</a>, в разделе <strong>Tools for Visual Studio</strong> скачайте <strong>Build Tools for Visual Studio</strong>. В установщике отметьте рабочую нагрузку <strong>Разработка классических приложений на C++</strong> (Desktop development with C++) и нажмите <strong>Установить</strong>. Если компилятор в кабинете уже установлен, переходите к шагу 2.</p>
+            <div class="shot-todo"><b>Место под кадр с компьютера в классе</b><p>Visual Studio Installer, вкладка «Рабочие нагрузки»: отмечена «Разработка классических приложений на C++», справа в списке компонентов отмечены MSVC и Windows 11 SDK.</p></div></li>
+          <li><b>Откройте командную строку компилятора</b><p>В меню «Пуск» найдите <strong>x64 Native Tools Command Prompt for VS</strong>. В этой командной строке настроены пути к компилятору; в обычной командной строке и в PowerShell команда <code>cl</code> не найдётся.</p></li>
+          <li><b>Создайте файл программы на C</b><p>Выполните команды и вставьте в Блокнот код ниже. Блокнот спросит, создать ли новый файл, — ответьте «Да».</p>
+            <figure class="code"><figcaption><span>Командная строка</span></figcaption><pre>mkdir C:\syspro\pair01
+cd C:\syspro\pair01
+notepad hello.c</pre></figure>
+            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
+    <span class="t">DWORD</span> pid = <span class="f">GetCurrentProcessId</span>();
+    <span class="f">printf</span>(<span class="s">"agent v0, pid=%lu\n"</span>, pid);
+    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
+    <span class="f">getchar</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre></figure></li>
+          <li><b>Скомпилируйте и запустите программу</b><figure class="code"><figcaption><span>Командная строка</span></figcaption><pre>cl hello.c
+hello.exe</pre></figure><p>Первая строка вывода <code>cl</code> — название и версия компилятора, например <code>Microsoft (R) C/C++ Optimizing Compiler Version 19.44…</code>. Программа напечатает <code>agent v0, pid=…</code> и будет ждать Enter. Откройте Диспетчер задач, вкладку <strong>Подробности</strong>, найдите <code>hello.exe</code> и сравните число в столбце <strong>ИД процесса</strong> с выводом. Затем нажмите Enter.</p>
+            <div class="shot-todo"><b>Место под кадр с компьютера в классе</b><p>Слева командная строка с выводом «agent v0, pid=…», справа Диспетчер задач на вкладке «Подробности», строка hello.exe с тем же ИД процесса выделена.</p></div></li>
+          <li><b>Вызовите ту же функцию из Python</b><p>Создайте рядом файл <code>hello.py</code> и запустите его командой <code>python hello.py</code>. В Диспетчере задач найдите процесс <code>python.exe</code> с напечатанным номером.</p>
+            <figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes
+
+k32 = ctypes.windll.kernel32
+k32.GetCurrentProcessId.restype = ctypes.c_ulong
+<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, k32.<span class="f">GetCurrentProcessId</span>())
+<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure>
+            <p><code>ctypes.windll.kernel32</code> загружает ту же библиотеку <code>kernel32.dll</code>, из которой функцию берёт программа на C. Строка с <code>restype</code> сообщает Python, что функция возвращает <code>DWORD</code> — целое без знака размером 4 байта.</p></li>
+          <li><b>Спросите помощника ИИ (режим Р1)</b><p>Откройте <code>hello.c</code> в VS Code с помощником GigaCode, SourceCraft или Continue и попросите: «Объясни эту программу по строкам. Что делает GetCurrentProcessId и зачем getchar?». Сравните ответ с главой 0.1, §4 и выпишите в отчёт одно место, где ответ помощника точнее или менее точен, чем глава.</p></li>
+        </ol>
+
+        <p>Отчёт <code>report.md</code> содержит первую строку вывода <code>cl</code>, выводы <code>hello.exe</code> и <code>hello.py</code>, ИД процессов из Диспетчера задач, запрос к помощнику и сравнение его ответа с главой. Файлы войдут в репозиторий курса на паре 2.</p>
+
+        <details class="more">
+          <summary>Если компилятор пишет, что не находит windows.h</summary>
+          <p>В установщике не отмечен Windows SDK. Откройте Visual Studio Installer, нажмите «Изменить» у Build Tools и отметьте в рабочей нагрузке C++ пункт Windows 11 SDK.</p>
+        </details>
+
+        <h3>Итог главы</h3>
+        <p>Дисциплина учит понимать, что происходит внутри Windows во время работы программы, получать эти сведения из кода на C через WinAPI, проверять их приборами и отдавать моделям ИИ. Весь курс студенты пишут агент-сторож: ядро на C вызывает WinAPI, мозг на Python принимает решения и связывает агент с n8n, ИИ-агентом и MCP. ИИ участвует с первой пары тремя линиями: помощник разработчика, модель, которая объясняет тревоги, и ИИ-агент, который их расследует. За 24 пары агент получает 13 проверок, и нарушитель в GitHub Actions подтверждает их все после каждой отправки кода. Курсовая работа — агент со всеми проверками, своей проверкой, своим инструментом для ИИ-агента и защитой.</p>
+
+        <div class="pager">
+          <a href="../03-ii-agenty/index.html">← 0.3 ИИ-агенты и системный код</a>
+          <a href="../../index.html">Оглавление →</a>
+        </div>
+
+        <div class="colophon">
+          <span>Справочник по системному программированию</span>
+          <span class="author-line">© Макаров Максим Николаевич</span>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+  <script>
+  (() => {
+    const $ = id => document.getElementById(id);
+
+    /* архитектура по этапам */
+    const ARCH = {
+      3: { on: ['core', 'brain', 'n8n'], neu: ['core', 'brain', 'n8n'], core: 'sentry_core.dll', links: [
+        ['brain.py → sentry_core.dll', 'Python загружает DLL через ctypes и вызывает функции ядра в своём процессе.'],
+        ['brain.py → n8n', 'HTTP-запрос с JSON на адрес вебхука; модель в Ollama пишет объяснение, n8n отправляет письмо.']] },
+      17: { on: ['core', 'brain', 'n8n', 'tools', 'agent'], neu: ['tools', 'agent'], core: 'sentry_core.dll', links: [
+        ['brain.py → n8n', 'Тревога уходит в сценарий, где её получает узел AI Agent.'],
+        ['ИИ-агент → инструменты', 'Агент сам вызывает HTTP-функции мозга: список процессов, порты, автозагрузку, сведения о файле.'],
+        ['инструменты → sentry_core.dll', 'Каждую функцию мозг выполняет через ядро на C, поэтому агент получает данные Windows, а не догадки модели.']] },
+      19: { on: ['core', 'brain', 'n8n', 'tools', 'agent', 'mcp'], neu: ['mcp'], core: 'sentry_core.dll', links: [
+        ['MCP-сервер → sentry_core.dll', 'Те же функции описаны по протоколу MCP: название, описание, аргументы.'],
+        ['ассистент → MCP-сервер', 'Любой ИИ-ассистент с поддержкой MCP, в том числе MCP-клиент в n8n, подключается к агенту и спрашивает компьютер сам.']] },
+      20: { on: ['core', 'brain', 'n8n', 'tools', 'agent', 'mcp'], neu: ['core'], core: 'служба sentry-core', links: [
+        ['служба sentry-core', 'Ядро на C работает службой Windows: запускается вместе с системой, без входа пользователя.'],
+        ['brain.py ↔ служба', 'Мозг — отдельный процесс и связывается со службой по именованному каналу \\\\.\\pipe\\sentry. Если мозг упал, служба продолжает собирать данные.']] },
+    };
+    const archBtns = [...document.querySelectorAll('#arch .tabs button')];
+    const drawArch = s => {
+      const a = ARCH[s];
+      archBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === s)));
+      document.querySelectorAll('#archNodes .node').forEach(n => {
+        n.classList.toggle('dim', !a.on.includes(n.dataset.k));
+        n.classList.toggle('new', a.neu.includes(n.dataset.k));
+      });
+      document.querySelector('[data-f="coreName"]').textContent = a.core;
+      $('archLinks').innerHTML = a.links.map(([b, t]) => `<li><b>${b}</b> — ${t}</li>`).join('');
+    };
+    archBtns.forEach(b => b.addEventListener('click', () => drawArch(b.dataset.s)));
+    drawArch('3');
+
+    /* путь тревоги */
+    const J = [['computer', 'PC-214-07'], ['check', 'autorun.registry'], ['time', '2026-11-12T10:41:07'], ['value', 'Updater'], ['data', 'C:\\\\Users\\\\&lt;user&gt;\\\\AppData\\\\Roaming\\\\upd\\\\upd.exe']];
+    const JSON_T = '{\n' + J.map(([k, v], i) => `  <span class="jk">"${k}"</span>: <span class="js">"${v}"</span>${i < J.length - 1 ? ',' : ''}`).join('\n') + '\n}';
+    const REG = 'HKCU\\...\\CurrentVersion\\Run\n\n  OneDrive  "C:\\Program Files\\Microsoft OneDrive\\OneDrive.exe"\n+ Updater   "C:\\Users\\student\\AppData\\Roaming\\upd\\upd.exe"';
+    const TOOLS = '<span class="jk">→ autoruns()</span>\n  3 записи, новая: Updater (10:41)\n<span class="jk">→ file_info</span>("…\\\\upd\\\\upd.exe")\n  подпись: <span class="js">нет</span>, создан 10:40:55\n<span class="jk">→ process_by_path</span>("…\\\\upd\\\\upd.exe")\n  pid 7312, соединение :4444';
+    const VERDICT = '<span class="lvl-tag">высокий</span>Программа <b>upd.exe</b> без цифровой подписи появилась за минуту до записи в автозагрузку, уже запущена (pid 7312) и держит соединение на порту 4444. Что сделать: отключить компьютер от сети, завершить процесс 7312, проверить файл в Защитнике Windows.';
+    const F = [
+      ['Нажмите «Шаг», чтобы программа добавила себя в автозагрузку.', 'Данные', '', 'Сообщение', '<span class="empty">Сообщений нет.</span>'],
+      ['<b>Событие.</b> Программа upd.exe записала себя в ключ реестра Run. Всё, что указано в этом ключе, Windows запускает при входе пользователя.', 'Ключ Run после изменения', REG, 'Сообщение', '<span class="empty">Ядро ещё не получило уведомление.</span>'],
+      ['<b>Ядро на C.</b> Ядро подписано на изменения ключа функцией RegNotifyChangeKeyValue. Windows сообщает об изменении, ядро читает ключ заново и отдаёт мозгу список записей.', 'Ключ Run после изменения', REG, 'Сообщение', '<span class="empty">Мозг ещё не сравнил снимки.</span>'],
+      ['<b>Мозг на Python.</b> Мозг сравнил список с прошлым снимком, нашёл новую запись, заменил имя пользователя в пути на &lt;user&gt; и отправил тревогу в n8n.', 'Тревога', JSON_T, 'Сообщение', '<span class="empty">Тревога в n8n, расследование начинается.</span>'],
+      ['<b>ИИ-агент.</b> Агент в n8n получил тревогу и сам выбрал три инструмента агента-сторожа. Слева — вызовы и ответы. Каждый ответ получен из Windows через ядро на C.', 'Вызовы инструментов', TOOLS, 'Сообщение', '<span class="empty">Агент собирает подробности.</span>'],
+      ['<b>Модель.</b> По тревоге и ответам инструментов модель вынесла вердикт. Текст — пример: формулировки меняются, а факты в нём должны совпадать с данными инструментов.', 'Вызовы инструментов', TOOLS, 'Вердикт · пример', `<div class="bubble">${VERDICT}</div>`],
+      ['<b>Уведомление.</b> n8n отправил вердикт человеку вместе с исходной тревогой.', 'Тревога', JSON_T, 'Уведомление на почту', `<div class="bubble"><b>PC-214-07 · 10:41</b><br>Новая программа в автозагрузке: Updater.<br><br>${VERDICT}</div>`],
+    ];
+    let f = 0;
+    const nodes = [...document.querySelectorAll('#chain .node')];
+    const drawF = () => {
+      nodes.forEach(n => { const k = +n.dataset.n; n.classList.toggle('is-on', k === f); n.classList.toggle('is-done', k < f); });
+      const [note, dh, data, mh, msg] = F[f];
+      $('flowNote').innerHTML = note; $('flowDataHead').textContent = dh; $('flowData').innerHTML = data || '—';
+      $('flowMsgHead').textContent = mh; $('flowMsg').innerHTML = msg;
+      $('flowLbl').textContent = `шаг ${f} из 6`;
+      $('flowBack').disabled = f === 0; $('flowStep').disabled = f === 6;
+    };
+    $('flowStep').onclick = () => { if (f < 6) { f++; drawF(); } };
+    $('flowBack').onclick = () => { if (f > 0) { f--; drawF(); } };
+    $('flowReset').onclick = () => { f = 0; drawF(); };
+    drawF();
+
+    /* шкала проверок */
+    const MODS = [[0, 'Введение', 1, 1], [1, 'C, Python, ИИ', 2, 3], [2, 'Процессы и память', 4, 9], [3, 'Файлы, реестр, журналы', 10, 13], [4, 'Сеть и ИИ-агенты', 14, 19], [5, 'Служба и устройства', 20, 22], [6, 'Курсовая', 23, 24]];
+    const P = [
+      ['Системное программирование сегодня', 'Одна функция WinAPI из C и из Python, первый вопрос помощнику ИИ.'],
+      ['C для системного программиста', 'Ядро выводит сведения о системе. Помощник ИИ в VS Code, репозиторий и GitHub Actions.'],
+      ['C и Python вместе, первая автоматизация', 'Ядро — DLL, мозг вызывает его через ctypes. n8n и Ollama: «агент запущен» с объяснением модели.'],
+      ['Процессы', 'Список процессов через Toolhelp32, сверка с Process Explorer.'],
+      ['Создание процессов', 'Объекты Job. Р2: ИИ пишет запуск процессов, студент ищет утечку дескрипторов.'],
+      ['Потоки и процессорное время', 'Загрузка процессора по каждому процессу.'],
+      ['Потоки в Python и синхронизация', 'Блокировка GIL и Python 3.14 без неё в Process Explorer, критическая секция в C.'],
+      ['Виртуальная память', 'Память каждого процесса, сверка с VMMap.'],
+      ['Ошибки памяти в C и ctypes', 'AddressSanitizer, разбор кода ИИ с ошибками. Тест 1.'],
+      ['Файлы и хэши', 'Контроль файла hosts по SHA-256. Process Monitor на import в Python.'],
+      ['Наблюдение за папками', 'ReadDirectoryChangesW следит за папкой автозагрузки.'],
+      ['Реестр', 'Уведомления об изменении ключей Run, сверка с Autoruns.'],
+      ['Журнал событий', 'События неудачного входа в Windows. Тест 2.'],
+      ['Сетевые соединения', 'Порты и соединения, сверка с TCPView.'],
+      ['Модель ИИ как процесс', 'Память и процессор модели в Ollama, выбор модели под 8 и 16 ГБ.'],
+      ['Инструменты для ИИ', 'Мозг отдаёт процессы, порты и автозагрузку по HTTP-запросу.'],
+      ['ИИ-агент-расследователь', 'Узел AI Agent в n8n вызывает инструменты агента и выносит вердикт.'],
+      ['Облачная модель и личные данные', 'GigaChat или YandexGPT, удаление личных данных из тревог.'],
+      ['MCP-сервер', 'Агент-сторож как MCP-сервер, ассистент спрашивает компьютер сам. Тест 3.'],
+      ['Служба и именованный канал', 'Ядро — служба Windows, мозг связан с ней каналом.'],
+      ['Устройства и питание', 'Уведомления о флешке и работе от батареи.'],
+      ['Исполняемые файлы и отладка', 'Цифровая подпись .exe, ядро в x64dbg и Ghidra. Тест 4.'],
+      ['Курсовая: своя проверка', 'Своя проверка и свой инструмент для ИИ-агента, журнал работы с ИИ, отчёт.'],
+      ['Защита курсовой', 'Нарушитель при всех, вердикт ИИ-агента, ответы по коду.'],
+    ];
+    const C = [[4, 'Список процессов совпадает с системным'], [6, 'Процесс загружает процессор больше 80%'], [8, 'Память процесса растёт без остановки'], [10, 'Изменён файл hosts'], [11, 'Новый файл в папке автозагрузки'], [12, 'Новая запись в ключе Run'], [13, 'Пять неудачных входов подряд'], [14, 'Открыт новый порт'], [15, 'Модель ИИ занимает больше заданной памяти'], [18, 'В отправленных данных нет имени пользователя'], [20, 'Служба ядра запущена и отвечает'], [21, 'Подключено новое устройство'], [22, 'Запущен .exe без цифровой подписи']];
+    const mod = p => MODS.find(m => p >= m[2] && p <= m[3]);
+    $('pairs').innerHTML = P.map((_, i) => `<i data-p="${i + 1}" data-m="${mod(i + 1)[0]}" class="${C.some(c => c[0] === i + 1) ? 'chk' : ''}" title="Пара ${i + 1}"></i>`).join('');
+    $('pairsMods').innerHTML = MODS.map(m => `<span style="grid-column:${m[2]} / ${m[3] + 1}">${m[1]}</span>`).join('');
+    const range = $('trackRange');
+    const drawT = () => {
+      const p = +range.value, m = mod(p);
+      document.querySelectorAll('#pairs i').forEach(i => { const k = +i.dataset.p; i.classList.toggle('past', k < p); i.classList.toggle('now', k === p); });
+      $('trackNo').textContent = `пара ${p}`;
+      $('trackCard').innerHTML = `<h5>Модуль ${m[0]} · ${m[1]}</h5><b class="pt">${P[p - 1][0]}</b><p>${P[p - 1][1]}</p>`;
+      $('trackScore').textContent = `${C.filter(c => c[0] <= p).length} / 13`;
+      $('trackChecks').innerHTML = C.map((c, i) => `<li class="${c[0] <= p ? 'on' : ''}${c[0] === p ? ' new' : ''}">${i + 1}. ${c[1]}</li>`).join('');
+    };
+    range.addEventListener('input', drawT);
+    $('pairs').addEventListener('click', e => { if (e.target.dataset.p) { range.value = e.target.dataset.p; drawT(); } });
+    drawT();
+  })();
+  </script>
+</body>
+</html>

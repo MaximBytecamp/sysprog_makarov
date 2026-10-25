@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>0.3 ИИ-агенты и системный код · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 0 · Системное программирование сегодня</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 0 · системное программирование сегодня</p>
+          <p class="running__folio">0.3</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">0.3</span>
+          <h1>ИИ-агенты<br>и системный код</h1>
+          <p class="lead">В этой главе разобрано, как ИИ участвует в курсе с первой пары. Его роли две: помощник в редакторе пишет и объясняет код вместе со студентом, а ИИ-агент внутри проекта расследует тревоги и сам запрашивает данные у агента-сторожа. Описаны три режима работы с ИИ, типичные ошибки ИИ в коде WinAPI и приборы, которыми эти ошибки находятся. В конце — список проверки кода от ИИ и инструменты, доступные из России.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Категория</dt><dd>Организация, инструменты</dd></div>
+          <div><dt>Уровень</dt><dd>Вводный</dd></div>
+          <div><dt>Связанные темы</dt><dd>WinAPI (глава 0.1), протокол MCP (глава 0.2), проект курса (глава 0.4)</dd></div>
+          <div><dt>Зачем это знать</dt><dd>Пользоваться ИИ на каждой паре и отвечать за код, который он написал</dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>В этой главе</b>
+          <ol>
+            <li><a href="#s1">Чат, помощник и агент</a></li>
+            <li><a href="#s2">Две роли ИИ в курсе</a></li>
+            <li><a href="#s3">Три режима работы</a></li>
+            <li><a href="#s4">Ошибки ИИ в коде WinAPI</a></li>
+            <li><a href="#s5">Список проверки</a></li>
+            <li><a href="#s6">Инструменты</a></li>
+            <li><a href="#s7">Проверьте себя</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Чат, помощник и агент</h2>
+
+        <p>Инструменты ИИ для программиста различаются тем, сколько они делают сами. <span class="term">Чат</span> отвечает текстом на вопрос: объясняет функцию, предлагает фрагмент кода. Код из ответа человек переносит в проект сам. <span class="term">Помощник в редакторе</span> встроен в VS Code: дописывает строку, пока человек печатает, объясняет выделенный фрагмент, предлагает исправление ошибки компилятора.</p>
+
+        <p><span class="term">ИИ-агент</span> получает задачу целиком и выполняет её по шагам: читает файлы проекта, пишет код, запускает компилятор и команды, смотрит на результат и исправляет, пока задача не будет решена или пока не кончатся попытки. Действия, которые агент может выполнять, называют <span class="term">инструментами</span>: «прочитать файл», «выполнить команду», «запросить список процессов». Модель сама выбирает, какой инструмент вызвать на следующем шаге.</p>
+
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Справочное бюро отвечает на вопрос по телефону — это чат. Напарник за соседним столом подсказывает, пока вы работаете, — это помощник. Подрядчику дают задание «отремонтировать кухню», и он сам закупает материалы, нанимает мастеров и сдаёт работу — это агент. Работу подрядчика принимают по акту: проверяют каждую розетку, а не верят на слово.</p>
+          <p class="miss">Подрядчик отвечает за ремонт по договору, а за код агента отвечает тот, кто его принял, — студент.</p>
+        </div></div>
+
+        <p class="bridge">В курсе используются все три вида, но в двух разных ролях.</p>
+
+        <h2 id="s2"><span class="sec">§2</span>Две роли ИИ в курсе</h2>
+
+        <p>В первой роли ИИ помогает студенту писать агент-сторож: объясняет функции WinAPI, пишет код мозга на Python, ищет причину ошибки. Это инструмент разработчика, и его работа заканчивается, когда код сдан. Во второй роли ИИ — часть самого проекта. Он работает внутри системы после сдачи: получает тревогу, сам вызывает функции агента-сторожа, чтобы собрать подробности, и пишет человеку вывод.</p>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th></th><th>ИИ-помощник разработчика</th><th>ИИ-агент в проекте</th></tr></thead>
+            <tbody>
+              <tr><td>Где работает</td><td>в VS Code на компьютере студента</td><td>в n8n и через MCP рядом с агентом-сторожем</td></tr>
+              <tr><td>Что делает</td><td>объясняет и пишет код C и Python</td><td>расследует тревоги, отвечает на вопросы о компьютере</td></tr>
+              <tr><td>Инструменты</td><td>чтение файлов, компилятор, терминал</td><td>функции агента: процессы, порты, автозагрузка, подпись файла</td></tr>
+              <tr><td>С какой пары</td><td>с первой</td><td>объяснение тревог — с пары 3, расследование — с пары 17, MCP — с пары 19</td></tr>
+              <tr><td>Кто проверяет</td><td>студент приборами и списком из §5</td><td>студент по данным агента: вывод модели должен опираться на них</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Вторая роль показывает, зачем системное программирование нужно ИИ. Модель не видит компьютер. Всё, что она знает о процессах и файлах, ей сообщают функции, которые написал системный программист. Если функция вернула неполный список процессов, модель сделает неверный вывод и не заметит этого. Поэтому точность агента-сторожа проверяется отдельно от модели — нарушителем в GitHub Actions.</p>
+
+        <h2 id="s3"><span class="sec">§3</span>Три режима работы</h2>
+
+        <p>У каждого задания курса указан режим: сколько работы можно поручить ИИ. Режим выбирается по цели задания. Если цель — понять новую функцию WinAPI, код пишет студент. Если функция уже понятна и нужно много однотипного кода, его может написать агент.</p>
+
+        <div class="modes3">
+          <div class="m0"><b>Без ИИ<i>Р0</i></b><div><p>Студент пишет код сам. ИИ не используется.</p><p>Первый вызов каждой новой функции WinAPI, тесты, часть защиты.</p></div></div>
+          <div class="m1"><b>ИИ объясняет<i>Р1</i></b><div><p>Студент пишет код сам, ИИ объясняет функции, ошибки компилятора и коды GetLastError, проверяет готовый код.</p><p>Ядро на C в большинстве пар.</p></div></div>
+          <div class="m2"><b>ИИ пишет<i>Р2</i></b><div><p>Код пишет ИИ-агент по задаче студента. Студент проверяет приборами, исправляет и объясняет каждую строку.</p><p>Мозг на Python, сценарии n8n, MCP-сервер, курсовая.</p></div></div>
+        </div>
+
+        <p>В режиме Р2 студент ведёт журнал работы с ИИ: задача, которую он поставил агенту, что агент сделал, какие ошибки нашлись при проверке и как исправлены. Журнал сдаётся вместе с кодом. На защите студент объясняет любую строку, в том числе написанную агентом.</p>
+
+        <p class="bridge">В режимах Р1 и Р2 студент принимает код от ИИ. В системном коде ошибки ИИ часто не видны при запуске, но хорошо видны приборам.</p>
+
+        <h2 id="s4"><span class="sec">§4</span>Ошибки ИИ в коде WinAPI</h2>
+
+        <p>Код WinAPI, написанный ИИ, обычно компилируется и часто работает при первом запуске. Ошибки в нём другого рода: забытый размер структуры, незакрытый дескриптор, код ошибки, прочитанный слишком поздно. Такой код работает на компьютере разработчика и ломается у пользователя или через час работы. Ниже функция, которую ИИ написал по запросу «посчитай число процессов через WinAPI». В ней три ошибки. Нажмите на строку, в которой, по-вашему, ошибка.</p>
+
+        <figure class="live" id="hunt">
+          <p class="live__head">Код от ИИ: число процессов<span class="sp" id="huntScore">найдено 0 из 3</span></p>
+          <div class="live__body">
+            <div class="bughunt">
+              <pre class="bughunt__code" id="huntCode"></pre>
+              <div class="bughunt__side" id="huntSide"><p class="bughunt__hint">Объяснение найденных ошибок появится здесь.</p></div>
+            </div>
+          </div>
+          <div class="live__bar"><button class="btn" type="button" id="huntShow">Показать все ошибки</button><button class="btn" type="button" id="huntReset">Сначала</button></div>
+        </figure>
+
+        <p>Все три ошибки находятся приборами курса, а не чтением кода. Первая видна сразу: функция возвращает −1, а <code>GetLastError</code>, вызванный в правильном месте, даёт код 24 — неверная длина. Вторая видна в Process Explorer: если вызывать функцию в цикле, число дескрипторов процесса в столбце Handles растёт на единицу при каждом вызове. Третья проявляется не всегда: <code>printf</code> внутри вызывает функции Windows, и код ошибки может замениться другим.</p>
+
+        <hr class="sep">
+
+        <p>В Python через <code>ctypes</code> у ИИ своя типичная ошибка: он не указывает, какой тип возвращает функция WinAPI. По умолчанию <code>ctypes</code> считает результат числом <code>int</code> размером 4 байта, а дескриптор в 64-битной Windows занимает 8 байт.</p>
+
+        <figure class="code" data-read>
+          <figcaption><span>brain.py · ошибка ИИ</span></figcaption>
+<pre><span class="k">import</span> ctypes
+k32 = ctypes.windll.kernel32
+INVALID = ctypes.c_void_p(<span class="n">-1</span>).value          <span class="c"># 18446744073709551615</span>
+
+snap = k32.<span class="f">CreateToolhelp32Snapshot</span>(<span class="n">2</span>, <span class="n">0</span>)  <span class="c"># restype не задан: результат — int</span>
+<span class="k">if</span> snap == INVALID:                          <span class="c"># −1 не равно 18446744073709551615</span>
+    <span class="k">raise</span> <span class="t">OSError</span>(ctypes.<span class="f">GetLastError</span>())</pre>
+        </figure>
+
+        <p>Если функция завершится ошибкой и вернёт <code>INVALID_HANDLE_VALUE</code>, в Python придёт число −1, а сравнение идёт с тем же значением, записанным как 8-байтовое число без знака. Проверка ошибки никогда не сработает, и программа пойдёт дальше с неверным дескриптором. Исправление — объявить типы до вызова: <code>k32.CreateToolhelp32Snapshot.restype = ctypes.c_void_p</code> и <code>argtypes</code> для аргументов. Эта ошибка разбирается на паре 9 вместе с ошибками памяти в C.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>Список проверки</h2>
+
+        <p>Код от ИИ в режимах Р1 и Р2 принимается по списку. Справа у пункта — прибор или способ проверки.</p>
+
+        <ul class="checklist2">
+          <li>Результат каждой функции WinAPI проверен, <code>GetLastError</code> вызван сразу после неудачи<i>чтение кода</i></li>
+          <li>Каждый дескриптор закрыт на всех путях выхода из функции, включая ветки с ошибкой<i>Process Explorer, Handles</i></li>
+          <li>Поля размера структур заданы: <code>dwSize</code>, <code>cbSize</code>; длины буферов W-функций указаны в символах<i>GetLastError 24, 122</i></li>
+          <li>В <code>ctypes</code> заданы <code>argtypes</code> и <code>restype</code> у каждой функции<i>чтение кода</i></li>
+          <li>Сборка с AddressSanitizer проходит без сообщений<i>MSVC /fsanitize=address</i></li>
+          <li>Результат совпадает со служебной программой: тот же список процессов, тот же файл, тот же порт<i>Sysinternals</i></li>
+          <li>Нарушитель в GitHub Actions проходит все прежние проверки<i>Actions</i></li>
+          <li>Студент объясняет каждую строку и записал работу ИИ в журнал<i>защита</i></li>
+        </ul>
+
+        <h2 id="s6"><span class="sec">§6</span>Инструменты</h2>
+
+        <p>OpenAI, Anthropic и Google не работают с российскими адресами, поэтому в курсе используются российские сервисы и локальные модели. У всех помощников из таблицы есть бесплатный доступ.</p>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Инструмент</th><th>Что это</th><th>Роль в курсе</th></tr></thead>
+            <tbody>
+              <tr><td>GigaCode</td><td>помощник Сбера для VS Code с агентным режимом; вход через GitVerse</td><td>помощник разработчика, Р1–Р2</td></tr>
+              <tr><td>SourceCraft Code Assistant</td><td>помощник Яндекса для VS Code с агентным режимом</td><td>помощник разработчика, Р1–Р2</td></tr>
+              <tr><td>Continue + Ollama</td><td>расширение VS Code, которое работает с локальной моделью без интернета</td><td>помощник при плохом интернете</td></tr>
+              <tr><td>n8n, узел AI Agent</td><td>агент в сценарии n8n: модель плюс инструменты и MCP-клиент</td><td>объяснение и расследование тревог, пары 3 и 17</td></tr>
+              <tr><td>Ollama</td><td>запуск модели на компьютере</td><td>модель для n8n, пары 3 и 15</td></tr>
+              <tr><td>GigaChat, YandexGPT</td><td>облачные модели с бесплатным объёмом для пробы</td><td>модель для n8n на слабых компьютерах, пара 18</td></tr>
+              <tr><td>MCP SDK для Python</td><td>библиотека для MCP-сервера</td><td>агент-сторож как MCP-сервер, пара 19</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="margin-note margin-note--warn">
+          <b>Что проверить до начала занятий</b>
+          <p>Условия бесплатных тарифов меняются, поэтому перед курсом проверяются вход в GigaCode и SourceCraft из сети колледжа и бесплатные объёмы GigaChat. Агенту в n8n нужна модель, которая умеет вызывать инструменты: на компьютере с 16 ГБ памяти — локальная модель на 7–8 млрд параметров, на 8 ГБ — облачная GigaChat.</p>
+        </div>
+
+        <h2 id="s7"><span class="sec">§7</span>Проверьте себя</h2>
+
+        <details>
+          <summary>Чем ИИ-агент отличается от помощника в редакторе?</summary>
+          <p>Помощник отвечает на конкретную просьбу: дописать строку, объяснить фрагмент. Агент получает задачу целиком и выполняет её по шагам: сам читает файлы, запускает компилятор и команды, смотрит на результат и исправляет, выбирая следующий инструмент.</p>
+        </details>
+        <details>
+          <summary>Почему точность агента-сторожа проверяется отдельно от модели ИИ?</summary>
+          <p>Модель видит компьютер только через функции агента. Если функция вернула неполные данные, модель сделает вывод по ним и ошибки не заметит. Поэтому данные агента сверяются со служебными программами и нарушителем, а вывод модели — с данными агента.</p>
+        </details>
+        <details>
+          <summary>ИИ написал функцию, которая работает при запуске. Как проверить, что в ней не теряются дескрипторы?</summary>
+          <p>Вызвать функцию в цикле и смотреть в Process Explorer столбец Handles у процесса. Если число растёт с каждым вызовом, какой-то дескриптор не закрывается.</p>
+        </details>
+        <details>
+          <summary>Почему в режиме Р0 пишется первый вызов каждой новой функции WinAPI?</summary>
+          <p>Чтобы студент сам разобрался с аргументами, структурами и кодами ошибок этой функции. Без этого он не сможет проверить код, который ИИ напишет с той же функцией в режиме Р2.</p>
+        </details>
+
+        <h3>Итог главы</h3>
+        <p>Чат отвечает текстом, помощник работает в редакторе, агент выполняет задачу по шагам с инструментами. В курсе ИИ работает в двух ролях: помощник разработчика с первой пары и агент внутри проекта, который объясняет и расследует тревоги через функции агента-сторожа. Режим задания — Р0, Р1 или Р2 — определяет, сколько работы можно поручить ИИ. Ошибки ИИ в коде WinAPI находятся приборами: Process Explorer, AddressSanitizer, коды GetLastError, сверка со служебными программами. Код принимается по списку из восьми пунктов, и за каждую строку отвечает студент.</p>
+
+        <h3>Источники</h3>
+        <ol class="biblio">
+          <li><a href="https://learn.microsoft.com/ru-ru/windows/win32/api/tlhelp32/nf-tlhelp32-process32firstw" target="_blank" rel="noreferrer">Microsoft Learn — функция Process32FirstW (поле dwSize)</a></li>
+          <li><a href="https://learn.microsoft.com/ru-ru/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror" target="_blank" rel="noreferrer">Microsoft Learn — функция GetLastError</a></li>
+          <li><a href="https://docs.python.org/3/library/ctypes.html" target="_blank" rel="noreferrer">Python — ctypes: return types, argtypes</a></li>
+          <li><a href="https://learn.microsoft.com/ru-ru/cpp/sanitizers/asan" target="_blank" rel="noreferrer">Microsoft Learn — AddressSanitizer в MSVC</a></li>
+          <li><a href="https://yandex.cloud/ru/blog/sourcecraft-neuro-scale-2025" target="_blank" rel="noreferrer">Yandex Cloud — обновления SourceCraft: агентский режим</a> <span class="vendor">производитель</span></li>
+          <li><a href="https://toolfox.ru/services/s/gigacode" target="_blank" rel="noreferrer">Toolfox — GigaCode: возможности и условия</a></li>
+          <li><a href="https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/" target="_blank" rel="noreferrer">n8n Docs — AI Agent node</a></li>
+          <li><a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noreferrer">GitHub — MCP Python SDK</a></li>
+        </ol>
+
+        <div class="pager">
+          <a href="../02-otrasl-segodnya/index.html">← 0.2 Системное программирование сегодня</a>
+          <a href="../04-kak-ustroena-disciplina/index.html">0.4 Как устроена дисциплина →</a>
+        </div>
+
+        <div class="colophon">
+          <span>Справочник по системному программированию</span>
+          <span class="author-line">© Макаров Максим Николаевич</span>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+  <script>
+  (() => {
+    const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const CODE = [
+      '#include <windows.h>',
+      '#include <tlhelp32.h>',
+      '#include <stdio.h>',
+      '',
+      'int count_processes(void) {',
+      '    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);',
+      '    PROCESSENTRY32W pe;',
+      '    int n = 0;',
+      '    if (!Process32FirstW(snap, &pe)) {',
+      '        printf("Process32FirstW failed\\n");',
+      '        printf("error %lu\\n", GetLastError());',
+      '        return -1;',
+      '    }',
+      '    do { n++; } while (Process32NextW(snap, &pe));',
+      '    return n;',
+      '}',
+    ];
+    const BUGS = {
+      7: ['Не задан размер структуры', 'Перед первым вызовом Process32FirstW поле <code>pe.dwSize</code> должно содержать размер структуры: <code>pe.dwSize = sizeof(pe);</code>. Без этого функция вернёт FALSE, и программа всегда выйдет по ветке ошибки.', 'прибор: GetLastError → 24, ERROR_BAD_LENGTH'],
+      11: ['Код ошибки читается слишком поздно', '<code>GetLastError</code> нужно вызывать сразу после неудачной функции. <code>printf</code> в строке 10 внутри вызывает функции Windows и может заменить код ошибки другим. Правильно — сохранить <code>DWORD err = GetLastError();</code> до любого вывода.', 'прибор: сравнить код с выводом Process Monitor'],
+      15: ['Дескриптор снимка не закрыт', 'Снимок процессов — объект ядра, и его дескриптор нужно закрыть <code>CloseHandle(snap)</code> перед каждым <code>return</code>, в том числе в строке 12. Иначе каждый вызов функции оставляет в агенте открытый дескриптор, и за сутки их накапливаются тысячи.', 'прибор: Process Explorer, столбец Handles растёт'],
+    };
+    const code = document.getElementById('huntCode'), side = document.getElementById('huntSide');
+    let found = new Set();
+    const render = () => {
+      code.innerHTML = CODE.map((l, i) => `<span class="ln${found.has(i + 1) ? ' found' : ''}" data-l="${i + 1}">${esc(l) || ' '}</span>`).join('');
+      document.getElementById('huntScore').textContent = `найдено ${found.size} из 3`;
+      side.innerHTML = found.size ? [...found].sort((a, b) => a - b).map(l => `<div class="bughunt__card"><b>Строка ${l} · ${BUGS[l][0]}</b>${BUGS[l][1]}<em>${BUGS[l][2]}</em></div>`).join('') : '<p class="bughunt__hint">Объяснение найденных ошибок появится здесь.</p>';
+    };
+    code.addEventListener('click', e => {
+      const ln = e.target.closest('.ln'); if (!ln) return;
+      const l = +ln.dataset.l;
+      if (BUGS[l]) { found.add(l); render(); }
+      else { ln.classList.add('miss'); setTimeout(() => ln.classList.remove('miss'), 500); }
+    });
+    document.getElementById('huntShow').onclick = () => { found = new Set([7, 11, 15]); render(); };
+    document.getElementById('huntReset').onclick = () => { found = new Set(); render(); };
+    render();
+  })();
+  </script>
+</body>
+</html>

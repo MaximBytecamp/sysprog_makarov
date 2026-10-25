@@ -695,3 +695,32 @@ details.more summary::before { content: "Подробнее · "; font: 600 10.5
 
 /* Длинные вызовы и адреса переносятся внутри строки на узком экране. */
 .callchain code, .steps a, .live__note code { overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+
+/* Поиск ошибок в коде от ИИ: строки нажимаются, найденная ошибка подсвечивается. */
+.bughunt { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, .8fr); gap: 16px; align-items: start; }
+.bughunt__code { margin: 0; padding: 10px 0; background: var(--ink); color: #E8E6F2; font: 400 13px/1.6 var(--mono); overflow-x: auto; counter-reset: ln; }
+.bughunt__code span.ln { display: block; padding: 0 14px 0 46px; position: relative; white-space: pre; cursor: pointer; border-left: 4px solid transparent; }
+.bughunt__code span.ln::before { counter-increment: ln; content: counter(ln); position: absolute; left: 10px; width: 24px; text-align: right; color: #7D8199; }
+.bughunt__code span.ln:hover { background: rgba(255, 255, 255, .07); }
+.bughunt__code span.ln.miss { background: rgba(255, 255, 255, .05); }
+.bughunt__code span.ln.found { background: rgba(242, 169, 59, .28); border-left-color: var(--ng-bright); }
+.bughunt__side { display: grid; gap: 10px; }
+.bughunt__score { font: 700 14px/1.3 var(--mono); }
+.bughunt__card { padding: 10px 12px; border: 2px solid var(--ink); background: #fff; font-size: 14.5px; line-height: 1.5; }
+.bughunt__card b { display: block; margin-bottom: 4px; color: var(--ng); font: 600 10.5px/1.4 var(--pixel); letter-spacing: 1px; text-transform: uppercase; }
+.bughunt__card em { display: block; margin-top: 6px; font-style: normal; font: 500 12.5px/1.45 var(--mono); color: var(--acc); }
+.bughunt__hint { margin: 0; font-size: 14px; color: var(--ink-soft); }
+.modes3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 22px 0; }
+.modes3 > div { border: 3px solid var(--ink); background: var(--page); }
+.modes3 > div > b { display: flex; justify-content: space-between; padding: 8px 12px; background: var(--ink); color: #fff; font: 600 11px/1.4 var(--pixel); letter-spacing: 1px; text-transform: uppercase; }
+.modes3 > div > b i { font: 700 13px/1 var(--mono); font-style: normal; color: var(--acc-bright); }
+.modes3 > div > div { padding: 10px 12px; font-size: 14.5px; line-height: 1.5; }
+.modes3 > div > div p { margin: 0 0 6px; }
+.modes3 > div > div p:last-child { margin: 0; color: var(--ink-soft); font-size: 13.5px; }
+.modes3 .m0 { box-shadow: 5px 5px 0 var(--ink-faint); } .modes3 .m1 { box-shadow: 5px 5px 0 var(--acc); } .modes3 .m2 { box-shadow: 5px 5px 0 var(--ng); }
+.checklist2 { list-style: none; margin: 18px 0; padding: 0; display: grid; gap: 6px; }
+.checklist2 li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 9px 12px; border: 2px solid var(--ink); background: #fff; font-size: 15px; line-height: 1.45; }
+.checklist2 li::before { content: "□"; font: 700 16px/1 var(--mono); color: var(--acc); }
+.checklist2 li i { font: 600 11.5px/1.3 var(--mono); font-style: normal; color: var(--ink-faint); white-space: nowrap; }
+@media (max-width: 900px) { .bughunt, .modes3 { grid-template-columns: 1fr; } .checklist2 li { grid-template-columns: 28px minmax(0, 1fr); } .checklist2 li i { grid-column: 2; } }
+.flowout > div { min-width: 0; }
