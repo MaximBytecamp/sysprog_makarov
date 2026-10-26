@@ -1,0 +1,86 @@
+        <ol class="steps" data-os="win">
+          <li><b>Установите компилятор</b><p>Откройте страницу <a href="https://visualstudio.microsoft.com/downloads/" target="_blank" rel="noreferrer">visualstudio.microsoft.com/downloads</a>, в разделе <strong>Tools for Visual Studio</strong> скачайте <strong>Build Tools for Visual Studio</strong>. В установщике отметьте рабочую нагрузку <strong>Разработка классических приложений на C++</strong> (Desktop development with C++) и нажмите <strong>Установить</strong>. Python 3.14 скачайте с <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer">python.org</a> и при установке отметьте <strong>Add python.exe to PATH</strong>.</p>
+            <div class="shot-todo"><b>Место под кадр с компьютера в классе</b><p>Visual Studio Installer, вкладка «Рабочие нагрузки»: отмечена «Разработка классических приложений на C++», справа в списке компонентов отмечены MSVC и Windows 11 SDK.</p></div></li>
+          <li><b>Откройте командную строку компилятора</b><p>В меню «Пуск» найдите <strong>x64 Native Tools Command Prompt for VS</strong>. В этой командной строке настроены пути к компилятору; в обычной командной строке и в PowerShell команда <code>cl</code> не найдётся.</p></li>
+          <li><b>Создайте файл программы на C</b><p>Выполните команды и вставьте в Блокнот код ниже. Блокнот спросит, создать ли новый файл, — ответьте «Да».</p>
+            <figure class="code"><figcaption><span>Командная строка</span></figcaption><pre>mkdir C:\syspro\pair01
+cd C:\syspro\pair01
+notepad hello.c</pre></figure>
+            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
+    <span class="t">DWORD</span> pid = <span class="f">GetCurrentProcessId</span>();
+    <span class="f">printf</span>(<span class="s">"agent v0, pid=%lu\n"</span>, pid);
+    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
+    <span class="f">getchar</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre></figure></li>
+          <li><b>Проверьте компилятор</b><figure class="code"><figcaption><span>Командная строка</span></figcaption><pre>cl</pre></figure><p>Без аргументов <code>cl</code> печатает название и версию, например <code>Microsoft (R) C/C++ Optimizing Compiler Version 19.44…</code>. Эту строку запишите в отчёт.</p></li>
+          <li><b>Создайте файл hello.py рядом</b><p>Вторая программа вызывает ту же системную функцию из Python через <code>ctypes</code>.</p><figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes
+
+k32 = ctypes.windll.kernel32
+k32.GetCurrentProcessId.restype = ctypes.c_ulong
+<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, k32.<span class="f">GetCurrentProcessId</span>())
+<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure></li>
+        </ol>
+
+        <ol class="steps" data-os="mac">
+          <li><b>Установите компилятор</b><p>Откройте Терминал и выполните команду ниже. Появится окно установки Command Line Tools — нажмите <strong>Установить</strong>. В набор входят компилятор <code>clang</code>, отладчик <code>lldb</code> и <code>git</code>. Python 3.14 скачайте с <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer">python.org</a>.</p>
+            <figure class="code"><figcaption><span>Терминал</span></figcaption><pre>xcode-select --install</pre></figure></li>
+          <li><b>Создайте файл программы на C</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>mkdir -p ~/syspro/pair01
+cd ~/syspro/pair01
+open -e hello.c</pre></figure><p>Если файла ещё нет, создайте его командой <code>touch hello.c</code> перед <code>open -e</code>. Вставьте код в TextEdit и сохраните.</p>
+            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
+    <span class="t">pid_t</span> pid = <span class="f">getpid</span>();
+    <span class="f">printf</span>(<span class="s">"agent v0, pid=%d\n"</span>, (<span class="t">int</span>)pid);
+    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
+    <span class="f">getchar</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre></figure></li>
+          <li><b>Проверьте компилятор</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>clang --version</pre></figure><p>Первая строка — версия компилятора, например <code>Apple clang version 17.0.0</code>. Её запишите в отчёт.</p></li>
+          <li><b>Создайте файл hello.py рядом</b><p>Вторая программа вызывает ту же системную функцию из Python через <code>ctypes</code>.</p><figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes, ctypes.util
+
+libc = ctypes.<span class="f">CDLL</span>(ctypes.util.<span class="f">find_library</span>(<span class="s">"c"</span>))
+libc.getpid.restype = ctypes.c_int
+<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, libc.<span class="f">getpid</span>())
+<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure></li>
+        </ol>
+
+        <ol class="steps" data-os="linux">
+          <li><b>Установите компилятор и Python</b><p>В Ubuntu и Debian компилятор <code>gcc</code>, <code>make</code> и заголовочные файлы входят в пакет <code>build-essential</code>. В других дистрибутивах пакет называется иначе, например <code>base-devel</code> в Arch.</p>
+            <figure class="code"><figcaption><span>Терминал</span></figcaption><pre>sudo apt update
+sudo apt install build-essential python3</pre></figure></li>
+          <li><b>Создайте файл программы на C</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>mkdir -p ~/syspro/pair01
+cd ~/syspro/pair01
+nano hello.c</pre></figure><p>Вставьте код, сохраните сочетанием Ctrl+O и выйдите Ctrl+X.</p>
+            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
+    <span class="t">pid_t</span> pid = <span class="f">getpid</span>();
+    <span class="f">printf</span>(<span class="s">"agent v0, pid=%d\n"</span>, (<span class="t">int</span>)pid);
+    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
+    <span class="f">getchar</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre></figure></li>
+          <li><b>Проверьте компилятор</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>gcc --version</pre></figure><p>Первая строка — версия компилятора, например <code>gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0</code>. Её запишите в отчёт.</p></li>
+          <li><b>Создайте файл hello.py рядом</b><p>Вторая программа вызывает ту же системную функцию из Python через <code>ctypes</code>.</p><figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes, ctypes.util
+
+libc = ctypes.<span class="f">CDLL</span>(ctypes.util.<span class="f">find_library</span>(<span class="s">"c"</span>))
+libc.getpid.restype = ctypes.c_int
+<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, libc.<span class="f">getpid</span>())
+<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure></li>
+        </ol>
+
+        <details class="more" data-os="win">
+          <summary>Если компилятор пишет, что не находит windows.h</summary>
+          <p>В установщике не отмечен Windows SDK. Откройте Visual Studio Installer, нажмите «Изменить» у Build Tools и отметьте в рабочей нагрузке C++ пункт Windows 11 SDK.</p>
+        </details>
+        <details class="more" data-os="mac">
+          <summary>Если команда clang пишет, что не найдены инструменты разработчика</summary>
+          <p>Command Line Tools не установлены или установлены не до конца. Повторите <code>xcode-select --install</code> и дождитесь окончания установки; путь к инструментам показывает команда <code>xcode-select -p</code>.</p>
+        </details>

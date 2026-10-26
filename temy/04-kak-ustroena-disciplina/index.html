@@ -53,7 +53,7 @@
         <header class="chapter-head">
           <span class="chapter-num">0.4</span>
           <h1>Как устроена<br>дисциплина</h1>
-          <p class="lead">В этой главе описано, чему учит дисциплина и как она построена. Весь курс студенты пишут одну программу — агент-сторож компьютера. Курс идёт сразу для трёх систем: Windows, macOS и Linux; переключатель вверху страницы меняет функции, программы и команды. Ядро агента написано на C и обращается к системному интерфейсу, мозг написан на Python и связывает ядро с сервисом автоматизации n8n и моделями ИИ. ИИ участвует с первой пары: помогает писать код, объясняет тревоги, а со второй половины курса сам расследует их через функции агента. Глава заканчивается заданием к модулю 0.</p>
+          <p class="lead">В этой главе описано, чему учит дисциплина и как она построена. Весь курс студенты пишут одну программу — агент-сторож компьютера. Курс идёт сразу для трёх систем: Windows, macOS и Linux; переключатель вверху страницы меняет функции, программы и команды. Ядро агента написано на C и обращается к системному интерфейсу, мозг написан на Python и связывает ядро с сервисом автоматизации n8n и моделями ИИ. ИИ участвует с первой пары: помогает писать код, объясняет тревоги, а со второй половины курса сам расследует их через функции агента. Каждая пара начинается с лабораторной работы в настоящих программах системы — пошагово, с кадрами экрана. Глава заканчивается картой всех 24 лабораторных.</p>
         </header>
 
         <dl class="passport">
@@ -74,7 +74,7 @@
             <li><a href="#s6">Как растут проверки</a></li>
             <li><a href="#s7">Модули</a></li>
             <li><a href="#s8">Инструменты</a></li>
-            <li><a href="#s9">Задание к модулю 0</a></li>
+            <li><a href="#s9">Карта лабораторных работ</a></li>
           </ol>
         </nav>
 
@@ -116,13 +116,20 @@
           </table>
         </div>
 
-        <p>В правой колонке у каждой темы три шага. Они повторяются на каждой паре и задают её порядок.</p>
+        <p>Из правой колонки складывается порядок каждой пары. Пара начинается не с теории, а с работы в программе: студент сначала видит явление на экране, потом узнаёт, как оно устроено, и только затем получает те же данные своим кодом.</p>
 
-        <div class="triad">
-          <div><i>Системный вызов на C</i><b>Вызов функций системы</b><span>Студент пишет код ядра, который получает сведения у системы напрямую, и разбирает коды ошибок.</span></div>
-          <div><i>Сверка</i><b>Служебная программа</b><span>Результат сравнивается со служебной программой: <span data-os="win">Process Explorer, Process Monitor, Autoruns, TCPView</span><span data-os="mac">Мониторинг системы, <code>lsof</code>, <code>fs_usage</code>, <code>launchctl</code></span><span data-os="linux"><code>ps</code>, <code>strace</code>, <code>ss</code>, <code>systemctl</code></span>.</span></div>
-          <div><i>Проверка</i><b>Новое нарушение</b><span>Мозг на Python начинает замечать ещё одну ситуацию, нарушитель в GitHub Actions это подтверждает, модель объясняет тревогу.</span></div>
+        <div class="quad">
+          <div><i>1 · Лабораторная</i><b>Работа в программе</b><span>Пошагово: действие, кадр экрана, что на нём видно, что изменилось после действия. Около 35 минут.</span></div>
+          <div><i>2 · Устройство</i><b>Как это работает</b><span>Механизм, который только что был виден на экране: процесс, поток, дескриптор, системный вызов. Около 15 минут.</span></div>
+          <div><i>3 · Ядро агента</i><b>То же своим кодом</b><span>Код на C получает те же данные у системы; результат сверяется с программой из лабораторной. Около 30 минут.</span></div>
+          <div><i>4 · ИИ</i><b>Проверка и тревога</b><span>Новая проверка у нарушителя, объяснение тревоги моделью, работа с помощником в режиме задания. Около 10 минут.</span></div>
         </div>
+
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Автомеханика учат так же. Сначала ученик смотрит на работающий двигатель через диагностический сканер: обороты, температура, ошибки. Потом ему объясняют, откуда сканер берёт эти числа. И только после этого он сам подключается к датчику и читает число своим прибором.</p>
+          <p class="miss">Диагностический сканер покупают готовым, а в курсе студент в итоге пишет такой сканер сам — им становится агент.</p>
+        </div></div>
 
         <h2 id="s3"><span class="sec">§3</span>Агент-сторож: ядро на C и мозг на Python</h2>
 
@@ -212,7 +219,7 @@
 
         <p>В репозитории студента настроен <span class="term">GitHub Actions</span> — автоматический запуск на серверах GitHub. Проверка идёт сразу на трёх серверах: <code>windows-latest</code>, <code>macos-latest</code> и <code>ubuntu-latest</code>. После каждой отправки кода серверы собирают ядро, запускают мозг и программу-<span class="term">нарушитель</span>. Нарушитель по очереди создаёт ситуации из пройденных тем: запускает процесс, который загружает процессор, меняет файл <code>hosts</code>, добавляет запись в автозагрузку — каждую так, как это делается в данной системе. Мозг должен выдать тревогу на каждую. Студент сдаёт ядро для своей системы, а зелёная отметка на всех трёх серверах даёт дополнительные баллы. Нарушитель проверяет тревоги, а не язык и не текст модели, поэтому код можно писать с ИИ в разрешённом режиме, но работать он должен точно.</p>
 
-        <p>Ползунок ниже выбирает пару. Цветная полоса под клеткой — модуль, ромбик над клеткой — пара, на которой появляется новая проверка.</p>
+        <p>Ползунок ниже выбирает пару. Для каждой пары показаны тема, лабораторная работа с программами выбранной системы и проверки агента. Цветная полоса под клеткой — модуль, ромбик над клеткой — пара, на которой появляется новая проверка.</p>
 
         <figure class="live" id="track">
           <p class="live__head">24 пары · 13 проверок</p>
@@ -238,6 +245,7 @@
 
         <div class="mod mod--intro">
           <div class="mod__head"><b>Модуль 0. Системное программирование сегодня</b><span>пара 1</span></div>
+          <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 1</b> «Процесс изнутри» — <span data-os="win">Диспетчер задач, Process Explorer</span><span data-os="mac">Мониторинг системы</span><span data-os="linux">Системный монитор GNOME</span></li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>Системные программы, слои компьютера, режимы пользователя и ядра, системный интерфейс трёх систем из C и Python, события в отрасли, ИИ-агенты и режимы работы, устройство дисциплины.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Первая программа с системным вызовом на C и та же функция из Python — задание к модулю 0 (§9).</p></div></div>
           <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р1: помощник объясняет программу по строкам, ответ сверяется с главой 0.1.</p></div></div>
@@ -245,6 +253,7 @@
 
         <div class="mod mod--intro">
           <div class="mod__head"><b>Модуль 1. Рабочее место: C, Python и ИИ</b><span>пары 2–3</span></div>
+          <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 2</b> «Программа в отладчике» — VS Code, Compiler Explorer</li><li><b>ЛР 3</b> «Библиотеки и первая автоматизация» — <span data-os="win">Dependencies, Process Explorer, n8n</span><span data-os="mac">otool, vmmap, n8n</span><span data-os="linux">ldd, Системный монитор, n8n</span></li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>C для системного программиста: указатели, структуры, строки, коды ошибок; <span data-os="win">строки <code>WCHAR</code>, типы Windows, <code>GetLastError</code></span><span data-os="mac"><code>errno</code>, заголовки POSIX и libproc</span><span data-os="linux"><code>errno</code>, заголовки POSIX, Makefile</span>. Сборка динамической библиотеки на C и вызов из Python через <code>ctypes</code>. Сервис n8n и модель в Ollama.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Ядро <span data-os="win"><code>sentry_core.dll</code></span><span data-os="mac"><code>libsentry_core.dylib</code></span><span data-os="linux"><code>libsentry_core.so</code></span> отдаёт сведения о системе, мозг <code>brain.py</code> вызывает его и отправляет первое сообщение «агент запущен» в n8n. Репозиторий и первый запуск GitHub Actions.</p></div></div>
           <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Помощник в VS Code (Р1). Первый сценарий n8n с моделью: сообщение агента приходит на почту с объяснением.</p></div></div>
@@ -252,6 +261,7 @@
 
         <div class="mod">
           <div class="mod__head"><b>Модуль 2. Процессы, потоки и память</b><span>пары 4–9</span></div>
+          <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 4</b> «Дерево процессов» — <span data-os="win">Process Explorer</span><span data-os="mac">Мониторинг системы</span><span data-os="linux">htop, Системный монитор</span></li><li><b>ЛР 5</b> «Рождение процесса» — <span data-os="win">Process Monitor</span><span data-os="mac">fs_usage, Мониторинг системы</span><span data-os="linux">strace, htop</span></li><li><b>ЛР 6</b> «Кто загружает процессор» — <span data-os="win">Монитор ресурсов, Process Explorer</span><span data-os="mac">Мониторинг системы, Instruments</span><span data-os="linux">htop, perf top</span></li><li><b>ЛР 7</b> «Потоки Python и GIL» — <span data-os="win">Диспетчер задач, Process Explorer</span><span data-os="mac">Мониторинг системы</span><span data-os="linux">htop, Системный монитор</span></li><li><b>ЛР 8</b> «Карта памяти» — <span data-os="win">VMMap</span><span data-os="mac">Мониторинг системы, vmmap</span><span data-os="linux">Системный монитор: карты памяти</span></li><li><b>ЛР 9</b> «Разбор падения» — <span data-os="win">Монитор стабильности, VS Code</span><span data-os="mac">Консоль: отчёты о сбоях</span><span data-os="linux">coredumpctl, gdb</span></li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>Процессы и их создание: <span data-os="win"><code>CreateProcessW</code>, объекты Job</span><span data-os="mac"><code>fork</code>, <code>posix_spawn</code></span><span data-os="linux"><code>fork</code>, <code>execve</code>, cgroups</span>. Потоки, приоритеты, процессорное время. Потоки в Python: блокировка GIL и Python 3.14 без неё. Синхронизация в C. Виртуальная память. Ошибки памяти в C и в <code>ctypes</code>.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Ядро: список процессов, процессорное время и память каждого процесса. Мозг считает загрузку и находит рост памяти.</p></div></div>
           <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р2 на паре 5: ИИ пишет запуск процессов, студент ищет утечку дескрипторов <span data-os="win">в Process Explorer</span><span data-os="mac">через <code>lsof -p</code></span><span data-os="linux">в <code>/proc/&lt;pid&gt;/fd</code></span>. Пара 9: разбор кода ИИ с ошибками памяти через AddressSanitizer.</p></div></div>
@@ -260,6 +270,7 @@
 
         <div class="mod">
           <div class="mod__head"><b>Модуль 3. Файлы, автозагрузка и журналы</b><span>пары 10–13</span></div>
+          <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 10</b> «Файл под лупой» — <span data-os="win">ImHex, Process Monitor</span><span data-os="mac">ImHex, fs_usage</span><span data-os="linux">ImHex, strace</span></li><li><b>ЛР 11</b> «Слежка за папкой» — <span data-os="win">Process Monitor</span><span data-os="mac">fs_usage</span><span data-os="linux">inotifywait</span></li><li><b>ЛР 12</b> «Где прячется автозагрузка» — <span data-os="win">Autoruns, Планировщик заданий</span><span data-os="mac">Объекты входа, launchctl</span><span data-os="linux">Автозапуск GNOME, Cockpit</span></li><li><b>ЛР 13</b> «Журнал входов» — <span data-os="win">Просмотр событий</span><span data-os="mac">Консоль</span><span data-os="linux">Журналы GNOME, Cockpit</span></li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>Файловый ввод-вывод, хэши SHA-256. Python изнутри: <span data-os="win">Process Monitor</span><span data-os="mac"><code>fs_usage</code></span><span data-os="linux"><code>strace</code></span> на <code>import</code>. Наблюдение за папками: <span data-os="win"><code>ReadDirectoryChangesW</code></span><span data-os="mac">FSEvents</span><span data-os="linux"><code>inotify</code></span>. Автозагрузка: <span data-os="win">реестр и уведомления об изменениях</span><span data-os="mac">LaunchAgents и LaunchDaemons</span><span data-os="linux">systemd-юниты, cron, autostart</span>. Журнал системы: <span data-os="win">журнал событий Windows</span><span data-os="mac">единый журнал, <code>log show</code></span><span data-os="linux">journald, <code>journalctl</code></span>.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Следит за файлом <code>hosts</code>, папками и записями автозагрузки, читает события входа в систему.</p></div></div>
           <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р2 для мозга на Python: ИИ-агент пишет сравнение снимков и формат тревог, студент принимает по списку проверки.</p></div></div>
@@ -268,6 +279,7 @@
 
         <div class="mod">
           <div class="mod__head"><b>Модуль 4. Сеть и ИИ-агенты</b><span>пары 14–19</span></div>
+          <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 14</b> «Кто ходит в сеть» — <span data-os="win">TCPView, Wireshark</span><span data-os="mac">lsof, Wireshark</span><span data-os="linux">ss, Wireshark</span></li><li><b>ЛР 15</b> «Нейросеть как процесс» — <span data-os="win">Диспетчер задач: ГП и NPU</span><span data-os="mac">Мониторинг системы: история ГП</span><span data-os="linux">htop, nvtop</span></li><li><b>ЛР 16</b> «Агент отвечает на запросы» — Bruno</li><li><b>ЛР 17</b> «Расследование глазами n8n» — n8n</li><li><b>ЛР 18</b> «Что уходит в облако» — Wireshark, n8n</li><li><b>ЛР 19</b> «Агент для ассистента» — MCP Inspector</li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>Сетевые соединения и порты. Модель ИИ как процесс: память, процессор, выбор модели. HTTP-доступ к данным агента. Узел AI Agent в n8n и вызов инструментов. Облачная модель и личные данные. MCP-сервер на Python.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Видит порты и соединения, отдаёт данные по запросу, убирает личные данные из тревог, работает как MCP-сервер.</p></div></div>
           <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>ИИ-агент в n8n расследует тревоги через инструменты агента-сторожа. ИИ-ассистент подключается к агенту по MCP и отвечает на вопрос «что загружает компьютер» по настоящим данным.</p></div></div>
@@ -276,6 +288,7 @@
 
         <div class="mod">
           <div class="mod__head"><b>Модуль 5. Служба, устройства, исполняемые файлы</b><span>пары 20–22</span></div>
+          <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 20</b> «Агент как служба» — <span data-os="win">Службы (services.msc)</span><span data-os="mac">launchctl, Объекты входа</span><span data-os="linux">Cockpit, systemctl</span></li><li><b>ЛР 21</b> «Флешка» — <span data-os="win">Диспетчер устройств</span><span data-os="mac">Информация о системе</span><span data-os="linux">udevadm, Диски GNOME</span></li><li><b>ЛР 22</b> «Вскрытие исполняемого файла» — <span data-os="win">Свойства файла, Detect It Easy, Ghidra, x64dbg</span><span data-os="mac">codesign, Detect It Easy, Ghidra, lldb</span><span data-os="linux">Detect It Easy, Ghidra, gdb</span></li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p><span data-os="win">Службы Windows и именованные каналы</span><span data-os="mac">Демоны launchd и Unix-сокеты</span><span data-os="linux">Службы systemd и Unix-сокеты</span>. Уведомления об устройствах и питании: <span data-os="win"><code>WM_DEVICECHANGE</code></span><span data-os="mac">IOKit</span><span data-os="linux">udev</span>. Формат исполняемых файлов <span data-os="win">PE</span><span data-os="mac">Mach-O</span><span data-os="linux">ELF</span>, <span data-os="win">цифровые подписи, отладчик x64dbg</span><span data-os="mac">подписи <code>codesign</code>, отладчик lldb</span><span data-os="linux">происхождение файла из пакета, отладчик gdb</span> и Ghidra.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Ядро становится <span data-os="win">службой</span><span data-os="mac">демоном</span><span data-os="linux">службой</span> и запускается вместе с системой, мозг связан с ним <span data-os="win">каналом</span><span data-os="mac">сокетом</span><span data-os="linux">сокетом</span>. Агент замечает флешки и запуск <span data-os="win">программ без подписи</span><span data-os="mac">программ без подписи</span><span data-os="linux">программ не из пакетов и из <code>/tmp</code></span>.</p></div></div>
           <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Новые инструменты для ИИ-агента: подпись файла, устройство. Разбор в Ghidra кода, который написал ИИ.</p></div></div>
@@ -284,6 +297,7 @@
 
         <div class="mod mod--own">
           <div class="mod__head"><b>Модуль 6. Курсовая работа</b><span>пары 23–24</span></div>
+          <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 23</b> «Своя проверка» — n8n, Bruno</li><li><b>ЛР 24</b> «Защита» — всё изученное</li></ul></div></div>
           <div class="mod__row mod__row--ag"><b>Работа</b><div><p>Агент со всеми проверками, одной своей проверкой и одним своим инструментом для ИИ-агента. Сценарий n8n с расследованием, журнал работы с ИИ, отчёт.</p></div></div>
           <div class="mod__row mod__row--ch"><b>Защита</b><div><p>Нарушитель запускается при всех, агент замечает каждую ситуацию, ИИ-агент присылает вердикт. Ответы по любой строке кода, в том числе написанной ИИ.</p></div></div>
         </div>
@@ -309,9 +323,12 @@
               <tr><td>Автозагрузка</td><td><span data-os="win">Autoruns (Sysinternals)</span><span data-os="mac"><code>launchctl list</code>, папки LaunchAgents</span><span data-os="linux"><code>systemctl list-unit-files</code>, <code>crontab -l</code></span></td><td class="num-cell">11</td></tr>
               <tr><td>Журналы системы</td><td><span data-os="win">Просмотр событий</span><span data-os="mac"><code>log show</code>, программа Консоль</span><span data-os="linux"><code>journalctl</code></span></td><td class="num-cell">13</td></tr>
               <tr><td>Сетевые соединения</td><td><span data-os="win">TCPView (Sysinternals)</span><span data-os="mac"><code>lsof -i</code>, <code>netstat</code></span><span data-os="linux"><code>ss</code></span></td><td class="num-cell">14</td></tr>
+              <tr><td>Байты и формат файла</td><td>ImHex</td><td class="num-cell">10</td></tr>
+              <tr><td>Сетевые пакеты</td><td>Wireshark</td><td class="num-cell">14</td></tr>
+              <tr><td>Ручные запросы к агенту</td><td>Bruno</td><td class="num-cell">16</td></tr>
               <tr><td>ИИ-агент и облачная модель</td><td>узел AI Agent в n8n, GigaChat или YandexGPT</td><td class="num-cell">17</td></tr>
-              <tr><td>MCP-сервер</td><td>MCP SDK для Python</td><td class="num-cell">19</td></tr>
-              <tr><td>Отладка и разбор исполняемых файлов</td><td><span data-os="win">x64dbg, Ghidra, Sigcheck</span><span data-os="mac">lldb, Ghidra, <code>otool</code>, <code>codesign</code></span><span data-os="linux">gdb, Ghidra, <code>readelf</code>, <code>dpkg -S</code></span></td><td class="num-cell">22</td></tr>
+              <tr><td>MCP-сервер и его проверка</td><td>MCP SDK для Python, MCP Inspector</td><td class="num-cell">19</td></tr>
+              <tr><td>Отладка и разбор исполняемых файлов</td><td><span data-os="win">Detect It Easy, Ghidra, x64dbg, Sigcheck</span><span data-os="mac">Detect It Easy, Ghidra, lldb, <code>codesign</code></span><span data-os="linux">Detect It Easy, Ghidra, gdb, <code>readelf</code></span></td><td class="num-cell">22</td></tr>
             </tbody>
           </table>
         </div>
@@ -321,121 +338,50 @@
           <p><span data-os="win">Windows 10 или 11, права администратора: они нужны для служб, журнала безопасности и Process Monitor.</span><span data-os="mac">macOS 13 или новее, пароль администратора: он нужен для <code>fs_usage</code>, системного журнала и демонов launchd.</span><span data-os="linux">Ubuntu 22.04 или новее (подойдут и другие дистрибутивы), права <code>sudo</code>: они нужны для <code>strace</code> чужих процессов, журнала входов и служб systemd.</span> Оперативной памяти — от 8 ГБ: на 8 ГБ работает модель на 1–3 млрд параметров, на 16 ГБ — до 8 млрд; ИИ-агенту с инструментами на 8 ГБ лучше дать облачную GigaChat. Модели, n8n и программы для кабинета скачиваются заранее и раздаются из общей папки, поэтому при плохом интернете работает всё, кроме GitHub и облачных моделей.</p>
         </div>
 
-        <h2 id="s9"><span class="sec">§9</span>Задание к модулю 0</h2>
+        <h2 id="s9"><span class="sec">§9</span>Карта лабораторных работ</h2>
 
-        <div class="margin-note">
-          <b>Одна системная функция из C и из Python · Р1 · сдаётся файлами hello.c, hello.py и report.md</b>
-          <p>Нужно установить компилятор, собрать программу из главы 0.1, вызвать ту же функцию из Python и найти оба процесса в служебной программе своей системы. Помощник ИИ объясняет программу по строкам, объяснение сверяется с главой 0.1. Шаги ниже показаны для системы, выбранной переключателем вверху страницы.</p>
+        <p>Каждая лабораторная работа написана как последовательность шагов. У шага есть действие («откройте», «нажмите», «отфильтруйте»), кадр экрана после действия, объяснение того, что на кадре, и того, что изменилось по сравнению с прошлым шагом. В конце студент заполняет отчёт: числа и имена, которые он нашёл на своём экране. Программы в таблице показаны для системы, выбранной переключателем вверху страницы.</p>
+
+        <div class="table-scroll">
+          <table class="labmap">
+            <thead><tr><th>Пара</th><th>Лабораторная</th><th>Программы</th></tr></thead>
+            <tbody>
+            <tr><td class="num-cell">1</td><td><b>Процесс изнутри</b><br><span class="lab-what">запустить свою программу, найти её по PID, посмотреть память, открытые файлы и библиотеки, завершить из программы-монитора</span></td><td><span data-os="win">Диспетчер задач, Process Explorer</span><span data-os="mac">Мониторинг системы</span><span data-os="linux">Системный монитор GNOME</span></td></tr>
+            <tr><td class="num-cell">2</td><td><b>Программа в отладчике</b><br><span class="lab-what">поставить точку остановки, пройти программу по шагам, посмотреть переменные и память, сравнить с машинным кодом</span></td><td>VS Code, Compiler Explorer</td></tr>
+            <tr><td class="num-cell">3</td><td><b>Библиотеки и первая автоматизация</b><br><span class="lab-what">увидеть, какие библиотеки загружает программа, и собрать мышью первый сценарий n8n: вебхук → письмо</span></td><td><span data-os="win">Dependencies, Process Explorer, n8n</span><span data-os="mac">otool, vmmap, n8n</span><span data-os="linux">ldd, Системный монитор, n8n</span></td></tr>
+            <tr><td class="num-cell">4</td><td><b>Дерево процессов</b><br><span class="lab-what">найти родителя и детей процесса, увидеть, кто запустил терминал и браузер</span></td><td><span data-os="win">Process Explorer</span><span data-os="mac">Мониторинг системы</span><span data-os="linux">htop, Системный монитор</span></td></tr>
+            <tr><td class="num-cell">5</td><td><b>Рождение процесса</b><br><span class="lab-what">записать, что происходит при запуске программы: создание процесса, загрузка библиотек, первые обращения к файлам</span></td><td><span data-os="win">Process Monitor</span><span data-os="mac">fs_usage, Мониторинг системы</span><span data-os="linux">strace, htop</span></td></tr>
+            <tr><td class="num-cell">6</td><td><b>Кто загружает процессор</b><br><span class="lab-what">запустить нагрузку, найти её по графикам, посмотреть потоки и привязать процесс к ядру</span></td><td><span data-os="win">Монитор ресурсов, Process Explorer</span><span data-os="mac">Мониторинг системы, Instruments</span><span data-os="linux">htop, perf top</span></td></tr>
+            <tr><td class="num-cell">7</td><td><b>Потоки Python и GIL</b><br><span class="lab-what">запустить четыре потока в Python 3.14 с GIL и без него и сравнить загрузку ядер на графиках</span></td><td><span data-os="win">Диспетчер задач, Process Explorer</span><span data-os="mac">Мониторинг системы</span><span data-os="linux">htop, Системный монитор</span></td></tr>
+            <tr><td class="num-cell">8</td><td><b>Карта памяти</b><br><span class="lab-what">посмотреть, из чего состоит память процесса: код, библиотеки, куча, стек, — и как она растёт</span></td><td><span data-os="win">VMMap</span><span data-os="mac">Мониторинг системы, vmmap</span><span data-os="linux">Системный монитор: карты памяти</span></td></tr>
+            <tr><td class="num-cell">9</td><td><b>Разбор падения</b><br><span class="lab-what">уронить программу ошибкой памяти и найти причину по отчёту системы и AddressSanitizer</span></td><td><span data-os="win">Монитор стабильности, VS Code</span><span data-os="mac">Консоль: отчёты о сбоях</span><span data-os="linux">coredumpctl, gdb</span></td></tr>
+            <tr><td class="num-cell">10</td><td><b>Файл под лупой</b><br><span class="lab-what">открыть файл в hex-редакторе, посчитать хэш, изменить байт и увидеть, как меняется хэш</span></td><td><span data-os="win">ImHex, Process Monitor</span><span data-os="mac">ImHex, fs_usage</span><span data-os="linux">ImHex, strace</span></td></tr>
+            <tr><td class="num-cell">11</td><td><b>Слежка за папкой</b><br><span class="lab-what">смотреть в реальном времени, какие программы создают и меняют файлы в папке</span></td><td><span data-os="win">Process Monitor</span><span data-os="mac">fs_usage</span><span data-os="linux">inotifywait</span></td></tr>
+            <tr><td class="num-cell">12</td><td><b>Где прячется автозагрузка</b><br><span class="lab-what">найти все места автозапуска, добавить свою программу и убрать её</span></td><td><span data-os="win">Autoruns, Планировщик заданий</span><span data-os="mac">Объекты входа, launchctl</span><span data-os="linux">Автозапуск GNOME, Cockpit</span></td></tr>
+            <tr><td class="num-cell">13</td><td><b>Журнал входов</b><br><span class="lab-what">ошибиться с паролем и найти эти события в журнале системы фильтром</span></td><td><span data-os="win">Просмотр событий</span><span data-os="mac">Консоль</span><span data-os="linux">Журналы GNOME, Cockpit</span></td></tr>
+            <tr><td class="num-cell">14</td><td><b>Кто ходит в сеть</b><br><span class="lab-what">найти программу по открытому порту и посмотреть её пакеты</span></td><td><span data-os="win">TCPView, Wireshark</span><span data-os="mac">lsof, Wireshark</span><span data-os="linux">ss, Wireshark</span></td></tr>
+            <tr><td class="num-cell">15</td><td><b>Нейросеть как процесс</b><br><span class="lab-what">запустить модель в Ollama и смотреть память, процессор и видеокарту во время ответа</span></td><td><span data-os="win">Диспетчер задач: ГП и NPU</span><span data-os="mac">Мониторинг системы: история ГП</span><span data-os="linux">htop, nvtop</span></td></tr>
+            <tr><td class="num-cell">16</td><td><b>Агент отвечает на запросы</b><br><span class="lab-what">вызвать функции агента руками в графическом HTTP-клиенте</span></td><td>Bruno</td></tr>
+            <tr><td class="num-cell">17</td><td><b>Расследование глазами n8n</b><br><span class="lab-what">пройти журнал выполнения ИИ-агента: какие инструменты он вызвал и что получил</span></td><td>n8n</td></tr>
+            <tr><td class="num-cell">18</td><td><b>Что уходит в облако</b><br><span class="lab-what">перехватить запрос к облачной модели и проверить, нет ли в нём личных данных</span></td><td>Wireshark, n8n</td></tr>
+            <tr><td class="num-cell">19</td><td><b>Агент для ассистента</b><br><span class="lab-what">подключить агента к MCP Inspector, увидеть его функции и вызвать их</span></td><td>MCP Inspector</td></tr>
+            <tr><td class="num-cell">20</td><td><b>Агент как служба</b><br><span class="lab-what">зарегистрировать ядро службой, перезапустить компьютер и найти его в списке служб</span></td><td><span data-os="win">Службы (services.msc)</span><span data-os="mac">launchctl, Объекты входа</span><span data-os="linux">Cockpit, systemctl</span></td></tr>
+            <tr><td class="num-cell">21</td><td><b>Флешка</b><br><span class="lab-what">подключить флешку и пройти путь события от устройства до агента</span></td><td><span data-os="win">Диспетчер устройств</span><span data-os="mac">Информация о системе</span><span data-os="linux">udevadm, Диски GNOME</span></td></tr>
+            <tr><td class="num-cell">22</td><td><b>Вскрытие исполняемого файла</b><br><span class="lab-what">проверить подпись, определить формат и компилятор, открыть ядро агента в дизассемблере</span></td><td><span data-os="win">Свойства файла, Detect It Easy, Ghidra, x64dbg</span><span data-os="mac">codesign, Detect It Easy, Ghidra, lldb</span><span data-os="linux">Detect It Easy, Ghidra, gdb</span></td></tr>
+            <tr><td class="num-cell">23</td><td><b>Своя проверка</b><br><span class="lab-what">добавить свою проверку и свой инструмент ИИ-агента и показать их в n8n</span></td><td>n8n, Bruno</td></tr>
+            <tr><td class="num-cell">24</td><td><b>Защита</b><br><span class="lab-what">нарушитель при всех, агент замечает каждую ситуацию, ИИ-агент присылает вердикт</span></td><td>всё изученное</td></tr>
+            </tbody>
+          </table>
         </div>
 
-        <ol class="steps" data-os="win">
-          <li><b>Установите компилятор</b><p>Откройте страницу <a href="https://visualstudio.microsoft.com/downloads/" target="_blank" rel="noreferrer">visualstudio.microsoft.com/downloads</a>, в разделе <strong>Tools for Visual Studio</strong> скачайте <strong>Build Tools for Visual Studio</strong>. В установщике отметьте рабочую нагрузку <strong>Разработка классических приложений на C++</strong> (Desktop development with C++) и нажмите <strong>Установить</strong>. Python 3.14 скачайте с <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer">python.org</a> и при установке отметьте <strong>Add python.exe to PATH</strong>.</p>
-            <div class="shot-todo"><b>Место под кадр с компьютера в классе</b><p>Visual Studio Installer, вкладка «Рабочие нагрузки»: отмечена «Разработка классических приложений на C++», справа в списке компонентов отмечены MSVC и Windows 11 SDK.</p></div></li>
-          <li><b>Откройте командную строку компилятора</b><p>В меню «Пуск» найдите <strong>x64 Native Tools Command Prompt for VS</strong>. В этой командной строке настроены пути к компилятору; в обычной командной строке и в PowerShell команда <code>cl</code> не найдётся.</p></li>
-          <li><b>Создайте файл программы на C</b><p>Выполните команды и вставьте в Блокнот код ниже. Блокнот спросит, создать ли новый файл, — ответьте «Да».</p>
-            <figure class="code"><figcaption><span>Командная строка</span></figcaption><pre>mkdir C:\syspro\pair01
-cd C:\syspro\pair01
-notepad hello.c</pre></figure>
-            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
-<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
-
-<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
-    <span class="t">DWORD</span> pid = <span class="f">GetCurrentProcessId</span>();
-    <span class="f">printf</span>(<span class="s">"agent v0, pid=%lu\n"</span>, pid);
-    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
-    <span class="f">getchar</span>();
-    <span class="k">return</span> <span class="n">0</span>;
-}</pre></figure></li>
-          <li><b>Скомпилируйте и запустите программу</b><figure class="code"><figcaption><span>Командная строка</span></figcaption><pre>cl hello.c
-hello.exe</pre></figure><p>Первая строка вывода <code>cl</code> — название и версия компилятора, например <code>Microsoft (R) C/C++ Optimizing Compiler Version 19.44…</code>. Программа напечатает <code>agent v0, pid=…</code> и будет ждать Enter. Откройте Диспетчер задач, вкладку <strong>Подробности</strong>, найдите <code>hello.exe</code> и сравните число в столбце <strong>ИД процесса</strong> с выводом. Затем нажмите Enter.</p>
-            <div class="shot-todo"><b>Место под кадр с компьютера в классе</b><p>Слева командная строка с выводом «agent v0, pid=…», справа Диспетчер задач на вкладке «Подробности», строка hello.exe с тем же ИД процесса выделена.</p></div></li>
-          <li><b>Вызовите ту же функцию из Python</b><p>Создайте рядом файл <code>hello.py</code> и запустите его командой <code>python hello.py</code>. В Диспетчере задач найдите процесс <code>python.exe</code> с напечатанным номером.</p>
-            <figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes
-
-k32 = ctypes.windll.kernel32
-k32.GetCurrentProcessId.restype = ctypes.c_ulong
-<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, k32.<span class="f">GetCurrentProcessId</span>())
-<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure></li>
-        </ol>
-
-        <ol class="steps" data-os="mac">
-          <li><b>Установите компилятор</b><p>Откройте Терминал и выполните команду ниже. Появится окно установки Command Line Tools — нажмите <strong>Установить</strong>. В набор входят компилятор <code>clang</code>, отладчик <code>lldb</code> и <code>git</code>. Python 3.14 скачайте с <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer">python.org</a>.</p>
-            <figure class="code"><figcaption><span>Терминал</span></figcaption><pre>xcode-select --install</pre></figure></li>
-          <li><b>Создайте файл программы на C</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>mkdir -p ~/syspro/pair01
-cd ~/syspro/pair01
-open -e hello.c</pre></figure><p>Если файла ещё нет, создайте его командой <code>touch hello.c</code> перед <code>open -e</code>. Вставьте код в TextEdit и сохраните.</p>
-            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
-<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
-
-<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
-    <span class="t">pid_t</span> pid = <span class="f">getpid</span>();
-    <span class="f">printf</span>(<span class="s">"agent v0, pid=%d\n"</span>, (<span class="t">int</span>)pid);
-    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
-    <span class="f">getchar</span>();
-    <span class="k">return</span> <span class="n">0</span>;
-}</pre></figure></li>
-          <li><b>Скомпилируйте и запустите программу</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>clang --version
-clang -o hello hello.c
-./hello</pre></figure><p>Первая строка вывода <code>clang --version</code> — версия компилятора, например <code>Apple clang version 17.0.0</code>. Программа напечатает <code>agent v0, pid=…</code> и будет ждать Enter. Откройте Мониторинг системы, найдите процесс <code>hello</code> и сравните число в столбце <strong>PID</strong> с выводом. Затем нажмите Enter.</p></li>
-          <li><b>Вызовите ту же функцию из Python</b><p>Создайте рядом файл <code>hello.py</code> и запустите его командой <code>python3 hello.py</code>. Процесс с напечатанным номером найдите командой <code>ps -p &lt;номер&gt;</code> в другом окне Терминала.</p>
-            <figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes, ctypes.util
-
-libc = ctypes.<span class="f">CDLL</span>(ctypes.util.<span class="f">find_library</span>(<span class="s">"c"</span>))
-libc.getpid.restype = ctypes.c_int
-<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, libc.<span class="f">getpid</span>())
-<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure></li>
-        </ol>
-
-        <ol class="steps" data-os="linux">
-          <li><b>Установите компилятор и Python</b><p>В Ubuntu и Debian компилятор <code>gcc</code>, <code>make</code> и заголовочные файлы входят в пакет <code>build-essential</code>. В других дистрибутивах пакет называется иначе, например <code>base-devel</code> в Arch.</p>
-            <figure class="code"><figcaption><span>Терминал</span></figcaption><pre>sudo apt update
-sudo apt install build-essential python3</pre></figure></li>
-          <li><b>Создайте файл программы на C</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>mkdir -p ~/syspro/pair01
-cd ~/syspro/pair01
-nano hello.c</pre></figure><p>Вставьте код, сохраните сочетанием Ctrl+O и выйдите Ctrl+X.</p>
-            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
-<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
-
-<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
-    <span class="t">pid_t</span> pid = <span class="f">getpid</span>();
-    <span class="f">printf</span>(<span class="s">"agent v0, pid=%d\n"</span>, (<span class="t">int</span>)pid);
-    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
-    <span class="f">getchar</span>();
-    <span class="k">return</span> <span class="n">0</span>;
-}</pre></figure></li>
-          <li><b>Скомпилируйте и запустите программу</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>gcc --version
-gcc -o hello hello.c
-./hello</pre></figure><p>Первая строка вывода <code>gcc --version</code> — версия компилятора. Программа напечатает <code>agent v0, pid=…</code> и будет ждать Enter. В другом окне терминала выполните <code>ps -p &lt;номер&gt; -o pid,comm</code> или найдите процесс <code>hello</code> в htop. Затем нажмите Enter.</p></li>
-          <li><b>Вызовите ту же функцию из Python</b><p>Создайте рядом файл <code>hello.py</code> и запустите его командой <code>python3 hello.py</code>. Найдите процесс с напечатанным номером тем же способом.</p>
-            <figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes, ctypes.util
-
-libc = ctypes.<span class="f">CDLL</span>(ctypes.util.<span class="f">find_library</span>(<span class="s">"c"</span>))
-libc.getpid.restype = ctypes.c_int
-<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, libc.<span class="f">getpid</span>())
-<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure></li>
-        </ol>
-
-        <ol class="steps" start="6">
-          <li><b>Спросите помощника ИИ (режим Р1)</b><p>Откройте <code>hello.c</code> в VS Code с помощником GigaCode, SourceCraft или Continue и попросите: «Объясни эту программу по строкам. Что делает функция, которая возвращает номер процесса, и зачем getchar?». Сравните ответ с главой 0.1, §4 и выпишите в отчёт одно место, где ответ помощника точнее или менее точен, чем глава.</p></li>
-        </ol>
-
-        <p>Отчёт <code>report.md</code> содержит систему и версию компилятора, выводы <code>hello</code> и <code>hello.py</code>, номера процессов из служебной программы, запрос к помощнику и сравнение его ответа с главой. Файлы войдут в репозиторий курса на паре 2.</p>
-
-        <details class="more" data-os="win">
-          <summary>Если компилятор пишет, что не находит windows.h</summary>
-          <p>В установщике не отмечен Windows SDK. Откройте Visual Studio Installer, нажмите «Изменить» у Build Tools и отметьте в рабочей нагрузке C++ пункт Windows 11 SDK.</p>
-        </details>
-        <details class="more" data-os="mac">
-          <summary>Если команда clang пишет, что не найдены инструменты разработчика</summary>
-          <p>Command Line Tools не установлены или установлены не до конца. Повторите <code>xcode-select --install</code> и дождитесь окончания установки; путь к инструментам показывает команда <code>xcode-select -p</code>.</p>
-        </details>
+        <p>Программы, которые работают на всех трёх системах — VS Code, n8n, ImHex, Wireshark, Bruno, MCP Inspector, Detect It Easy, Ghidra, — показаны одинаковыми кадрами. Для остальных у каждой системы свои кадры. Первая лабораторная — <a href="../05-laboratornaya-1/index.html">«Процесс изнутри»</a> — выполняется на паре 1 и служит заданием к модулю 0.</p>
 
         <h3>Итог главы</h3>
         <p>Дисциплина учит понимать, что происходит внутри операционной системы во время работы программы, получать эти сведения из кода на C через системный интерфейс, проверять их приборами и отдавать моделям ИИ. Курс идёт для трёх систем: Windows, macOS и Linux. Весь курс студенты пишут агент-сторож: ядро на C вызывает системные функции, мозг на Python принимает решения и связывает агент с n8n, ИИ-агентом и MCP. ИИ участвует с первой пары тремя линиями: помощник разработчика, модель, которая объясняет тревоги, и ИИ-агент, который их расследует. За 24 пары агент получает 13 проверок, и нарушитель в GitHub Actions подтверждает их все на трёх системах после каждой отправки кода. Курсовая работа — агент со всеми проверками, своей проверкой, своим инструментом для ИИ-агента и защитой.</p>
 
         <div class="pager">
           <a href="../03-ii-agenty/index.html">← 0.3 ИИ-агенты и системный код</a>
-          <a href="../../index.html">Оглавление →</a>
+          <a href="../05-laboratornaya-1/index.html">ЛР 1 Процесс изнутри →</a>
         </div>
 
         <div class="colophon">
@@ -561,6 +507,7 @@ libc.getpid.restype = ctypes.c_int
       ['Курсовая: своя проверка', 'Своя проверка и свой инструмент для ИИ-агента, журнал работы с ИИ, отчёт.'],
       ['Защита курсовой', 'Нарушитель при всех, вердикт ИИ-агента, ответы по коду.'],
     ];
+    const LABS = {"1": ["Процесс изнутри", {"win": "Диспетчер задач, Process Explorer", "mac": "Мониторинг системы", "linux": "Системный монитор GNOME"}], "2": ["Программа в отладчике", {"win": "VS Code, Compiler Explorer", "mac": "VS Code, Compiler Explorer", "linux": "VS Code, Compiler Explorer"}], "3": ["Библиотеки и первая автоматизация", {"win": "Dependencies, Process Explorer, n8n", "mac": "otool, vmmap, n8n", "linux": "ldd, Системный монитор, n8n"}], "4": ["Дерево процессов", {"win": "Process Explorer", "mac": "Мониторинг системы", "linux": "htop, Системный монитор"}], "5": ["Рождение процесса", {"win": "Process Monitor", "mac": "fs_usage, Мониторинг системы", "linux": "strace, htop"}], "6": ["Кто загружает процессор", {"win": "Монитор ресурсов, Process Explorer", "mac": "Мониторинг системы, Instruments", "linux": "htop, perf top"}], "7": ["Потоки Python и GIL", {"win": "Диспетчер задач, Process Explorer", "mac": "Мониторинг системы", "linux": "htop, Системный монитор"}], "8": ["Карта памяти", {"win": "VMMap", "mac": "Мониторинг системы, vmmap", "linux": "Системный монитор: карты памяти"}], "9": ["Разбор падения", {"win": "Монитор стабильности, VS Code", "mac": "Консоль: отчёты о сбоях", "linux": "coredumpctl, gdb"}], "10": ["Файл под лупой", {"win": "ImHex, Process Monitor", "mac": "ImHex, fs_usage", "linux": "ImHex, strace"}], "11": ["Слежка за папкой", {"win": "Process Monitor", "mac": "fs_usage", "linux": "inotifywait"}], "12": ["Где прячется автозагрузка", {"win": "Autoruns, Планировщик заданий", "mac": "Объекты входа, launchctl", "linux": "Автозапуск GNOME, Cockpit"}], "13": ["Журнал входов", {"win": "Просмотр событий", "mac": "Консоль", "linux": "Журналы GNOME, Cockpit"}], "14": ["Кто ходит в сеть", {"win": "TCPView, Wireshark", "mac": "lsof, Wireshark", "linux": "ss, Wireshark"}], "15": ["Нейросеть как процесс", {"win": "Диспетчер задач: ГП и NPU", "mac": "Мониторинг системы: история ГП", "linux": "htop, nvtop"}], "16": ["Агент отвечает на запросы", {"win": "Bruno", "mac": "Bruno", "linux": "Bruno"}], "17": ["Расследование глазами n8n", {"win": "n8n", "mac": "n8n", "linux": "n8n"}], "18": ["Что уходит в облако", {"win": "Wireshark, n8n", "mac": "Wireshark, n8n", "linux": "Wireshark, n8n"}], "19": ["Агент для ассистента", {"win": "MCP Inspector", "mac": "MCP Inspector", "linux": "MCP Inspector"}], "20": ["Агент как служба", {"win": "Службы (services.msc)", "mac": "launchctl, Объекты входа", "linux": "Cockpit, systemctl"}], "21": ["Флешка", {"win": "Диспетчер устройств", "mac": "Информация о системе", "linux": "udevadm, Диски GNOME"}], "22": ["Вскрытие исполняемого файла", {"win": "Свойства файла, Detect It Easy, Ghidra, x64dbg", "mac": "codesign, Detect It Easy, Ghidra, lldb", "linux": "Detect It Easy, Ghidra, gdb"}], "23": ["Своя проверка", {"win": "n8n, Bruno", "mac": "n8n, Bruno", "linux": "n8n, Bruno"}], "24": ["Защита", {"win": "всё изученное", "mac": "всё изученное", "linux": "всё изученное"}]};
     const C = [[4, 'Список процессов совпадает с системным'], [6, 'Процесс загружает процессор больше 80%'], [8, 'Память процесса растёт без остановки'], [10, 'Изменён файл hosts'],
       [11, { win: 'Новый файл в папке автозагрузки', mac: 'Новый файл в LaunchAgents', linux: 'Новый файл в ~/.config/autostart' }],
       [12, { win: 'Новая запись в ключе Run', mac: 'Новый демон или задание cron', linux: 'Новая служба systemd или задание cron' }],
@@ -575,7 +522,8 @@ libc.getpid.restype = ctypes.c_int
       const p = +range.value, m = mod(p);
       document.querySelectorAll('#pairs i').forEach(i => { const k = +i.dataset.p; i.classList.toggle('past', k < p); i.classList.toggle('now', k === p); });
       $('trackNo').textContent = `пара ${p}`;
-      $('trackCard').innerHTML = `<h5>Модуль ${m[0]} · ${m[1]}</h5><b class="pt">${P[p - 1][0]}</b><p>${pick(P[p - 1][1])}</p>`;
+      const lb = LABS[p];
+      $('trackCard').innerHTML = `<h5>Модуль ${m[0]} · ${m[1]}</h5><b class="pt">${P[p - 1][0]}</b><p>${pick(P[p - 1][1])}</p><p class="lab-line"><b>ЛР ${p} «${lb[0]}»</b> · ${lb[1][os()]}</p>`;
       $('trackScore').textContent = `${C.filter(c => c[0] <= p).length} / 13`;
       $('trackChecks').innerHTML = C.map((c, i) => `<li class="${c[0] <= p ? 'on' : ''}${c[0] === p ? ' new' : ''}">${i + 1}. ${pick(c[1])}</li>`).join('');
     };

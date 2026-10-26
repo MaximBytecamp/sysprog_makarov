@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>0.5 Лабораторная работа 1. Процесс изнутри · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 0 · Лабораторная работа 1</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 0 · лабораторная работа</p>
+          <p class="running__folio">0.5</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">ЛР 1</span>
+          <h1>Процесс<br>изнутри</h1>
+          <p class="lead">В этой лабораторной работе своя программа на C запускается и рассматривается в служебной программе системы: номер процесса, память, открытые файлы, загруженные библиотеки. Затем процесс завершается из монитора, и видно, чем это отличается от обычного выхода. Во второй части то же делается с программой на Python. Каждый шаг состоит из действия, кадра экрана после действия и объяснения: что на кадре и что изменилось. Шаги показаны для системы, выбранной переключателем вверху страницы.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Пара</dt><dd>1, вторая половина; задание к модулю 0</dd></div>
+          <div><dt>Время</dt><dd>35–40 минут</dd></div>
+          <div><dt>Программы</dt><dd><span data-os="win">Диспетчер задач, Process Explorer</span><span data-os="mac">Мониторинг системы, Терминал</span><span data-os="linux">Системный монитор GNOME, терминал</span></dd></div>
+          <div><dt>Сдать</dt><dd><code>hello.c</code>, <code>hello.py</code>, <code>report.md</code> с ответами на вопросы шагов</dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>В этой работе</b>
+          <ol>
+            <li><a href="#s1">Подготовка</a></li>
+            <li><a href="#s2">Часть 1. Программа на C</a></li>
+            <li><a href="#s3">Часть 2. Программа на Python</a></li>
+            <li><a href="#s4">Что получилось</a></li>
+            <li><a href="#s5">Отчёт</a></li>
+            <li><a href="#s6">Проверьте себя</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Подготовка</h2>
+
+        <p>Для работы нужны компилятор C, Python и два файла: <code>hello.c</code> и <code>hello.py</code> из главы 0.1, §4. Программа печатает свой номер процесса и ждёт нажатия Enter. Пока она ждёт, процесс существует, и его можно рассмотреть в служебной программе. Ниже — установка и проверка для выбранной системы; запускать программу пока не нужно, это шаг 1.</p>
+
+        <ol class="steps" data-os="win">
+          <li><b>Установите компилятор</b><p>Откройте страницу <a href="https://visualstudio.microsoft.com/downloads/" target="_blank" rel="noreferrer">visualstudio.microsoft.com/downloads</a>, в разделе <strong>Tools for Visual Studio</strong> скачайте <strong>Build Tools for Visual Studio</strong>. В установщике отметьте рабочую нагрузку <strong>Разработка классических приложений на C++</strong> (Desktop development with C++) и нажмите <strong>Установить</strong>. Python 3.14 скачайте с <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer">python.org</a> и при установке отметьте <strong>Add python.exe to PATH</strong>.</p>
+            <div class="shot-todo"><b>Место под кадр с компьютера в классе</b><p>Visual Studio Installer, вкладка «Рабочие нагрузки»: отмечена «Разработка классических приложений на C++», справа в списке компонентов отмечены MSVC и Windows 11 SDK.</p></div></li>
+          <li><b>Откройте командную строку компилятора</b><p>В меню «Пуск» найдите <strong>x64 Native Tools Command Prompt for VS</strong>. В этой командной строке настроены пути к компилятору; в обычной командной строке и в PowerShell команда <code>cl</code> не найдётся.</p></li>
+          <li><b>Создайте файл программы на C</b><p>Выполните команды и вставьте в Блокнот код ниже. Блокнот спросит, создать ли новый файл, — ответьте «Да».</p>
+            <figure class="code"><figcaption><span>Командная строка</span></figcaption><pre>mkdir C:\syspro\pair01
+cd C:\syspro\pair01
+notepad hello.c</pre></figure>
+            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
+    <span class="t">DWORD</span> pid = <span class="f">GetCurrentProcessId</span>();
+    <span class="f">printf</span>(<span class="s">"agent v0, pid=%lu\n"</span>, pid);
+    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
+    <span class="f">getchar</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre></figure></li>
+          <li><b>Проверьте компилятор</b><figure class="code"><figcaption><span>Командная строка</span></figcaption><pre>cl</pre></figure><p>Без аргументов <code>cl</code> печатает название и версию, например <code>Microsoft (R) C/C++ Optimizing Compiler Version 19.44…</code>. Эту строку запишите в отчёт.</p></li>
+          <li><b>Создайте файл hello.py рядом</b><p>Вторая программа вызывает ту же системную функцию из Python через <code>ctypes</code>.</p><figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes
+
+k32 = ctypes.windll.kernel32
+k32.GetCurrentProcessId.restype = ctypes.c_ulong
+<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, k32.<span class="f">GetCurrentProcessId</span>())
+<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure></li>
+        </ol>
+
+        <ol class="steps" data-os="mac">
+          <li><b>Установите компилятор</b><p>Откройте Терминал и выполните команду ниже. Появится окно установки Command Line Tools — нажмите <strong>Установить</strong>. В набор входят компилятор <code>clang</code>, отладчик <code>lldb</code> и <code>git</code>. Python 3.14 скачайте с <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer">python.org</a>.</p>
+            <figure class="code"><figcaption><span>Терминал</span></figcaption><pre>xcode-select --install</pre></figure></li>
+          <li><b>Создайте файл программы на C</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>mkdir -p ~/syspro/pair01
+cd ~/syspro/pair01
+open -e hello.c</pre></figure><p>Если файла ещё нет, создайте его командой <code>touch hello.c</code> перед <code>open -e</code>. Вставьте код в TextEdit и сохраните.</p>
+            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
+    <span class="t">pid_t</span> pid = <span class="f">getpid</span>();
+    <span class="f">printf</span>(<span class="s">"agent v0, pid=%d\n"</span>, (<span class="t">int</span>)pid);
+    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
+    <span class="f">getchar</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre></figure></li>
+          <li><b>Проверьте компилятор</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>clang --version</pre></figure><p>Первая строка — версия компилятора, например <code>Apple clang version 17.0.0</code>. Её запишите в отчёт.</p></li>
+          <li><b>Создайте файл hello.py рядом</b><p>Вторая программа вызывает ту же системную функцию из Python через <code>ctypes</code>.</p><figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes, ctypes.util
+
+libc = ctypes.<span class="f">CDLL</span>(ctypes.util.<span class="f">find_library</span>(<span class="s">"c"</span>))
+libc.getpid.restype = ctypes.c_int
+<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, libc.<span class="f">getpid</span>())
+<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure></li>
+        </ol>
+
+        <ol class="steps" data-os="linux">
+          <li><b>Установите компилятор и Python</b><p>В Ubuntu и Debian компилятор <code>gcc</code>, <code>make</code> и заголовочные файлы входят в пакет <code>build-essential</code>. В других дистрибутивах пакет называется иначе, например <code>base-devel</code> в Arch.</p>
+            <figure class="code"><figcaption><span>Терминал</span></figcaption><pre>sudo apt update
+sudo apt install build-essential python3</pre></figure></li>
+          <li><b>Создайте файл программы на C</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>mkdir -p ~/syspro/pair01
+cd ~/syspro/pair01
+nano hello.c</pre></figure><p>Вставьте код, сохраните сочетанием Ctrl+O и выйдите Ctrl+X.</p>
+            <figure class="code"><figcaption><span>hello.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {
+    <span class="t">pid_t</span> pid = <span class="f">getpid</span>();
+    <span class="f">printf</span>(<span class="s">"agent v0, pid=%d\n"</span>, (<span class="t">int</span>)pid);
+    <span class="f">printf</span>(<span class="s">"Press Enter to exit\n"</span>);
+    <span class="f">getchar</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre></figure></li>
+          <li><b>Проверьте компилятор</b><figure class="code"><figcaption><span>Терминал</span></figcaption><pre>gcc --version</pre></figure><p>Первая строка — версия компилятора, например <code>gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0</code>. Её запишите в отчёт.</p></li>
+          <li><b>Создайте файл hello.py рядом</b><p>Вторая программа вызывает ту же системную функцию из Python через <code>ctypes</code>.</p><figure class="code"><figcaption><span>hello.py</span></figcaption><pre><span class="k">import</span> ctypes, ctypes.util
+
+libc = ctypes.<span class="f">CDLL</span>(ctypes.util.<span class="f">find_library</span>(<span class="s">"c"</span>))
+libc.getpid.restype = ctypes.c_int
+<span class="f">print</span>(<span class="s">"agent v0 (python), pid="</span>, libc.<span class="f">getpid</span>())
+<span class="f">input</span>(<span class="s">"Press Enter to exit"</span>)</pre></figure></li>
+        </ol>
+
+        <details class="more" data-os="win">
+          <summary>Если компилятор пишет, что не находит windows.h</summary>
+          <p>В установщике не отмечен Windows SDK. Откройте Visual Studio Installer, нажмите «Изменить» у Build Tools и отметьте в рабочей нагрузке C++ пункт Windows 11 SDK.</p>
+        </details>
+        <details class="more" data-os="mac">
+          <summary>Если команда clang пишет, что не найдены инструменты разработчика</summary>
+          <p>Command Line Tools не установлены или установлены не до конца. Повторите <code>xcode-select --install</code> и дождитесь окончания установки; путь к инструментам показывает команда <code>xcode-select -p</code>.</p>
+        </details>
+
+
+        <p><span class="term">Служебная программа-монитор</span> показывает процессы, которые сейчас работают на компьютере. <span data-os="win">В Windows это Диспетчер задач; для подробностей — Process Explorer из набора Sysinternals: его скачивают с сайта Microsoft, установка не нужна.</span><span data-os="mac">В macOS это Мониторинг системы в папке Программы → Утилиты.</span><span data-os="linux">В Ubuntu с GNOME это Системный монитор; если его нет, он ставится командой <code>sudo apt install gnome-system-monitor</code>.</span> Все сведения монитор получает у ядра теми же системными функциями, которые в курсе вызывает агент.</p>
+
+        <div class="margin-note">
+          <b>Как читать шаг</b>
+          <p>Вверху шага — действие. Ниже — кадр экрана после действия; красные рамки отмечают места, о которых идёт речь, номера рамок повторяются в тексте. Слева под кадром — что на нём видно, справа — что изменилось по сравнению с прошлым шагом. Строка «В отчёт» — что записать в <code>report.md</code>. Номера процессов на вашем экране будут другими.</p>
+        </div>
+
+        <h2 id="s2"><span class="sec">§2</span>Часть 1. Программа на C</h2>
+
+        <p>В первой части программа на C запускается, находится в мониторе по номеру процесса, рассматривается изнутри и завершается из монитора.</p>
+
+        <ol class="lab">
+        <li>
+<div class="lab__do" data-os="win"><b>Соберите и запустите программу на C</b><span>В командной строке <b>x64 Native Tools Command Prompt for VS</b> перейдите в папку <code>C:\syspro\pair01</code> с файлом <code>hello.c</code> из главы 0.4 и выполните <code>cl hello.c</code>, затем <code>hello.exe</code>. Окно командной строки оставьте открытым.</span></div><div class="lab__do" data-os="mac"><b>Соберите и запустите программу на C</b><span>В Терминале перейдите в папку <code>~/syspro/pair01</code> с файлом <code>hello.c</code> из главы 0.4 и выполните <code>clang -o hello hello.c && ./hello</code>. Окно Терминала оставьте открытым.</span></div><div class="lab__do" data-os="linux"><b>Соберите и запустите программу на C</b><span>В терминале перейдите в папку <code>~/syspro/pair01</code> с файлом <code>hello.c</code> из главы 0.4 и выполните <code>gcc -o hello hello.c && ./hello</code>. Окно терминала оставьте открытым и прижмите к левому краю экрана: <kbd>Super</kbd>+<kbd>←</kbd>.</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Командная строка Native Tools: вывод cl, затем строки «agent v0, pid=…» и «Press Enter to exit», курсор ждёт ввода.</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Терминал: команда clang, затем «agent v0, pid=…» и «Press Enter to exit», курсор ждёт ввода.</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/01-zapusk.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win mac"><div><b>Что на кадре</b><p>Программа напечатала свой номер процесса — PID — и ждёт нажатия Enter.</p></div><div><b>Что изменилось</b><p>Программа запущена и стала процессом. Пока она ждёт Enter, процесс существует, и его можно найти в любой служебной программе.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p>Компилятор gcc собрал файл <code>hello</code> и сразу запустил его. Программа напечатала <code>pid=4765</code> и ждёт нажатия Enter: курсор стоит на пустой строке.</p></div><div><b>Что изменилось</b><p>Программа стала процессом с номером 4765. Пока она ждёт Enter, процесс существует, и его можно найти в любой служебной программе. У вас номер будет другим: система выдаёт его при каждом запуске.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> номер процесса из вывода программы.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Откройте Диспетчер задач на вкладке «Подробности»</b><span>Нажмите <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd>. Слева выберите <b>Подробности</b>. В таблице есть столбец <b>ИД процесса</b> — это тот же PID.</span></div><div class="lab__do" data-os="mac"><b>Откройте Мониторинг системы</b><span>Нажмите <kbd>⌘</kbd>+<kbd>Пробел</kbd>, наберите «Мониторинг системы» и нажмите Return. Откройте вкладку <b>ЦП</b>. Столбец <b>PID</b> — номер процесса; если его нет, включите его в меню <b>Вид → Столбцы</b>.</span></div><div class="lab__do" data-os="linux"><b>Откройте Системный монитор</b><span>Нажмите <kbd>Alt</kbd>+<kbd>F2</kbd>, наберите <code>gnome-system-monitor</code> и нажмите Enter, затем прижмите окно к правому краю: <kbd>Super</kbd>+<kbd>→</kbd>. В английском интерфейсе программа называется System Monitor, вкладка процессов — <b>Processes</b>.</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Диспетчер задач, вкладка «Подробности»: таблица процессов со столбцами «Имя», «ИД процесса», «Состояние», «Пользователь», «ЦП», «Память».</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Мониторинг системы, вкладка «ЦП»: таблица процессов со столбцами «Имя процесса», «% ЦП», «Время ЦП», «Потоки», «PID».</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/02-monitor.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Список всех процессов компьютера: системные службы, программы пользователя, сам Диспетчер задач.</p></div><div><b>Что изменилось</b><p>Слева терминал с запущенной программой, справа — программа, которая показывает процессы. Своего процесса в длинном списке пока не видно.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Список всех процессов компьютера, в том числе фоновых программ macOS.</p></div><div><b>Что изменилось</b><p>Слева терминал с запущенной программой, справа — программа, которая показывает процессы. Своего процесса в длинном списке пока не видно.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p>Вкладка Processes со списком процессов пользователя: Xorg, dbus-daemon, gnome-shell и другие. <span class="mk">1</span> — столбец <b>ID</b>, номер процесса. <span class="mk">2</span> — кнопка поиска.</p></div><div><b>Что изменилось</b><p>Справа появилась программа, которая показывает процессы. В списке есть и сам Системный монитор (gnome-system-monitor), и терминал. Процесса <code>hello</code> в видимой части списка нет: процессов несколько десятков.</p></div></div>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Найдите свой процесс</b><span>В строке поиска вверху Диспетчера задач наберите <code>hello</code>. В списке останется <code>hello.exe</code>. В Windows 10 строки поиска нет: щёлкните по заголовку столбца «Имя», чтобы отсортировать список, и найдите <code>hello.exe</code> по алфавиту.</span></div><div class="lab__do" data-os="mac"><b>Найдите свой процесс</b><span>В поле поиска в правом верхнем углу окна наберите <code>hello</code>.</span></div><div class="lab__do" data-os="linux"><b>Найдите свой процесс</b><span>Нажмите <kbd>Ctrl</kbd>+<kbd>F</kbd> и наберите <code>hello</code>, затем стрелкой <kbd>↓</kbd> выделите найденную строку.</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Диспетчер задач, вкладка «Подробности»: в поиске «hello», в таблице одна строка hello.exe; рамка на столбце «ИД процесса» и на выводе в командной строке.</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Мониторинг системы: в поиске «hello», одна строка hello; рамка на столбце PID и на выводе в Терминале.</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/03-poisk.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Одна строка <code>hello.exe</code>. Число в столбце «ИД процесса» совпадает с числом в командной строке.</p></div><div><b>Что изменилось</b><p>Список отфильтрован по имени. Теперь видно, что Диспетчер задач и сама программа называют один и тот же номер.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Одна строка <code>hello</code>. Число в столбце PID совпадает с числом в Терминале.</p></div><div><b>Что изменилось</b><p>Список отфильтрован по имени. Теперь видно, что Мониторинг системы и сама программа называют один и тот же номер.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — строка поиска с текстом <code>hello</code>. <span class="mk">2</span> — единственная найденная строка: процесс <code>hello</code>, пользователь ubuntu, ID 4765, память 86 кБ. <span class="mk">3</span> — тот же номер в выводе программы.</p></div><div><b>Что изменилось</b><p>Из нескольких десятков процессов осталась одна строка. Номер в столбце ID совпал с номером, который программа получила функцией <code>getpid</code>: программа и монитор спрашивают у ядра одно и то же.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> совпал ли номер в мониторе с номером в выводе программы; сколько памяти занимает процесс.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Откройте свойства процесса в Process Explorer</b><span>Подробных свойств процесса в Диспетчере задач нет. Запустите <b>Process Explorer</b> из набора Sysinternals от имени администратора, нажмите <kbd>Ctrl</kbd>+<kbd>F</kbd>, найдите <code>hello.exe</code> и дважды щёлкните по нему. Откройте вкладку <b>Performance</b>.</span></div><div class="lab__do" data-os="mac"><b>Откройте окно процесса</b><span>Дважды щёлкните по строке <code>hello</code>. Откроется окно процесса с вкладками <b>Память</b>, <b>Статистика</b>, <b>Открытые файлы и порты</b>. Начните со вкладки <b>Память</b>.</span></div><div class="lab__do" data-os="linux"><b>Откройте свойства процесса</b><span>При выделенной строке <code>hello</code> нажмите <kbd>Alt</kbd>+<kbd>Enter</kbd> или выберите <b>Properties</b> в меню правой кнопки.</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Process Explorer, окно свойств hello.exe, вкладка Performance: Private Bytes, Working Set, Handles, Threads; рамки на Working Set и Threads.</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Окно процесса hello, вкладка «Память»: «Реальная память», «Виртуальная память», «Общая память», «Частная память»; рамка на «Реальной памяти».</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/04-svoystva.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Счётчики процесса: сколько памяти занято (Private Bytes, Working Set), сколько у процесса дескрипторов (Handles) и потоков (Threads).</p></div><div><b>Что изменилось</b><p>Вместо одной строки таблицы видны подробности одного процесса. Процессорное время близко к нулю: программа ничего не считает, а ждёт ввода.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Сведения о памяти процесса: сколько памяти используется в оперативной памяти и сколько выделено виртуально.</p></div><div><b>Что изменилось</b><p>Вместо одной строки таблицы видны подробности одного процесса. Виртуальной памяти выделено намного больше, чем используется на самом деле.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p>Окно <code>hello (PID 4765)</code>. <span class="mk">1</span> — статус <b>Sleeping</b> (спит), память: виртуальная 2,2 МиБ, в оперативной памяти (Resident) 1,4 МиБ, из них общая с другими процессами (Shared) 1,3 МиБ. Процессорное время <b>0:00.00</b>. <span class="mk">2</span> — ID 4765.</p></div><div><b>Что изменилось</b><p>Вместо одной строки таблицы видны подробности одного процесса. Статус Sleeping означает, что процесс ждёт события — нажатия Enter — и не тратит процессор. Почти вся занятая память общая: это библиотека C, которую используют и другие программы.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> статус процесса и процессорное время; объясните одной фразой, почему процессорное время равно нулю.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Посмотрите дескрипторы процесса</b><span>В главном окне Process Explorer выделите <code>hello.exe</code> и нажмите <kbd>Ctrl</kbd>+<kbd>H</kbd>: в нижней панели появится список дескрипторов (Handles).</span></div><div class="lab__do" data-os="mac"><b>Посмотрите открытые файлы</b><span>В окне процесса откройте вкладку <b>Открытые файлы и порты</b>.</span></div><div class="lab__do" data-os="linux"><b>Посмотрите открытые файлы</b><span>Закройте окно свойств клавишей <kbd>Esc</kbd> и нажмите <kbd>Ctrl</kbd>+<kbd>O</kbd> (Open Files).</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Process Explorer, нижняя панель Handles для hello.exe: строки типа File с \Device\ConDrv, строки Key, Event и другие; рамка на строках \Device\ConDrv.</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Окно процесса hello, вкладка «Открытые файлы и порты»: строки /dev/ttys00N (три штуки), cwd — папка ~/syspro/pair01, txt — файл hello; рамка на строках /dev/ttys.</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/05-fayly.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Дескрипторы процесса: открытые объекты ядра. Строки <code>\Device\ConDrv</code> — связь с окном консоли, через которую программа печатает и читает ввод.</p></div><div><b>Что изменилось</b><p>Видно, что даже программа из пяти строк держит открытые объекты ядра. Ввод и вывод <code>printf</code> и <code>getchar</code> идут через дескрипторы консоли.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Три строки с <code>/dev/ttys…</code> — терминал, из которого запущена программа. Это дескрипторы 0, 1 и 2: стандартный ввод, вывод и вывод ошибок.</p></div><div><b>Что изменилось</b><p>Видно, куда пишет <code>printf</code> и откуда читает <code>getchar</code>: в файл устройства терминала. Других файлов программа не открывала.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p>Окно Open Files для <code>hello</code>: три дескриптора, <b>FD</b> 0, 1 и 2, все указывают на <code>/dev/pts/0</code> — устройство терминала.</p></div><div><b>Что изменилось</b><p>Видно, куда пишет <code>printf</code> и откуда читает <code>getchar</code>: дескриптор 0 — стандартный ввод, 1 — вывод, 2 — вывод ошибок. Все три ведут в окно терминала слева. Других файлов программа не открывала.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> сколько открытых файлов (дескрипторов) у процесса и куда они ведут.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Посмотрите загруженные библиотеки</b><span>Нажмите <kbd>Ctrl</kbd>+<kbd>D</kbd>: нижняя панель Process Explorer покажет библиотеки DLL процесса.</span></div><div class="lab__do" data-os="mac"><b>Посмотрите загруженные библиотеки</b><span>Библиотеки процесса Мониторинг системы не показывает. Откройте второе окно Терминала и выполните <code>vmmap --summary &lt;PID&gt;</code>, подставив свой номер процесса.</span></div><div class="lab__do" data-os="linux"><b>Посмотрите карту памяти</b><span>Закройте окно файлов клавишей <kbd>Esc</kbd> и нажмите <kbd>Ctrl</kbd>+<kbd>M</kbd> (Memory Maps).</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Process Explorer, нижняя панель DLLs для hello.exe: hello.exe, ntdll.dll, kernel32.dll, KernelBase.dll; рамка на трёх системных библиотеках.</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Терминал с выводом vmmap --summary: таблица областей памяти, строки __TEXT, __DATA, MALLOC, Stack; рамка на строке с путём к hello и на строке dyld shared cache.</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/06-karta.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Библиотеки, загруженные в процесс: сам <code>hello.exe</code> и системные <code>ntdll.dll</code>, <code>kernel32.dll</code>, <code>KernelBase.dll</code>.</p></div><div><b>Что изменилось</b><p>Это те самые библиотеки из главы 0.1, §4: через них программа обращается к ядру. Их никто не подключал явно — Windows загружает их в каждый процесс.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Области памяти процесса: код программы (<code>__TEXT</code>), данные, куча (<code>MALLOC</code>), стек и общий кэш системных библиотек (dyld shared cache), в котором лежит libSystem.</p></div><div><b>Что изменилось</b><p>Кроме кода программы, в памяти процесса есть системные библиотеки. Они подключены из общего кэша, который используют все программы macOS.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p>Окно Memory Maps: файл <code>hello</code> подключён в память трижды (код, данные только для чтения, изменяемые данные), затем загрузчик <code>ld-linux-aarch64.so.1</code> и библиотека <code>libc.so.6</code>. Строки без имени — куча и стек.</p></div><div><b>Что изменилось</b><p>Это те самые библиотеки из главы 0.1, §4: <code>libc.so.6</code> содержит <code>printf</code>, <code>getchar</code> и обёртку <code>getpid</code>. В выводе <code>/proc/4765/maps</code> у этого процесса 16 строк.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> какие системные библиотеки загружены в процесс.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Завершите процесс из Диспетчера задач</b><span>Вернитесь в Диспетчер задач, щёлкните правой кнопкой по <code>hello.exe</code> и выберите <b>Снять задачу</b>.</span></div><div class="lab__do" data-os="mac"><b>Завершите процесс из Мониторинга системы</b><span>Выделите строку <code>hello</code> и нажмите кнопку <b>ⓧ</b> на панели инструментов. В окне подтверждения нажмите <b>Завершить</b>.</span></div><div class="lab__do" data-os="linux"><b>Завершите процесс из Системного монитора</b><span>Закройте карту памяти клавишей <kbd>Esc</kbd>, выделите <code>hello</code> и нажмите кнопку <b>End Process</b> внизу окна.</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Диспетчер задач, меню правой кнопки на строке hello.exe; рамка на пункте «Снять задачу».</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Мониторинг системы, окно «Вы действительно хотите завершить этот процесс?» с кнопками «Отменить», «Завершить принудительно», «Завершить»; рамка на «Завершить».</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/07-zavershit.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Меню действий с процессом: снять задачу, задать приоритет, открыть расположение файла.</p></div><div><b>Что изменилось</b><p>Процесс пока работает. Снятие задачи — запрос к ядру завершить чужой процесс; у пользователя на это должны быть права.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Окно подтверждения. «Завершить» просит процесс закончить работу, «Завершить принудительно» останавливает его без вопросов.</p></div><div><b>Что изменилось</b><p>Процесс пока работает. Монитор отправит ему сигнал — уведомление от ядра, на которое процесс может ответить или не успеть ответить.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p>Окно подтверждения: «Are you sure you want to end the selected process “hello” (PID: 4765)?» — «Вы уверены, что хотите завершить процесс?». Предупреждение: завершение может привести к потере данных.</p></div><div><b>Что изменилось</b><p>Процесс пока работает. Кнопка End Process отправит ему сигнал <code>SIGTERM</code> — просьбу завершиться. Для немедленной остановки в меню есть пункт Kill: он отправляет <code>SIGKILL</code>, который процесс перехватить не может.</p></div></div>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Посмотрите, что произошло в командной строке</b><span>Вернитесь в окно командной строки и выполните <code>echo %ERRORLEVEL%</code> — код, с которым завершился последний процесс.</span></div><div class="lab__do" data-os="mac"><b>Посмотрите, что произошло в Терминале</b><span>Вернитесь в окно Терминала и выполните <code>echo $?</code> — код, с которым завершился последний процесс.</span></div><div class="lab__do" data-os="linux"><b>Посмотрите, что произошло в терминале</b><span>Нажмите <b>End Process</b> в окне подтверждения и посмотрите на оба окна.</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Командная строка: программа завершилась без строки «Press Enter» — появилась новая строка приглашения, ниже вывод echo %ERRORLEVEL%; рамка на коде завершения.</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Терминал: под строкой «Press Enter to exit» сообщение zsh о завершении процесса и вывод echo $?; рамка на сообщении и коде.</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/08-zaversheno.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Программа закончилась, не дождавшись Enter. Код завершения не равен 0.</p></div><div><b>Что изменилось</b><p>Процесс исчез из Диспетчера задач. Программа не дошла до строки <code>return 0</code>: её остановили снаружи, поэтому код завершения другой.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>zsh сообщает, что процесс завершён сигналом, и код завершения больше 128.</p></div><div><b>Что изменилось</b><p>Процесс исчез из Мониторинга системы. Программа не дошла до <code>return 0</code>: её остановили сигналом. Код завершения при сигнале равен 128 плюс номер сигнала.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — в терминале строка <b>Terminated</b>: так bash сообщает, что процесс завершён сигналом SIGTERM. <span class="mk">2</span> — список в мониторе пуст: процесса с именем hello больше нет.</p></div><div><b>Что изменилось</b><p>Программа не дошла до строки <code>return 0</code>: её остановили снаружи. bash вернул приглашение командной строки, а процесс 4765 исчез из списка. Если сразу выполнить <code>echo $?</code>, bash напечатает 143 — это 128 плюс 15, номер сигнала SIGTERM.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> что напечатал терминал и какой код завершения показала команда.</p>
+</li>
+        </ol>
+
+        <h2 id="s3"><span class="sec">§3</span>Часть 2. Программа на Python</h2>
+
+        <p>Во второй части тот же номер процесса спрашивает программа на Python через <code>ctypes</code>. Её процесс сравнивается с процессом программы на C.</p>
+
+        <ol class="lab" start="9" style="counter-reset: lab 8">
+        <li>
+<div class="lab__do" data-os="win"><b>Запустите программу на Python и найдите её</b><span>В командной строке выполните <code>python hello.py</code>. В Диспетчере задач замените текст поиска на <code>python</code>.</span></div><div class="lab__do" data-os="mac"><b>Запустите программу на Python и найдите её</b><span>В Терминале выполните <code>python3 hello.py</code>. В Мониторинге системы замените текст поиска на <code>python</code>.</span></div><div class="lab__do" data-os="linux"><b>Запустите программу на Python и найдите её</b><span>В терминале выполните <code>python3 hello.py</code>. В мониторе нажмите <kbd>Ctrl</kbd>+<kbd>F</kbd>, выделите старый текст <kbd>Ctrl</kbd>+<kbd>A</kbd> и наберите <code>hello.py</code>.</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Слева командная строка с выводом «agent v0 (python), pid=…», справа Диспетчер задач с найденной строкой python.exe; рамки на номере и на столбце «Память».</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Слева Терминал с выводом «agent v0 (python), pid=…», справа Мониторинг системы со строкой Python; рамки на номере и на памяти.</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/09-python.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Процесс <code>python.exe</code> с тем же номером, что напечатала программа.</p></div><div><b>Что изменилось</b><p>Процесс называется <code>python.exe</code>: программой стал интерпретатор, а файл <code>hello.py</code> он читает как данные. Памяти процесс занимает в десятки раз больше, чем программа на C.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Процесс Python с тем же номером, что напечатала программа.</p></div><div><b>Что изменилось</b><p>Процесс называется по имени интерпретатора Python: программой стал интерпретатор, а файл <code>hello.py</code> он читает как данные. Памяти процесс занимает в десятки раз больше, чем программа на C.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — вывод <code>pid= 6157</code>. <span class="mk">2</span> — процесс <code>python3</code> с ID 6157 и памятью 5,8 МБ. Поиск по <code>hello.py</code> нашёл его, потому что монитор ищет и по командной строке процесса.</p></div><div><b>Что изменилось</b><p>Процесс называется <code>python3</code>: программой стал интерпретатор, а скрипт он читает как данные. Памяти он занимает 5,8 МБ против 86 кБ у программы на C — примерно в 70 раз больше. Если искать по слову <code>python3</code>, найдётся и <code>gnome-terminal</code>: в Ubuntu эта команда — тоже сценарий на Python.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> номер и память процесса Python; во сколько раз памяти больше, чем у программы на C.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Сравните библиотеки Python и программы на C</b><span>В Process Explorer найдите <code>python.exe</code> и нажмите <kbd>Ctrl</kbd>+<kbd>D</kbd>.</span></div><div class="lab__do" data-os="mac"><b>Сравните библиотеки Python и программы на C</b><span>Выполните во втором окне Терминала <code>vmmap --summary &lt;PID&gt;</code> для процесса Python.</span></div><div class="lab__do" data-os="linux"><b>Сравните карту памяти Python с программой на C</b><span>При выделенной строке <code>python3</code> нажмите <kbd>Ctrl</kbd>+<kbd>M</kbd>.</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Process Explorer, панель DLLs для python.exe: python3XX.dll, ucrtbase.dll, библиотеки vcruntime, ntdll.dll, kernel32.dll, KernelBase.dll и другие; рамка на python3XX.dll.</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Терминал с vmmap --summary для Python: строк намного больше, чем у hello; рамка на строке с путём к интерпретатору.</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/10-python-karta.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Список DLL намного длиннее, чем у <code>hello.exe</code>: сам интерпретатор <code>python3XX.dll</code>, библиотеки C и модули, которые Python загрузил при старте.</p></div><div><b>Что изменилось</b><p>Внизу списка те же <code>ntdll.dll</code>, <code>kernel32.dll</code> и <code>KernelBase.dll</code>, что у программы на C. Через них Python и вызывает <code>GetCurrentProcessId</code> из <code>ctypes</code>.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Областей памяти намного больше, чем у программы на C: интерпретатор, его модули, кэш системных библиотек.</p></div><div><b>Что изменилось</b><p>Тот же кэш системных библиотек, что у программы на C: через libSystem Python и вызывает <code>getpid</code> из <code>ctypes</code>.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p>Карта памяти <code>python3</code> (PID 6157): интерпретатор <code>/usr/bin/python3.12</code>, таблица кодировок <code>gconv-modules.cache</code>, загрузчик <code>ld-linux-aarch64.so.1</code>, ниже — <code>libc.so.6</code> и другие библиотеки.</p></div><div><b>Что изменилось</b><p>Карта стала длиннее: в <code>/proc/6157/maps</code> 59 строк против 16 у программы на C. Общее у двух процессов — <code>libc.so.6</code>: через неё и программа на C, и Python через <code>ctypes</code> вызывают <code>getpid</code>. В Ubuntu 24.04 установлен Python 3.12; для курса понадобится 3.14 с python.org или из пакетов.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> какая библиотека есть и у программы на C, и у Python.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Завершите программу обычным способом</b><span>Вернитесь в командную строку, нажмите Enter и выполните <code>echo %ERRORLEVEL%</code>.</span></div><div class="lab__do" data-os="mac"><b>Завершите программу обычным способом</b><span>Вернитесь в Терминал, нажмите Return и выполните <code>echo $?</code>.</span></div><div class="lab__do" data-os="linux"><b>Завершите программу обычным способом</b><span>Вернитесь в терминал (<kbd>Alt</kbd>+<kbd>Tab</kbd>), нажмите Enter и выполните <code>echo "exit code: $?"</code>.</span></div>
+<figure class="lab__shot shot" data-os="win"><div class="shot-todo"><b>Место под кадр · Windows</b><p>Командная строка: после Enter новая строка приглашения и вывод echo %ERRORLEVEL% — 0; Диспетчер задач без python.exe.</p></div></figure>
+<figure class="lab__shot shot" data-os="mac"><div class="shot-todo"><b>Место под кадр · macOS</b><p>Терминал: после Return вывод echo $? — 0; Мониторинг системы без процесса Python.</p></div></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/11-python-vyhod.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Код завершения 0, процесс исчез из Диспетчера задач.</p></div><div><b>Что изменилось</b><p>Программа дошла до конца сама. Код 0 означает «завершилась без ошибок» — в отличие от шага 8, где процесс остановили снаружи.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Код завершения 0, процесс исчез из Мониторинга системы.</p></div><div><b>Что изменилось</b><p>Программа дошла до конца сама. Код 0 означает «завершилась без ошибок» — в отличие от шага 8, где процесс остановили сигналом.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — программа вывела свою строку и после Enter завершилась. <span class="mk">2</span> — <code>exit code: 0</code>. Список в мониторе пуст.</p></div><div><b>Что изменилось</b><p>Программа дошла до конца сама, и код завершения — 0, «без ошибок». На шаге 8 процесс остановили снаружи, и bash написал Terminated. Код завершения — первый признак, по которому агент на паре 5 будет отличать нормальное завершение от аварийного.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> код завершения при обычном выходе; чем он отличается от кода на шаге 8.</p>
+</li>
+        </ol>
+
+        <h2 id="s4"><span class="sec">§4</span>Что получилось</h2>
+
+        <p>Обе программы делают одно и то же: спрашивают у ядра номер своего процесса и ждут Enter. В мониторе они выглядят по-разному, потому что программа на Python — это интерпретатор, который загружает себя, свои модули и только потом выполняет скрипт.</p>
+
+        <div class="table-scroll" data-os="linux">
+          <table>
+            <thead><tr><th></th><th>Программа на C</th><th>Программа на Python</th></tr></thead>
+            <tbody>
+              <tr><td>Имя процесса в мониторе</td><td><code>hello</code></td><td><code>python3</code></td></tr>
+              <tr><td>Память в мониторе</td><td>86 кБ</td><td>5,8 МБ</td></tr>
+              <tr><td>Строк в карте памяти</td><td>16</td><td>59</td></tr>
+              <tr><td>Открытых дескрипторов</td><td>3</td><td>3</td></tr>
+              <tr><td>Общая библиотека</td><td colspan="2"><code>libc.so.6</code> — в ней <code>getpid</code></td></tr>
+              <tr><td>Завершение из монитора</td><td>Terminated, код 143</td><td>—</td></tr>
+              <tr><td>Обычный выход</td><td>—</td><td>код 0</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p data-os="win mac">Заполните такую же таблицу по своим кадрам: имя процесса, память, число библиотек, код завершения из монитора и при обычном выходе. Числа на разных компьютерах различаются, а соотношение остаётся тем же: интерпретатор занимает в десятки раз больше памяти и загружает больше библиотек.</p>
+
+        <p>Всё, что показал монитор, агент курса будет получать своим кодом на C. Номер и память процесса — на парах 4 и 8, открытые файлы и библиотеки — на паре 5, код завершения — на паре 5. Монитор останется прибором для сверки: число в агенте должно совпасть с числом на экране.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>Отчёт</h2>
+
+        <p>Скопируйте бланк в файл <code>report.md</code> и замените каждый пропуск <code>___</code> своими данными. Текст уже написан, вписываются только числа и имена с вашего экрана.</p>
+
+        <pre class="report"># ЛР 1. Процесс изнутри
+
+Система: <span class="blank">___</span> · компилятор: <span class="blank">___</span> (первая строка вывода версии)
+
+## Программа на C
+Программа напечатала PID <span class="blank">___</span>, монитор показал PID <span class="blank">___</span>.
+Память процесса в мониторе: <span class="blank">___</span>. Статус: <span class="blank">___</span>, процессорное время: <span class="blank">___</span>.
+Процессорное время равно нулю, потому что <span class="blank">___</span>.
+Открытых файлов (дескрипторов): <span class="blank">___</span>, они ведут в <span class="blank">___</span>.
+Системные библиотеки в процессе: <span class="blank">___</span>.
+После завершения из монитора терминал напечатал <span class="blank">___</span>, код завершения <span class="blank">___</span>.
+
+## Программа на Python
+Имя процесса в мониторе: <span class="blank">___</span>, PID <span class="blank">___</span>, память <span class="blank">___</span>.
+Памяти больше, чем у программы на C, примерно в <span class="blank">___</span> раз.
+Общая библиотека у программ на C и Python: <span class="blank">___</span>.
+Код завершения при обычном выходе: <span class="blank">___</span>.
+
+## Помощник ИИ (Р1)
+Запрос: «Объясни программу hello.c по строкам». Одно место, где ответ точнее или менее точен, чем глава 0.1: <span class="blank">___</span>.
+
+Не получилось: <span class="blank">___</span>
+ИИ: не использовал / использовал для <span class="blank">___</span></pre>
+
+        <p>Кадры экрана к отчёту не прикладываются: числа в нём проверяются на защите — студент запускает программу и показывает их в мониторе.</p>
+
+        <h2 id="s6"><span class="sec">§6</span>Проверьте себя</h2>
+
+        <details>
+          <summary>Почему номер процесса в мониторе совпадает с номером, который напечатала программа?</summary>
+          <p>Номер выдаёт ядро при создании процесса. Программа получает его функцией <code>getpid</code> или <code>GetCurrentProcessId</code>, монитор — своими системными функциями. Оба спрашивают у одного ядра про один процесс.</p>
+        </details>
+        <details>
+          <summary>Почему процесс, который ждёт Enter, не тратит процессор?</summary>
+          <p>Функция <code>getchar</code> делает системный вызов чтения, и ядро переводит процесс в состояние ожидания (Sleeping), пока в терминале не появится ввод. Процесс в ожидании не получает процессорного времени.</p>
+        </details>
+        <details>
+          <summary>Почему процесс программы на Python в мониторе называется python3 или python.exe?</summary>
+          <p>Процессом становится исполняемый файл интерпретатора — <code>python3</code> или <code>python.exe</code>. Файл <code>hello.py</code> интерпретатор читает как данные и выполняет по строкам.</p>
+        </details>
+        <details>
+          <summary>Чем завершение из монитора отличается от выхода по Enter?</summary>
+          <p>По Enter программа доходит до <code>return 0</code> и завершается сама с кодом 0. Из монитора процесс останавливают снаружи: в Linux и macOS — сигналом, код завершения равен 128 плюс номер сигнала; в Windows — функцией завершения чужого процесса с кодом, отличным от нуля.</p>
+        </details>
+
+        <div class="pager">
+          <a href="../04-kak-ustroena-disciplina/index.html">← 0.4 Как устроена дисциплина</a>
+          <a href="../../index.html">Оглавление →</a>
+        </div>
+
+        <div class="colophon">
+          <span>Справочник по системному программированию</span>
+          <span class="author-line">© Макаров Максим Николаевич</span>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+</body>
+</html>
