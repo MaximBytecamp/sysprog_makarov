@@ -74,3 +74,14 @@ Ctrl+E в GNOME System Monitor 46 не работает). Сырые кадры 
 с OHCI клавиатура не работает, диск на SATA — VirtIO установщик не видит; NAT DNS не работает, интернет через `tools/proxy.py`
 на хосте 10.0.2.2:8899). В ВМ Build Tools 2022 (MSVC 19.44, x64 через эмуляцию), Python 3.14 ARM64, Process Explorer.
 Ввод — `tools/w.py` (скан-коды, переключение окон Win+цифра по панели задач). В тексте отмечено, что x64 работает через xtajit64.
+
+## Шаблон репозитория студента
+
+`MaximBytecamp/sysprog-start-template` (исходник `~/sysprog-start-template`, свой git), репозиторий студента — `sysprog-start`.
+По образцу python-start-template: `labs/NN-…` (README, report.md с ___), `agent/core` (C) и `agent/brain` (Python),
+`homework/`, `exams/`, `lectures/` (конспекты из итогов глав), `materials/`, `docs/SUBMIT.md` и `UPDATES.md`,
+ежедневное обновление `update-materials.yml` (к файлам преподавателя добавлена папка `checks/`).
+Проверки: `.github/workflows/checks.yml` — матрица windows/macos/ubuntu, Python 3.14, MSVC через ilammy/msvc-dev-cmd,
+вся логика в `checks/run_checks.py` (файл преподавателя, обновляется сам): ЛР 1 собирает hello.c своей системы,
+13 проверок агента с `OPENED = 0`. Новая пара = строка в labs/README.md + папка работы + конспект + OPENED.
+На обложке книги — карточки шаблона и, без изменений, «Работа с репозиторием по шагам» и «Стандарт» с ДУП.02.

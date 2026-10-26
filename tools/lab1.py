@@ -175,7 +175,7 @@ HTML = f'''<!doctype html>
           <div><dt>Пара</dt><dd>1, вторая половина; задание к модулю 0</dd></div>
           <div><dt>Время</dt><dd>35–40 минут</dd></div>
           <div><dt>Программы</dt><dd><span data-os="win">Диспетчер задач, Process Explorer</span><span data-os="mac">Мониторинг системы, Терминал</span><span data-os="linux">Системный монитор GNOME, терминал</span></dd></div>
-          <div><dt>Сдать</dt><dd><code>hello.c</code>, <code>hello.py</code>, <code>report.md</code> с ответами на вопросы шагов</dd></div>
+          <div><dt>Сдать</dt><dd><code>hello.c</code>, <code>hello.py</code>, <code>report.md</code> в папку <code>labs/01-process-inside</code> репозитория <code>sysprog-start</code></dd></div>
         </dl>
 
         <nav class="contents">
@@ -261,7 +261,7 @@ HTML = f'''<!doctype html>
 
         <h2 id="s5"><span class="sec">§5</span>Отчёт</h2>
 
-        <p>Скопируйте бланк в файл <code>report.md</code> и замените каждый пропуск <code>___</code> своими данными. Текст уже написан, вписываются только числа и имена с вашего экрана.</p>
+        <p>Бланк отчёта уже лежит в репозитории: <code>labs/01-process-inside/report.md</code>. Замените в нём каждый пропуск <code>___</code> своими данными: текст уже написан, вписываются только числа и имена с вашего экрана. Рядом положите <code>hello.c</code> и <code>hello.py</code> и сделайте коммит <code>labs 01: hello.c, hello.py, отчёт</code>. После отправки во вкладке <b>Actions</b> появится запуск «Проверки»: сервер с вашей системой соберёт программы и проверит строку <code>agent v0, pid=…</code>. Репозиторий создаётся из шаблона <a href="https://github.com/MaximBytecamp/sysprog-start-template" target="_blank" rel="noreferrer">sysprog-start-template</a> кнопкой Use this template, порядок — в <a href="https://algorthimization-course-vvodnoe.vercel.app/dup02-vvedenie-v-python/repozitoriy/index.html" target="_blank" rel="noreferrer">инструкции по работе с репозиторием</a>.</p>
 
         <pre class="report"># ЛР 1. Процесс изнутри
 

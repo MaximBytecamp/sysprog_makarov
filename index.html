@@ -58,6 +58,36 @@
     .toc--work .work-kind { flex: 0 0 112px; white-space: nowrap; font: 600 10px/1.6 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--acc); }
     .module--ng .toc--work .work-kind { color: var(--ng); }
     .module--intro { box-shadow: 6px 6px 0 var(--ink); }
+    .links { --line: var(--ink); --panel: var(--page); --muted: var(--ink-soft); --hair: var(--rule); --blue: #2D7FC1; --clay: #B4531F; --mint: #2E7D50; --display: Literata, Georgia, serif; }
+    .links { margin-top: 22px; }
+    .links { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; margin-bottom: 22px; }
+    .link {
+      --tone: var(--blue);
+      display: flex; flex-direction: column;
+      border: 3px solid var(--line); background: var(--panel); color: var(--ink); text-decoration: none;
+      box-shadow: 6px 6px 0 var(--tone);
+      transition: transform .08s steps(2), box-shadow .08s steps(2);
+    }
+    .link:hover { transform: translate(3px, 3px); box-shadow: 3px 3px 0 var(--tone); }
+    .link:focus-visible { outline: 3px solid var(--tone); outline-offset: 4px; }
+    .link__band {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 10px 16px; background: var(--tone); color: #fff; border-bottom: 3px solid var(--line);
+      font: 700 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+    }
+    .link__icon {
+      display: grid; place-items: center; width: 30px; height: 30px;
+      background: #fff; color: var(--tone); border: 2px solid var(--line); font: 700 14px/1 var(--pixel);
+    }
+    .link__body { flex: 1; padding: 16px 18px 14px; }
+    .link__title { display: block; margin-bottom: 8px; font-family: var(--display); font-size: clamp(22px, 2vw, 28px); line-height: 1.1; }
+    .link__desc { display: block; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .link__go {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      padding: 11px 18px; border-top: 2px dashed var(--hair); font: 600 12px/1.2 var(--mono); color: var(--tone);
+    }
+    .link__go b { font-size: 18px; transition: transform .15s; }
+    .link:hover .link__go b { transform: translateX(4px); }
   </style>
 </head>
 <body>
@@ -121,6 +151,36 @@
           </aside>
           </div>
         </section>
+
+        <h2><span class="sec">Работы</span>Репозиторий курса</h2>
+        <p>Все работы по дисциплине сдаются в личный репозиторий на GitHub, созданный из шаблона курса. Порядок работы с репозиторием и общие правила оформления — те же, что в курсе Python.</p>
+
+        <div class="links">
+      <a class="link" href="https://github.com/MaximBytecamp/sysprog-start-template" target="_blank" rel="noreferrer" style="--tone: var(--mint)">
+        <span class="link__band">Репозиторий <span class="link__icon">⌂</span></span>
+        <span class="link__body">
+          <span class="link__title">Шаблон репозитория для работ: sysprog-start-template</span>
+          <span class="link__desc">Кнопка Use this template создаёт студенту личную копию для всех работ по дисциплине. Папки <code>labs</code> (лабораторные, в <code>01-process-inside</code> — бланк отчёта ЛР 1), <code>agent</code> (ядро на C и мозг на Python), <code>homework</code> и <code>exams</code>, конспекты глав 0.1–0.4 в <code>lectures</code>. После каждой отправки кода GitHub Actions собирает работы на Windows, macOS и Linux и показывает результат проверок. Новые задания и конспекты каждый день переносятся в копию студента, пересоздавать её не нужно.</span>
+        </span>
+        <span class="link__go">github.com/MaximBytecamp/sysprog-start-template <b>→</b></span>
+      </a>
+      <a class="link" href="https://algorthimization-course-vvodnoe.vercel.app/dup02-vvedenie-v-python/repozitoriy/index.html" target="_blank" rel="noreferrer" style="--tone: var(--blue)">
+        <span class="link__band">Инструкция <span class="link__icon">1</span></span>
+        <span class="link__body">
+          <span class="link__title">Работа с репозиторием по шагам</span>
+          <span class="link__desc">Восемь сценариев с пронумерованными шагами: создать репозиторий из шаблона, в начале пары выйти из чужого аккаунта в браузере, VS&nbsp;Code и хранилище паролей Windows и войти в свой, склонировать, сдать работу из VS&nbsp;Code или через сайт GitHub, получить новые задания, выйти из всех аккаунтов в конце пары. В конце — таблица ошибок Git с причиной и исправлением.</span>
+        </span>
+        <span class="link__go">шаги · снимки VS Code · ошибки <b>→</b></span>
+      </a>
+      <a class="link" href="https://algorthimization-course-vvodnoe.vercel.app/shared/standart-repozitoriya/index.html" target="_blank" rel="noreferrer" style="--tone: var(--clay)">
+        <span class="link__band">Стандарт <span class="link__icon">≡</span></span>
+        <span class="link__body">
+          <span class="link__title">Стандарт репозитория студента</span>
+          <span class="link__desc">Общие правила для всех дисциплин: структура папок, имена файлов, README, сообщения коммитов. Что в репозитории смотрит работодатель, какие приёмы взяты из популярных репозиториев на GitHub и почему новые материалы приходят через GitHub Actions и почему форк не подходит.</span>
+        </span>
+        <span class="link__go">структура · имена · образцы <b>→</b></span>
+      </a>
+        </div>
 
         <h2><span class="sec">План</span>Модули и главы</h2>
         <p>Дисциплина рассчитана на 24 пары. Модуль 0 — вводная пара, модули 1–5 — темы системы, проверки агента и ИИ, модуль 6 — курсовая работа. Каждая пара начинается с лабораторной работы в программах системы: пошагово, с кадрами экрана. Распределение пар, проверок и тестов — в главе <a href="temy/04-kak-ustroena-disciplina/index.html">0.4</a>, работа с ИИ — в главе <a href="temy/03-ii-agenty/index.html">0.3</a>.</p>
