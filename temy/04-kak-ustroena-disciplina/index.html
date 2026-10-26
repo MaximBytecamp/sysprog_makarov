@@ -53,7 +53,7 @@
         <header class="chapter-head">
           <span class="chapter-num">0.4</span>
           <h1>Как устроена<br>дисциплина</h1>
-          <p class="lead">В этой главе описано, чему учит дисциплина и как она построена. Весь курс студенты пишут одну программу — агент-сторож компьютера. Курс идёт сразу для трёх систем: Windows, macOS и Linux; переключатель вверху страницы меняет функции, программы и команды. Ядро агента написано на C и обращается к системному интерфейсу, мозг написан на Python и связывает ядро с сервисом автоматизации n8n и моделями ИИ. ИИ участвует с первой пары: помогает писать код, объясняет тревоги, а со второй половины курса сам расследует их через функции агента. Каждая пара начинается с лабораторной работы в настоящих программах системы — пошагово, с кадрами экрана. Глава заканчивается картой всех 24 лабораторных.</p>
+          <p class="lead">В этой главе описано, чему учит дисциплина и как она построена. Весь курс студенты пишут одну программу — агент-сторож компьютера. Курс идёт сразу для трёх систем: Windows, macOS и Linux; переключатель вверху страницы меняет функции, программы и команды. Ядро агента написано на C и обращается к системному интерфейсу, мозг написан на Python и связывает ядро с сервисом автоматизации n8n и моделями ИИ. Модели ИИ используются с первой пары: в редакторе — для кода, в n8n — для текста тревог, во второй половине курса — для сбора подробностей о тревоге через функции агента. Каждая пара начинается с лабораторной работы в настоящих программах системы — пошагово, с кадрами экрана. Глава заканчивается картой всех 24 лабораторных.</p>
         </header>
 
         <dl class="passport">
@@ -108,7 +108,7 @@
           <table>
             <thead><tr><th>Тема</th><th>Классический план</th><th>План курса</th></tr></thead>
             <tbody>
-              <tr><td>Процессы</td><td>Лекция о состояниях процесса. Форма со списком из <code>Process.GetProcesses()</code></td><td><span data-os="win"><code>CreateToolhelp32Snapshot</code> в ядре на C, сверка с Process Explorer</span><span data-os="mac"><code>proc_listpids</code> и <code>proc_pidinfo</code> в ядре на C, сверка с Мониторингом системы</span><span data-os="linux">чтение <code>/proc</code> в ядре на C, сверка с <code>ps</code> и htop</span>, проверки 1 и 2. ИИ-агент спрашивает у агента, какой процесс открыл порт</td></tr>
+              <tr><td>Процессы</td><td>Лекция о состояниях процесса. Форма со списком из <code>Process.GetProcesses()</code></td><td><span data-os="win"><code>CreateToolhelp32Snapshot</code> в ядре на C, сверка с Process Explorer</span><span data-os="mac"><code>proc_listpids</code> и <code>proc_pidinfo</code> в ядре на C, сверка с Мониторингом системы</span><span data-os="linux">чтение <code>/proc</code> в ядре на C, сверка с <code>ps</code> и htop</span>, проверки 1 и 2. ИИ-агент вызывает функцию агента «какой процесс открыл порт»</td></tr>
               <tr><td>Потоки</td><td>Лекция о планировании потоков. Форма с фоновым потоком</td><td>Потоки и синхронизация в C (<span data-os="win"><code>CreateThread</code>, критическая секция</span><span data-os="mac"><code>pthread</code>, мьютекс</span><span data-os="linux"><code>pthread</code>, мьютекс</span>), потоки Python с блокировкой GIL и без неё</td></tr>
               <tr><td>Файлы</td><td>Лекция о FAT и NTFS. Форма с диалогом «Открыть»</td><td><span data-os="win"><code>CreateFileW</code>, хэш SHA-256, <code>ReadDirectoryChangesW</code>, Process Monitor</span><span data-os="mac"><code>open</code>, хэш SHA-256, FSEvents, <code>fs_usage</code></span><span data-os="linux"><code>open</code>, хэш SHA-256, <code>inotify</code>, <code>strace</code></span> на программе на C и на <code>import</code> в Python, проверки 4 и 5</td></tr>
               <tr><td>Сеть</td><td>Лекция о модели OSI. Форма чата на <code>TcpClient</code></td><td><span data-os="win"><code>GetExtendedTcpTable</code>, сверка с TCPView</span><span data-os="mac"><code>proc_pidfdinfo</code>, сверка с <code>lsof -i</code></span><span data-os="linux"><code>/proc/net/tcp</code>, сверка с <code>ss -tlnp</code></span>, проверка 8; мозг на Python отдаёт данные ИИ-агенту по HTTP и через MCP</td></tr>
@@ -158,8 +158,8 @@
               <div class="node lang-py" data-k="brain"><h5>Мозг · Python</h5><b>brain.py</b><small>расписание, снимки, решения о нарушениях</small></div>
               <div class="node lang-ai" data-k="n8n"><h5>n8n + модель</h5><b>сценарий тревоги</b><small>объяснение для человека, уведомление</small></div>
               <div class="node lang-py" data-k="tools"><h5>Инструменты · Python</h5><b>HTTP-доступ к данным</b><small>процессы, порты, автозагрузка по запросу</small></div>
-              <div class="node lang-ai" data-k="agent"><h5>ИИ-агент · n8n</h5><b>расследователь</b><small>сам вызывает инструменты и выносит вердикт</small></div>
-              <div class="node lang-ai" data-k="mcp"><h5>MCP-сервер · Python</h5><b>агент для ассистентов</b><small>любой ИИ-ассистент спрашивает компьютер сам</small></div>
+              <div class="node lang-ai" data-k="agent"><h5>ИИ-агент · n8n</h5><b>расследователь</b><small>вызывает инструменты агента и возвращает вердикт</small></div>
+              <div class="node lang-ai" data-k="mcp"><h5>MCP-сервер · Python</h5><b>агент для ассистентов</b><small>ИИ-ассистенты вызывают функции агента по MCP</small></div>
             </div>
             <ul class="arch__links" id="archLinks"></ul>
           </div>
@@ -169,7 +169,7 @@
 
         <h2 id="s4"><span class="sec">§4</span>Путь тревоги</h2>
 
-        <p>Ниже путь одной тревоги в агенте второй половины курса. Программа прописала себя в автозагрузку — <span data-os="win">через ключ реестра Run</span><span data-os="mac">файлом в папке LaunchAgents</span><span data-os="linux">файлом в папке <code>~/.config/autostart</code></span>. Ядро и мозг её замечают, а ИИ-агент в n8n собирает подробности, вызывая функции агента-сторожа, и пишет вывод. Кнопка «Шаг» продвигает тревогу на одно звено.</p>
+        <p>Ниже путь одной тревоги в агенте второй половины курса. Программа прописала себя в автозагрузку — <span data-os="win">через ключ реестра Run</span><span data-os="mac">файлом в папке LaunchAgents</span><span data-os="linux">файлом в папке <code>~/.config/autostart</code></span>. Ядро и мозг её замечают, а ИИ-агент в n8n собирает подробности, вызывая функции агента-сторожа, и возвращает вывод. Кнопка «Шаг» продвигает тревогу на одно звено.</p>
 
         <figure class="live" id="flow">
           <p class="live__head">Путь тревоги<span class="sp" id="flowLbl">шаг 0 из 6</span></p>
@@ -178,8 +178,8 @@
               <div class="node" data-n="1"><h5>Событие</h5><b>Запись в автозагрузке</b><small><span data-os="win">программа добавила себя в ключ Run</span><span data-os="mac">программа положила файл в LaunchAgents</span><span data-os="linux">программа положила файл в autostart</span></small><em><span data-os="win">Windows</span><span data-os="mac">macOS</span><span data-os="linux">Linux</span></em></div>
               <div class="node" data-n="2"><h5>Ядро · C</h5><b>Видит изменение</b><small><span data-os="win">уведомление реестра, снимок ключа</span><span data-os="mac">событие FSEvents, снимок папки</span><span data-os="linux">событие inotify, снимок папки</span></small><em><span data-os="win">пара 12</span><span data-os="mac">пара 11</span><span data-os="linux">пара 11</span></em></div>
               <div class="node" data-n="3"><h5>Мозг · Python</h5><b>Решает и отправляет</b><small>сравнение, JSON без личных данных</small><em>пары 3, 18</em></div>
-              <div class="node" data-n="4"><h5>ИИ-агент</h5><b>Расследует</b><small>вызывает инструменты агента-сторожа</small><em>пара 17</em></div>
-              <div class="node" data-n="5"><h5>Модель</h5><b>Выносит вердикт</b><small>уровень, факты, что делать</small><em>пары 15, 18</em></div>
+              <div class="node" data-n="4"><h5>ИИ-агент</h5><b>Собирает подробности</b><small>вызывает инструменты агента-сторожа</small><em>пара 17</em></div>
+              <div class="node" data-n="5"><h5>Модель</h5><b>Возвращает вердикт</b><small>уровень, факты, что делать</small><em>пары 15, 18</em></div>
               <div class="node" data-n="6"><h5>Уведомление</h5><b>Человеку</b><small>почта или Google Таблица</small><em>пара 3</em></div>
             </div>
             <div class="flowout">
@@ -199,12 +199,12 @@
 
         <h2 id="s5"><span class="sec">§5</span>ИИ на каждой паре</h2>
 
-        <p>ИИ в курсе идёт тремя линиями. Первая начинается на первой паре, вторая — на третьей, третья — во второй половине курса. Режимы работы и список проверки кода от ИИ описаны в главе <a href="../03-ii-agenty/index.html">0.3</a>.</p>
+        <p>ИИ в курсе используется в трёх местах. Первое появляется на первой паре, второе — на третьей, третье — во второй половине курса. Режимы работы и список проверки кода от ИИ описаны в главе <a href="../03-ii-agenty/index.html">0.3</a>.</p>
 
         <div class="lines3">
-          <div><b>Помощник разработчика</b><div><p>GigaCode, SourceCraft или локальная модель в VS Code. Объясняет системные функции, пишет код мозга, ищет ошибки. Режим указан у каждого задания: Р0, Р1 или Р2.</p><small>с пары 1 · ядро на C в основном Р1, мозг на Python Р1–Р2</small></div></div>
-          <div><b>Модель в сценарии n8n</b><div><p>Каждая тревога мозга уходит в n8n, модель пишет объяснение и уровень опасности. С каждой новой проверкой у модели появляется новый вид тревог.</p><small>с пары 3 · Ollama, затем GigaChat или YandexGPT</small></div></div>
-          <div><b>ИИ-агент в проекте</b><div><p>Агент в n8n расследует тревоги через инструменты агента-сторожа, затем агент-сторож становится MCP-сервером для любого ассистента.</p><small>пары 16–19 · инструменты, расследование, MCP</small></div></div>
+          <div><b>Помощник разработчика</b><div><p>GigaCode, SourceCraft или локальная модель в VS Code. По запросу выдаёт объяснение системной функции, код мозга, вероятную причину ошибки. Режим указан у каждого задания: Р0, Р1 или Р2.</p><small>с пары 1 · ядро на C в основном Р1, мозг на Python Р1–Р2</small></div></div>
+          <div><b>Модель в сценарии n8n</b><div><p>Каждая тревога мозга уходит в n8n, модель возвращает объяснение и уровень опасности. С каждой новой проверкой у модели появляется новый вид тревог.</p><small>с пары 3 · Ollama, затем GigaChat или YandexGPT</small></div></div>
+          <div><b>ИИ-агент в проекте</b><div><p>Агент в n8n собирает подробности о тревоге через инструменты агента-сторожа, затем агент-сторож становится MCP-сервером для ИИ-ассистентов.</p><small>пары 16–19 · инструменты, расследование, MCP</small></div></div>
         </div>
 
         <p class="bridge">ИИ не заменяет проверки: каждая проверка агента-сторожа подтверждается нарушителем.</p>
@@ -241,14 +241,14 @@
 
         <h2 id="s7"><span class="sec">§7</span>Модули</h2>
 
-        <p>Курс состоит из вводного модуля 0 и шести модулей. В карточке модуля — темы, что получает агент, как участвует ИИ и какие проверки появляются у нарушителя.</p>
+        <p>Курс состоит из вводного модуля 0 и шести модулей. В карточке модуля — темы, что получает агент, где используется ИИ и какие проверки появляются у нарушителя.</p>
 
         <div class="mod mod--intro">
           <div class="mod__head"><b>Модуль 0. Системное программирование сегодня</b><span>пара 1</span></div>
           <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 1</b> «Процесс изнутри» — <span data-os="win">Диспетчер задач, Process Explorer</span><span data-os="mac">Мониторинг системы</span><span data-os="linux">Системный монитор GNOME</span></li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>Системные программы, слои компьютера, режимы пользователя и ядра, системный интерфейс трёх систем из C и Python, события в отрасли, ИИ-агенты и режимы работы, устройство дисциплины.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Первая программа с системным вызовом на C и та же функция из Python — задание к модулю 0 (§9).</p></div></div>
-          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р1: помощник объясняет программу по строкам, ответ сверяется с главой 0.1.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р1: помощник по запросу выдаёт разбор программы по строкам, ответ сверяется с главой 0.1.</p></div></div>
         </div>
 
         <div class="mod mod--intro">
@@ -256,7 +256,7 @@
           <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 2</b> «Программа в отладчике» — VS Code, Compiler Explorer</li><li><b>ЛР 3</b> «Библиотеки и первая автоматизация» — <span data-os="win">Dependencies, Process Explorer, n8n</span><span data-os="mac">otool, vmmap, n8n</span><span data-os="linux">ldd, Системный монитор, n8n</span></li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>C для системного программиста: указатели, структуры, строки, коды ошибок; <span data-os="win">строки <code>WCHAR</code>, типы Windows, <code>GetLastError</code></span><span data-os="mac"><code>errno</code>, заголовки POSIX и libproc</span><span data-os="linux"><code>errno</code>, заголовки POSIX, Makefile</span>. Сборка динамической библиотеки на C и вызов из Python через <code>ctypes</code>. Сервис n8n и модель в Ollama.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Ядро <span data-os="win"><code>sentry_core.dll</code></span><span data-os="mac"><code>libsentry_core.dylib</code></span><span data-os="linux"><code>libsentry_core.so</code></span> отдаёт сведения о системе, мозг <code>brain.py</code> вызывает его и отправляет первое сообщение «агент запущен» в n8n. Репозиторий и первый запуск GitHub Actions.</p></div></div>
-          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Помощник в VS Code (Р1). Первый сценарий n8n с моделью: сообщение агента приходит на почту с объяснением.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Помощник в VS Code (Р1). Первый сценарий n8n с моделью: сообщение агента приходит на почту с текстом от модели.</p></div></div>
         </div>
 
         <div class="mod">
@@ -264,7 +264,7 @@
           <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 4</b> «Дерево процессов» — <span data-os="win">Process Explorer</span><span data-os="mac">Мониторинг системы</span><span data-os="linux">htop, Системный монитор</span></li><li><b>ЛР 5</b> «Рождение процесса» — <span data-os="win">Process Monitor</span><span data-os="mac">fs_usage, Мониторинг системы</span><span data-os="linux">strace, htop</span></li><li><b>ЛР 6</b> «Кто загружает процессор» — <span data-os="win">Монитор ресурсов, Process Explorer</span><span data-os="mac">Мониторинг системы, Instruments</span><span data-os="linux">htop, perf top</span></li><li><b>ЛР 7</b> «Потоки Python и GIL» — <span data-os="win">Диспетчер задач, Process Explorer</span><span data-os="mac">Мониторинг системы</span><span data-os="linux">htop, Системный монитор</span></li><li><b>ЛР 8</b> «Карта памяти» — <span data-os="win">VMMap</span><span data-os="mac">Мониторинг системы, vmmap</span><span data-os="linux">Системный монитор: карты памяти</span></li><li><b>ЛР 9</b> «Разбор падения» — <span data-os="win">Монитор стабильности, VS Code</span><span data-os="mac">Консоль: отчёты о сбоях</span><span data-os="linux">coredumpctl, gdb</span></li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>Процессы и их создание: <span data-os="win"><code>CreateProcessW</code>, объекты Job</span><span data-os="mac"><code>fork</code>, <code>posix_spawn</code></span><span data-os="linux"><code>fork</code>, <code>execve</code>, cgroups</span>. Потоки, приоритеты, процессорное время. Потоки в Python: блокировка GIL и Python 3.14 без неё. Синхронизация в C. Виртуальная память. Ошибки памяти в C и в <code>ctypes</code>.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Ядро: список процессов, процессорное время и память каждого процесса. Мозг считает загрузку и находит рост памяти.</p></div></div>
-          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р2 на паре 5: ИИ пишет запуск процессов, студент ищет утечку дескрипторов <span data-os="win">в Process Explorer</span><span data-os="mac">через <code>lsof -p</code></span><span data-os="linux">в <code>/proc/&lt;pid&gt;/fd</code></span>. Пара 9: разбор кода ИИ с ошибками памяти через AddressSanitizer.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р2 на паре 5: код запуска процессов генерирует ИИ, студент ищет в нём утечку дескрипторов <span data-os="win">в Process Explorer</span><span data-os="mac">через <code>lsof -p</code></span><span data-os="linux">в <code>/proc/&lt;pid&gt;/fd</code></span>. Пара 9: разбор кода ИИ с ошибками памяти через AddressSanitizer.</p></div></div>
           <div class="mod__row mod__row--ch"><b>Проверки</b><div><p>1 — список процессов совпадает с системным; 2 — процесс загружает процессор больше 80%; 3 — память процесса растёт без остановки.</p><small>тест 1 — пара 9</small></div></div>
         </div>
 
@@ -273,7 +273,7 @@
           <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 10</b> «Файл под лупой» — <span data-os="win">ImHex, Process Monitor</span><span data-os="mac">ImHex, fs_usage</span><span data-os="linux">ImHex, strace</span></li><li><b>ЛР 11</b> «Слежка за папкой» — <span data-os="win">Process Monitor</span><span data-os="mac">fs_usage</span><span data-os="linux">inotifywait</span></li><li><b>ЛР 12</b> «Где прячется автозагрузка» — <span data-os="win">Autoruns, Планировщик заданий</span><span data-os="mac">Объекты входа, launchctl</span><span data-os="linux">Автозапуск GNOME, Cockpit</span></li><li><b>ЛР 13</b> «Журнал входов» — <span data-os="win">Просмотр событий</span><span data-os="mac">Консоль</span><span data-os="linux">Журналы GNOME, Cockpit</span></li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>Файловый ввод-вывод, хэши SHA-256. Python изнутри: <span data-os="win">Process Monitor</span><span data-os="mac"><code>fs_usage</code></span><span data-os="linux"><code>strace</code></span> на <code>import</code>. Наблюдение за папками: <span data-os="win"><code>ReadDirectoryChangesW</code></span><span data-os="mac">FSEvents</span><span data-os="linux"><code>inotify</code></span>. Автозагрузка: <span data-os="win">реестр и уведомления об изменениях</span><span data-os="mac">LaunchAgents и LaunchDaemons</span><span data-os="linux">systemd-юниты, cron, autostart</span>. Журнал системы: <span data-os="win">журнал событий Windows</span><span data-os="mac">единый журнал, <code>log show</code></span><span data-os="linux">journald, <code>journalctl</code></span>.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Следит за файлом <code>hosts</code>, папками и записями автозагрузки, читает события входа в систему.</p></div></div>
-          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р2 для мозга на Python: ИИ-агент пишет сравнение снимков и формат тревог, студент принимает по списку проверки.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>Р2 для мозга на Python: код сравнения снимков и формат тревог генерирует ИИ-агент, студент принимает его по списку проверки.</p></div></div>
           <div class="mod__row mod__row--ch"><b>Проверки</b><div><p>4 — изменён <code>hosts</code>; 5 — новый файл в папке автозагрузки пользователя; 6 — новая запись в системной автозагрузке (<span data-os="win">ключ Run</span><span data-os="mac">LaunchDaemons</span><span data-os="linux">служба systemd или cron</span>); 7 — пять неудачных входов подряд.</p><small>тест 2 — пара 13</small></div></div>
         </div>
 
@@ -282,7 +282,7 @@
           <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 14</b> «Кто ходит в сеть» — <span data-os="win">TCPView, Wireshark</span><span data-os="mac">lsof, Wireshark</span><span data-os="linux">ss, Wireshark</span></li><li><b>ЛР 15</b> «Нейросеть как процесс» — <span data-os="win">Диспетчер задач: ГП и NPU</span><span data-os="mac">Мониторинг системы: история ГП</span><span data-os="linux">htop, nvtop</span></li><li><b>ЛР 16</b> «Агент отвечает на запросы» — Bruno</li><li><b>ЛР 17</b> «Расследование глазами n8n» — n8n</li><li><b>ЛР 18</b> «Что уходит в облако» — Wireshark, n8n</li><li><b>ЛР 19</b> «Агент для ассистента» — MCP Inspector</li></ul></div></div>
           <div class="mod__row mod__row--th"><b>Темы</b><div><p>Сетевые соединения и порты. Модель ИИ как процесс: память, процессор, выбор модели. HTTP-доступ к данным агента. Узел AI Agent в n8n и вызов инструментов. Облачная модель и личные данные. MCP-сервер на Python.</p></div></div>
           <div class="mod__row mod__row--ag"><b>Агент</b><div><p>Получает список портов и соединений, отдаёт данные по запросу, убирает личные данные из тревог, работает как MCP-сервер.</p></div></div>
-          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>ИИ-агент в n8n расследует тревоги через инструменты агента-сторожа. ИИ-ассистент подключается к агенту по MCP и отвечает на вопрос «что загружает компьютер» по настоящим данным.</p></div></div>
+          <div class="mod__row mod__row--ai"><b>ИИ</b><div><p>ИИ-агент в n8n собирает подробности о тревогах через инструменты агента-сторожа. ИИ-ассистент подключается к агенту по MCP и строит ответ на вопрос «что загружает компьютер» на данных агента.</p></div></div>
           <div class="mod__row mod__row--ch"><b>Проверки</b><div><p>8 — открыт новый порт; 9 — модель ИИ занимает больше заданного объёма памяти; 10 — в отправленных данных нет имени пользователя.</p><small>тест 3 — пара 19</small></div></div>
         </div>
 
@@ -299,7 +299,7 @@
           <div class="mod__head"><b>Модуль 6. Курсовая работа</b><span>пары 23–24</span></div>
           <div class="mod__row mod__row--lab"><b>Лабораторные</b><div><ul class="labs"><li><b>ЛР 23</b> «Своя проверка» — n8n, Bruno</li><li><b>ЛР 24</b> «Защита» — всё изученное</li></ul></div></div>
           <div class="mod__row mod__row--ag"><b>Работа</b><div><p>Агент со всеми проверками, одной своей проверкой и одним своим инструментом для ИИ-агента. Сценарий n8n с расследованием, журнал работы с ИИ, отчёт.</p></div></div>
-          <div class="mod__row mod__row--ch"><b>Защита</b><div><p>Нарушитель запускается при всех, агент выдаёт тревогу на каждую ситуацию, ИИ-агент присылает вердикт. Ответы по любой строке кода, в том числе написанной ИИ.</p></div></div>
+          <div class="mod__row mod__row--ch"><b>Защита</b><div><p>Нарушитель запускается при всех, агент выдаёт тревогу на каждую ситуацию, n8n присылает вердикт модели. Ответы по любой строке кода, в том числе сгенерированной ИИ.</p></div></div>
         </div>
 
         <p class="bridge">В лабораторных и в коде модулей используются программы, общие для трёх систем, и программы, свои у каждой системы.</p>
@@ -371,7 +371,7 @@
             <tr><td class="num-cell">21</td><td><b>Флешка</b><br><span class="lab-what">подключить флешку и пройти путь события от устройства до агента</span></td><td><span data-os="win">Диспетчер устройств</span><span data-os="mac">Информация о системе</span><span data-os="linux">udevadm, Диски GNOME</span></td></tr>
             <tr><td class="num-cell">22</td><td><b>Вскрытие исполняемого файла</b><br><span class="lab-what">проверить подпись, определить формат и компилятор, открыть ядро агента в дизассемблере</span></td><td><span data-os="win">Свойства файла, Detect It Easy, Ghidra, x64dbg</span><span data-os="mac">codesign, Detect It Easy, Ghidra, lldb</span><span data-os="linux">Detect It Easy, Ghidra, gdb</span></td></tr>
             <tr><td class="num-cell">23</td><td><b>Своя проверка</b><br><span class="lab-what">добавить свою проверку и свой инструмент ИИ-агента и показать их в n8n</span></td><td>n8n, Bruno</td></tr>
-            <tr><td class="num-cell">24</td><td><b>Защита</b><br><span class="lab-what">нарушитель при всех, агент замечает каждую ситуацию, ИИ-агент присылает вердикт</span></td><td>всё изученное</td></tr>
+            <tr><td class="num-cell">24</td><td><b>Защита</b><br><span class="lab-what">нарушитель при всех, агент выдаёт тревогу на каждую ситуацию, n8n присылает вердикт модели</span></td><td>всё изученное</td></tr>
             </tbody>
           </table>
         </div>
@@ -379,7 +379,7 @@
         <p>Программы, которые работают на всех трёх системах — VS Code, n8n, ImHex, Wireshark, Bruno, MCP Inspector, Detect It Easy, Ghidra, — показаны одинаковыми кадрами. Для остальных у каждой системы свои кадры. Первая лабораторная — <a href="../05-laboratornaya-1/index.html">«Процесс изнутри»</a> — выполняется на паре 1 и служит заданием к модулю 0.</p>
 
         <h3>Итог главы</h3>
-        <p>Дисциплина учит понимать, что происходит внутри операционной системы во время работы программы, получать эти сведения из кода на C через системный интерфейс, проверять их приборами и отдавать моделям ИИ. Курс идёт для трёх систем: Windows, macOS и Linux. Весь курс студенты пишут агент-сторож: ядро на C вызывает системные функции, мозг на Python принимает решения и связывает агент с n8n, ИИ-агентом и MCP. ИИ участвует с первой пары тремя линиями: помощник разработчика, модель, которая объясняет тревоги, и ИИ-агент, который их расследует. За 24 пары агент получает 13 проверок, и нарушитель в GitHub Actions подтверждает их все на трёх системах после каждой отправки кода. Курсовая работа — агент со всеми проверками, своей проверкой, своим инструментом для ИИ-агента и защитой.</p>
+        <p>Дисциплина учит понимать, что происходит внутри операционной системы во время работы программы, получать эти сведения из кода на C через системный интерфейс, проверять их приборами и отдавать моделям ИИ. Курс идёт для трёх систем: Windows, macOS и Linux. Весь курс студенты пишут агент-сторож: ядро на C вызывает системные функции, мозг на Python принимает решения и связывает агент с n8n, ИИ-агентом и MCP. Модели ИИ используются с первой пары в трёх местах: помощник разработчика в редакторе, модель в n8n, которая составляет текст тревоги, и ИИ-агент, который собирает подробности через функции агента-сторожа. За 24 пары агент получает 13 проверок, и нарушитель в GitHub Actions подтверждает их все на трёх системах после каждой отправки кода. Курсовая работа — агент со всеми проверками, своей проверкой, своим инструментом для ИИ-агента и защитой.</p>
 
         <div class="pager">
           <a href="../03-ii-agenty/index.html">← 0.3 ИИ-агенты и системный код</a>
@@ -488,7 +488,7 @@
       ['C для системного программиста', 'Ядро выводит сведения о системе. Помощник ИИ в VS Code, репозиторий и GitHub Actions на трёх системах.'],
       ['C и Python вместе, первая автоматизация', { win: 'Ядро — DLL, мозг вызывает его через ctypes. n8n и Ollama: «агент запущен» с объяснением модели.', mac: 'Ядро — .dylib, мозг вызывает его через ctypes. n8n и Ollama: «агент запущен» с объяснением модели.', linux: 'Ядро — .so, мозг вызывает его через ctypes. n8n и Ollama: «агент запущен» с объяснением модели.' }],
       ['Процессы', { win: 'Список процессов через Toolhelp32, сверка с Process Explorer.', mac: 'Список процессов через libproc, сверка с Мониторингом системы.', linux: 'Список процессов из /proc, сверка с ps и htop.' }],
-      ['Создание процессов', { win: 'CreateProcessW и объекты Job. Р2: ИИ пишет запуск процессов, студент ищет утечку дескрипторов.', mac: 'fork, execve и posix_spawn. Р2: ИИ пишет запуск процессов, студент ищет утечку дескрипторов.', linux: 'fork, execve и cgroups. Р2: ИИ пишет запуск процессов, студент ищет утечку дескрипторов.' }],
+      ['Создание процессов', { win: 'CreateProcessW и объекты Job. Р2: код запуска процессов генерирует ИИ, студент ищет в нём утечку дескрипторов.', mac: 'fork, execve и posix_spawn. Р2: код запуска процессов генерирует ИИ, студент ищет в нём утечку дескрипторов.', linux: 'fork, execve и cgroups. Р2: код запуска процессов генерирует ИИ, студент ищет в нём утечку дескрипторов.' }],
       ['Потоки и процессорное время', 'Загрузка процессора по каждому процессу.'],
       ['Потоки в Python и синхронизация', 'Блокировка GIL и Python 3.14 без неё, синхронизация потоков в C.'],
       ['Виртуальная память', { win: 'Память каждого процесса, сверка с VMMap.', mac: 'Память каждого процесса, сверка с vmmap.', linux: 'Память каждого процесса, сверка с pmap и smaps.' }],
@@ -502,12 +502,12 @@
       ['Инструменты для ИИ', 'Мозг отдаёт процессы, порты и автозагрузку по HTTP-запросу.'],
       ['ИИ-агент-расследователь', 'Узел AI Agent в n8n вызывает инструменты агента и выносит вердикт.'],
       ['Облачная модель и личные данные', 'GigaChat или YandexGPT, удаление личных данных из тревог.'],
-      ['MCP-сервер', 'Агент-сторож как MCP-сервер, ассистент спрашивает компьютер сам. Тест 3.'],
+      ['MCP-сервер', 'Агент-сторож как MCP-сервер, ассистенты вызывают его функции. Тест 3.'],
       ['Фоновая работа ядра', { win: 'Ядро — служба Windows, мозг связан с ней именованным каналом.', mac: 'Ядро — демон launchd, мозг связан с ним Unix-сокетом.', linux: 'Ядро — служба systemd, мозг связан с ней Unix-сокетом.' }],
       ['Устройства и питание', { win: 'Уведомления о флешке и работе от батареи.', mac: 'Уведомления IOKit о флешке и работе от батареи.', linux: 'События udev о флешке, питание из /sys/class/power_supply.' }],
       ['Исполняемые файлы и отладка', { win: 'Подпись .exe, формат PE, ядро в x64dbg и Ghidra. Тест 4.', mac: 'Подпись codesign, формат Mach-O, ядро в lldb и Ghidra. Тест 4.', linux: 'Происхождение файла из пакета, формат ELF, ядро в gdb и Ghidra. Тест 4.' }],
       ['Курсовая: своя проверка', 'Своя проверка и свой инструмент для ИИ-агента, журнал работы с ИИ, отчёт.'],
-      ['Защита курсовой', 'Нарушитель при всех, вердикт ИИ-агента, ответы по коду.'],
+      ['Защита курсовой', 'Нарушитель при всех, вердикт модели в n8n, ответы по коду.'],
     ];
     const LABS = {"1": ["Процесс изнутри", {"win": "Диспетчер задач, Process Explorer", "mac": "Мониторинг системы", "linux": "Системный монитор GNOME"}], "2": ["Программа в отладчике", {"win": "VS Code, Compiler Explorer", "mac": "VS Code, Compiler Explorer", "linux": "VS Code, Compiler Explorer"}], "3": ["Библиотеки и первая автоматизация", {"win": "Dependencies, Process Explorer, n8n", "mac": "otool, vmmap, n8n", "linux": "ldd, Системный монитор, n8n"}], "4": ["Дерево процессов", {"win": "Process Explorer", "mac": "Мониторинг системы", "linux": "htop, Системный монитор"}], "5": ["Рождение процесса", {"win": "Process Monitor", "mac": "fs_usage, Мониторинг системы", "linux": "strace, htop"}], "6": ["Кто загружает процессор", {"win": "Монитор ресурсов, Process Explorer", "mac": "Мониторинг системы, Instruments", "linux": "htop, perf top"}], "7": ["Потоки Python и GIL", {"win": "Диспетчер задач, Process Explorer", "mac": "Мониторинг системы", "linux": "htop, Системный монитор"}], "8": ["Карта памяти", {"win": "VMMap", "mac": "Мониторинг системы, vmmap", "linux": "Системный монитор: карты памяти"}], "9": ["Разбор падения", {"win": "Монитор стабильности, VS Code", "mac": "Консоль: отчёты о сбоях", "linux": "coredumpctl, gdb"}], "10": ["Файл под лупой", {"win": "ImHex, Process Monitor", "mac": "ImHex, fs_usage", "linux": "ImHex, strace"}], "11": ["Слежка за папкой", {"win": "Process Monitor", "mac": "fs_usage", "linux": "inotifywait"}], "12": ["Где прячется автозагрузка", {"win": "Autoruns, Планировщик заданий", "mac": "Объекты входа, launchctl", "linux": "Автозапуск GNOME, Cockpit"}], "13": ["Журнал входов", {"win": "Просмотр событий", "mac": "Консоль", "linux": "Журналы GNOME, Cockpit"}], "14": ["Кто ходит в сеть", {"win": "TCPView, Wireshark", "mac": "lsof, Wireshark", "linux": "ss, Wireshark"}], "15": ["Нейросеть как процесс", {"win": "Диспетчер задач: ГП и NPU", "mac": "Мониторинг системы: история ГП", "linux": "htop, nvtop"}], "16": ["Агент отвечает на запросы", {"win": "Bruno", "mac": "Bruno", "linux": "Bruno"}], "17": ["Расследование глазами n8n", {"win": "n8n", "mac": "n8n", "linux": "n8n"}], "18": ["Что уходит в облако", {"win": "Wireshark, n8n", "mac": "Wireshark, n8n", "linux": "Wireshark, n8n"}], "19": ["Агент для ассистента", {"win": "MCP Inspector", "mac": "MCP Inspector", "linux": "MCP Inspector"}], "20": ["Агент как служба", {"win": "Службы (services.msc)", "mac": "launchctl, Объекты входа", "linux": "Cockpit, systemctl"}], "21": ["Флешка", {"win": "Диспетчер устройств", "mac": "Информация о системе", "linux": "udevadm, Диски GNOME"}], "22": ["Вскрытие исполняемого файла", {"win": "Свойства файла, Detect It Easy, Ghidra, x64dbg", "mac": "codesign, Detect It Easy, Ghidra, lldb", "linux": "Detect It Easy, Ghidra, gdb"}], "23": ["Своя проверка", {"win": "n8n, Bruno", "mac": "n8n, Bruno", "linux": "n8n, Bruno"}], "24": ["Защита", {"win": "всё изученное", "mac": "всё изученное", "linux": "всё изученное"}]};
     const C = [[4, 'Список процессов совпадает с системным'], [6, 'Процесс загружает процессор больше 80%'], [8, 'Память процесса растёт без остановки'], [10, 'Изменён файл hosts'],
