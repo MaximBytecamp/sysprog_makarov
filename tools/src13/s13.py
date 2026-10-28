@@ -1,0 +1,5 @@
+items = page.locator('[data-test-id="node-creator-node-item"]')
+shot('06-llm-pick', [page.locator('[data-test-id="node-creator-search-bar"]').first, items.first])
+items.first.click(); time.sleep(3)
+page.screenshot(path='/private/tmp/n13.png')
+print(page.evaluate("""[...document.querySelectorAll('[data-test-id]')].map(e=>e.dataset.testId).filter(x=>/parameter-input-/i.test(x)).slice(0,30)"""))

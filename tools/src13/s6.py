@@ -1,0 +1,5 @@
+print(page.evaluate("""[...document.querySelectorAll('[data-test-id]')].map(e=>e.dataset.testId).filter(x=>/add|plus|trigger|creator/i.test(x))"""))
+page.locator('[data-test-id="canvas-add-button"]').first.click(); time.sleep(2)
+print(page.evaluate("""[...document.querySelectorAll('[data-test-id]')].map(e=>e.dataset.testId).filter(x=>/search|creator|item/i.test(x)).slice(0,15)"""))
+page.keyboard.type('Webhook'); time.sleep(2)
+page.screenshot(path='/private/tmp/n6.png')

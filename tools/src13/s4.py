@@ -1,0 +1,5 @@
+page.goto('http://localhost:5678/signin'); time.sleep(3)
+page.locator('input').nth(0).fill('ivan.petrov@example.com'); page.locator('input').nth(1).fill('Sentry2026')
+page.get_by_role('button', name='Sign in').click(); time.sleep(4)
+page.goto('http://localhost:5678/workflow/new'); time.sleep(5)
+print(page.url); page.screenshot(path='/private/tmp/n4a.png')

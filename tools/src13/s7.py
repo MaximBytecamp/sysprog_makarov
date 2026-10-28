@@ -1,0 +1,5 @@
+items = page.locator('[data-test-id="node-creator-node-item"]')
+shot('03-webhook-pick', [page.locator('[data-test-id="node-creator-search-bar"]').first, items.first])
+items.first.click(); time.sleep(3)
+page.screenshot(path='/private/tmp/n7.png')
+print(page.evaluate("""[...document.querySelectorAll('[data-test-id]')].map(e=>e.dataset.testId).filter(x=>/param|parameter-input|webhook|url|method|path/i.test(x)).slice(0,40)"""))

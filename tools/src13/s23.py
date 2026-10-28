@@ -1,0 +1,7 @@
+plus = page.locator('[data-test-id="canvas-handle-plus"]')
+print(plus.count())
+plus.last.click(); time.sleep(2)
+page.keyboard.type('Send Email'); time.sleep(2)
+items = page.locator('[data-test-id="node-creator-node-item"]')
+print([items.nth(i).inner_text()[:40] for i in range(items.count())])
+page.screenshot(path='/private/tmp/n23.png')

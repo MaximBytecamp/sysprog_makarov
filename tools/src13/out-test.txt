@@ -1,0 +1,9 @@
+{
+  "event": "agent_started",
+  "os": "darwin",
+  "pid": 57934,
+  "cpus": 10,
+  "page_size": 16384,
+  "host": "MacBook-Air-Maxim.local"
+}
+n8n: 200 {"message":"Workflow was started"}

@@ -1,0 +1,5 @@
+page.locator('[data-test-id="canvas-handle-plus"]').first.click(); time.sleep(2)
+page.keyboard.type('Basic LLM Chain'); time.sleep(2)
+items = page.locator('[data-test-id="node-creator-node-item"]')
+print(items.count(), [items.nth(i).inner_text()[:60] for i in range(min(4, items.count()))])
+page.screenshot(path='/private/tmp/n12.png')

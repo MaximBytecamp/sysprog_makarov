@@ -1,0 +1,6 @@
+page.goto('http://localhost:5678/setup'); time.sleep(3)
+inp = page.locator('input')
+inp.nth(0).fill('ivan.petrov@example.com'); inp.nth(1).fill('Иван'); inp.nth(2).fill('Петров'); inp.nth(3).fill('Sentry2026')
+shot('01-owner', [inp.nth(0), inp.nth(3), page.get_by_role('button', name='Next')])
+page.get_by_role('button', name='Next').click(); time.sleep(5)
+page.screenshot(path='/private/tmp/n1.png'); print(page.url)

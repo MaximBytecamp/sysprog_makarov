@@ -1,0 +1,5 @@
+page.mouse.click(640, 776); time.sleep(2)
+page.keyboard.type('Ollama'); time.sleep(2)
+items = page.locator('[data-test-id="node-creator-node-item"]')
+print([items.nth(i).inner_text()[:50] for i in range(items.count())])
+page.screenshot(path='/private/tmp/n16.png')

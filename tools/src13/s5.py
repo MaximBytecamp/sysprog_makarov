@@ -1,0 +1,6 @@
+page.locator('[data-test-id="inline-edit-preview"]').first.click(); time.sleep(0.6)
+page.keyboard.press('Meta+A'); page.keyboard.type('Агент-сторож: запуск'); page.keyboard.press('Enter'); time.sleep(1.5)
+page.get_by_text('Add first step').click(); time.sleep(2)
+page.screenshot(path='/private/tmp/n5a.png')
+page.keyboard.type('Webhook'); time.sleep(2)
+page.screenshot(path='/private/tmp/n5b.png'); print(page.url)

@@ -1,0 +1,7 @@
+shot('11-llm-output', [[721, 72, 121, 28], [896, 182, 355, 120], [618, 755, 44, 42]])
+txt = page.locator('#app-modals').inner_text()
+import re; m = re.search(r'"text":\s*"([^"]+)"', txt.replace('\n',' '))
+print(m.group(1) if m else txt[-600:])
+open('/Users/makarovmn/sysprog-shots/m13/out-llm.txt','w').write(m.group(1) if m else '')
+page.mouse.click(1235, 45); time.sleep(2)
+page.screenshot(path='/private/tmp/n22.png')
