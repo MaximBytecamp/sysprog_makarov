@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>1.1 C для системного программиста · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 1 · Рабочее место: C, Python и ИИ</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 1 · рабочее место</p>
+          <p class="running__folio">1.1</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">1.1</span>
+          <h1>C для системного<br>программиста</h1>
+          <p class="lead">В главе собирается первая функция ядра агента — <code>core_get_info</code>. Она заполняет структуру сведениями о компьютере: номер процесса, число процессоров, размер страницы памяти и имя компьютера. До неё на четырёх маленьких программах разобрано, без чего не читается системный интерфейс: размеры типов, структура, которую система заполняет по адресу, строка в буфере и код ошибки. Каждый шаг — программа, сборка и кадр результата для системы, выбранной переключателем вверху страницы.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Категория</dt><dd>Язык C</dd></div>
+          <div><dt>Уровень</dt><dd>Начальный</dd></div>
+          <div><dt>Что получится</dt><dd><code>core.h</code>, <code>core_info.c</code> и <code>show_info.c</code> в <code>agent/core</code></dd></div>
+          <div><dt>Сколько занимает</dt><dd>Пара 2, около пятидесяти минут за компьютером</dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>Порядок действий</b>
+          <ol>
+            <li><a href="#s1">Задача главы</a></li>
+            <li><a href="#s2">Шаг 1. Измерить типы</a></li>
+            <li><a href="#s3">Шаг 2. Получить структуру от системы</a></li>
+            <li><a href="#s4">Шаг 3. Прочитать строку из буфера</a></li>
+            <li><a href="#s5">Шаг 4. Получить код ошибки</a></li>
+            <li><a href="#s6">Шаг 5. Описать свою структуру</a></li>
+            <li><a href="#s7">Шаг 6. Написать функцию ядра</a></li>
+            <li><a href="#s8">Шаг 7. Проверить функцию программой</a></li>
+            <li><a href="#s9">Шаг 8. Найти ошибку по предупреждению</a></li>
+            <li><a href="#s10">Шаг 9. Положить ядро в репозиторий</a></li>
+            <li><a href="#s11">Запрос к помощнику ИИ</a></li>
+            <li><a href="#s12">Справка: функции и команды</a></li>
+            <li><a href="#s13">Частые вопросы</a></li>
+            <li><a href="#s14">Проверьте себя</a></li>
+            <li><a href="#s15">Шпаргалка по главе</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Задача главы</h2>
+        <p>В модуле 0 программа <code>hello.c</code> вызывала одну системную функцию, которая возвращает число, — номер процесса. Большинство функций системного интерфейса устроены сложнее. Они принимают адрес памяти и записывают туда результат: структуру с десятком полей, строку с именем или путь к файлу. Об ошибке они сообщают числом, а причину кладут отдельно. Для вызова таких функций нужны четыре темы языка C. Первая — сколько байт занимает каждый тип. Вторая — как функция заполняет структуру по указателю. Третья — как устроена строка в буфере. Четвёртая — где искать код ошибки.</p>
+        <p>В главе эти четыре темы разобраны на маленьких программах, и из них собирается первая функция ядра агента — <code>core_get_info</code>. Она заполняет структуру <code>struct core_info</code> четырьмя сведениями о компьютере: номер процесса агента, число процессоров, размер страницы памяти и имя компьютера. В главе 1.2 эта функция войдёт в библиотеку ядра, и мозг агента на Python будет вызывать её через <code>ctypes</code>.</p>
+        <figure class="scheme">
+          <p class="scheme__head">Что делает функция ядра</p>
+          <div class="scheme__body">
+            <svg viewBox="0 0 760 210" role="img" aria-label="Схема: программа выделяет пустую структуру core_info и передаёт её адрес функции core_get_info; функция вызывает четыре системные функции и записывает их ответы в поля структуры; возвращает 0 или код ошибки">
+              <rect x="10" y="40" width="210" height="130" fill="var(--acc-pale)" stroke="var(--ink)" stroke-width="3"/>
+              <text x="115" y="30" text-anchor="middle" font-family="Roboto Mono, monospace" font-size="12" font-weight="700" fill="var(--ink)">struct core_info info</text>
+              <g font-family="Roboto Mono, monospace" font-size="12" fill="var(--ink)">
+                <rect x="22" y="52" width="186" height="26" fill="var(--page)" stroke="var(--ink)" stroke-width="2"/><text x="30" y="70">pid</text>
+                <rect x="22" y="80" width="186" height="26" fill="var(--page)" stroke="var(--ink)" stroke-width="2"/><text x="30" y="98">cpus</text>
+                <rect x="22" y="108" width="186" height="26" fill="var(--page)" stroke="var(--ink)" stroke-width="2"/><text x="30" y="126">page_size</text>
+                <rect x="22" y="136" width="186" height="26" fill="var(--page)" stroke="var(--ink)" stroke-width="2"/><text x="30" y="154">host[256]</text>
+              </g>
+              <path d="M222 70 H300" stroke="var(--ink)" stroke-width="3" fill="none"/><path d="M292 63 L302 70 L292 77" stroke="var(--ink)" stroke-width="3" fill="none"/>
+              <text x="261" y="60" text-anchor="middle" font-family="Roboto Mono, monospace" font-size="11" fill="var(--ink-soft)">&amp;info</text>
+              <rect x="304" y="40" width="170" height="130" fill="var(--page)" stroke="var(--ink)" stroke-width="3"/>
+              <text x="389" y="66" text-anchor="middle" font-family="Roboto Mono, monospace" font-size="13" font-weight="700" fill="var(--ink)">core_get_info</text>
+              <text x="389" y="92" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="var(--ink-soft)">ядро агента, C</text>
+              <text x="389" y="140" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="var(--ink-soft)">вернёт 0 или</text>
+              <text x="389" y="156" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="var(--ink-soft)">код ошибки</text>
+              <path d="M300 150 H222" stroke="var(--acc)" stroke-width="3" fill="none" stroke-dasharray="6 4"/><path d="M230 143 L220 150 L230 157" stroke="var(--acc)" stroke-width="3" fill="none"/>
+              <text x="261" y="140" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="var(--acc)">заполняет</text>
+              <path d="M476 105 H540" stroke="var(--ng)" stroke-width="3" fill="none"/><path d="M532 98 L542 105 L532 112" stroke="var(--ng)" stroke-width="3" fill="none"/>
+              <rect x="544" y="20" width="206" height="170" fill="var(--ng-pale)" stroke="var(--ink)" stroke-width="3"/>
+              <text x="647" y="42" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="var(--ink)">системные функции</text>
+              <g font-family="Roboto Mono, monospace" font-size="11.5" fill="var(--ink)" data-os="mac linux">
+                <text x="556" y="72">getpid()</text><text x="556" y="100">sysconf(_SC_NPROC…)</text><text x="556" y="128">sysconf(_SC_PAGESIZE)</text><text x="556" y="156">gethostname()</text>
+              </g>
+              <g font-family="Roboto Mono, monospace" font-size="11.5" fill="var(--ink)" data-os="win">
+                <text x="556" y="72">GetCurrentProcessId()</text><text x="556" y="100">GetNativeSystemInfo()</text><text x="556" y="128">  ↳ тот же вызов</text><text x="556" y="156">GetComputerNameW()</text>
+              </g>
+            </svg>
+          </div>
+          <p class="scheme__note">Программа выделяет пустую структуру и передаёт функции её адрес. Функция вызывает системные функции и записывает ответы в поля. Сама функция возвращает только число: 0 — всё получилось, другое число — код ошибки системы.</p>
+        </figure>
+        <p>Такой порядок — адрес пустой структуры на входе и код ошибки на выходе — повторяет сам системный интерфейс. <span data-os="win">Функция WinAPI <code>GetNativeSystemInfo</code> заполняет структуру <code>SYSTEM_INFO</code> по адресу, <code>GetComputerNameW</code> пишет имя в переданный буфер.</span><span data-os="mac linux">Функция POSIX <code>uname</code> заполняет структуру <code>struct utsname</code> по адресу, <code>gethostname</code> пишет имя в переданный буфер.</span> Ядро агента пишется в том же стиле, поэтому его функции читаются так же, как документация системы.</p>
+        <div class="why">
+          <p class="why__head">Зачем это нужно в работе</p>
+          <ul class="why__list">
+            <li><b>Читать документацию системы.</b> Описание каждой функции WinAPI и POSIX дано объявлением на C: типы параметров, указатели, размер буфера, значение при ошибке. Без этих четырёх тем объявление не читается.</li>
+            <li><b>Передавать данные между языками.</b> Мозг агента на Python читает структуру ядра через <code>ctypes</code>. Для этого он должен знать размер и порядок каждого поля, а размеры у части типов C зависят от системы.</li>
+            <li><b>Не выходить за границы буфера.</b> Запись или чтение за концом буфера — частая причина падений и уязвимостей системных программ. Авария CrowdStrike из главы 0.2 началась с чтения за границей массива.</li>
+            <li><b>Сообщать причину сбоя.</b> Агент работает без человека. По коду ошибки в журнале видно, что произошло: файла нет, доступ запрещён или буфер мал.</li>
+          </ul>
+        </div>
+        <p>Все программы главы лежат в отдельной папке <code>pair02</code>: <span data-os="win"><code>C:\syspro\pair02</code></span><span data-os="mac linux"><code>~/syspro/pair02</code></span>, рядом с папкой <code>pair01</code> из лабораторной работы 1. Файлы ядра в конце главы переносятся в репозиторий <code>sysprog-start</code>, в папку <code>agent/core</code>. <span data-os="win">Программы собираются компилятором MSVC в окне <b>x64 Native Tools Command Prompt for VS 2022</b>, как в ЛР 1. Код набирается в VS Code.</span><span data-os="mac">Программы набираются в VS Code и собираются компилятором clang во встроенном терминале VS Code (<b>Terminal → New Terminal</b>).</span><span data-os="linux">Программы набираются в VS Code и собираются компилятором gcc во встроенном терминале VS Code (<b>Terminal → New Terminal</b>).</span></p>
+        <div class="margin-note">
+          <b>Как читать кадры</b>
+          <p>Кадры сделаны для системы, выбранной переключателем вверху страницы. Красные рамки отмечают места, о которых идёт речь в тексте; номер рамки повторяется в тексте в красном квадрате, например <span class="mk">1</span>. Номера процессов, имя компьютера и число процессоров у вас будут другими.</p>
+        </div>
+        <p class="bridge">Первая тема — размеры типов: от них зависит, как читать любую структуру системы.</p>
+
+        <div class="part" role="separator"><span><b>1</b>Типы и структуры</span></div>
+        <h2 id="s2"><span class="sec">§2</span>Шаг 1. Измерить типы</h2>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Размер одежды «L» у разных производителей разный: у одного это 50-й российский размер, у другого 52-й. Если заказывать вещь по букве, можно ошибиться. Сантиметры у всех одинаковые, поэтому точный заказ делают по обхвату в сантиметрах.</p>
+          <p class="miss">Одежду можно примерить и вернуть. Программа с неверным размером типа собирается без ошибок и при запуске читает чужие байты.</p>
+        </div></div>
+        <p>Каждая переменная в C занимает в памяти определённое число байт, и это число задаёт её <span class="term">тип</span>. Стандарт языка C задаёт для части типов только нижнюю границу: <code>int</code> — не меньше 2 байт, <code>long</code> — не меньше 4. Точный размер выбирают создатели компилятора и системы. Структуру, заполненную системой, читают байт за байтом. Поэтому размер каждого поля в программе должен совпадать с тем, что записала система.</p>
+        <p>Размер типа в байтах возвращает оператор <code>sizeof</code>. Создаём в VS Code папку <code>pair02</code>, в ней файл <code>sizes.c</code> и вставляем код:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>sizes.c · Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdint.h&gt;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">printf</span>(<span class="s">&quot;char     %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">char</span>));
+    <span class="f">printf</span>(<span class="s">&quot;int      %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">int</span>));
+    <span class="f">printf</span>(<span class="s">&quot;long     %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">long</span>));
+    <span class="f">printf</span>(<span class="s">&quot;void *   %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">void</span> *));
+    <span class="f">printf</span>(<span class="s">&quot;int64_t  %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">int64_t</span>));
+    <span class="f">printf</span>(<span class="s">&quot;DWORD    %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">DWORD</span>));
+    <span class="f">printf</span>(<span class="s">&quot;WCHAR    %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">WCHAR</span>));
+    <span class="f">printf</span>(<span class="s">&quot;HANDLE   %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">HANDLE</span>));
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="mac linux">
+          <figcaption><span>sizes.c · macOS и Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdint.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;sys/types.h&gt;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">printf</span>(<span class="s">&quot;char     %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">char</span>));
+    <span class="f">printf</span>(<span class="s">&quot;int      %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">int</span>));
+    <span class="f">printf</span>(<span class="s">&quot;long     %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">long</span>));
+    <span class="f">printf</span>(<span class="s">&quot;void *   %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">void</span> *));
+    <span class="f">printf</span>(<span class="s">&quot;int64_t  %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">int64_t</span>));
+    <span class="f">printf</span>(<span class="s">&quot;pid_t    %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">pid_t</span>));
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <p>Формат <code>%zu</code> в <code>printf</code> печатает значение типа <code>size_t</code> — его возвращает <code>sizeof</code>. <span data-os="win">Кроме общих типов C, программа измеряет три типа Windows из <code>windows.h</code>. <code>DWORD</code> — число, которое возвращает <code>GetCurrentProcessId</code>. <code>WCHAR</code> — одна буква строки Windows. <code>HANDLE</code> — дескриптор объекта ядра из ЛР 1.</span><span data-os="mac linux">Тип <code>pid_t</code> из <code>sys/types.h</code> — тот, что возвращает <code>getpid</code>.</span> Собираем и запускаем:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 sizes.c &amp;&amp; sizes.exe</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>clang -Wall -Wextra -o sizes sizes.c &amp;&amp; ./sizes</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>gcc -Wall -Wextra -o sizes sizes.c &amp;&amp; ./sizes</pre>
+        </figure>
+        <p>Ключи <span data-os="win"><code>/W4</code></span><span data-os="mac linux"><code>-Wall -Wextra</code></span> включают предупреждения компилятора. Они понадобятся в шаге 8; включать их стоит с первой программы.</p>
+        <figure class="shot" data-os="win">
+          <img src="img/win/01-sizes.png" alt="Командная строка MSVC: вывод sizes.exe, long 4, void * 8, int64_t 8, DWORD 4, WCHAR 2, HANDLE 8" loading="lazy">
+          <figcaption>Сборка и запуск <code>sizes.exe</code> в командной строке MSVC. <span class="mk">1</span> <code>long</code> — 4 байта, <span class="mk">2</span> адрес — 8 байт, <span class="mk">3</span> <code>int64_t</code> — 8 байт, <span class="mk">4</span> <code>WCHAR</code> — 2 байта.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/01-sizes.png" alt="VS Code с файлом sizes.c и терминалом: char 1, int 4, long 8, void * 8, int64_t 8, pid_t 4" loading="lazy">
+          <figcaption>VS Code: слева файл <code>sizes.c</code>, внизу терминал. <span class="mk">1</span> <code>long</code> — 8 байт, <span class="mk">2</span> адрес — 8 байт, <span class="mk">3</span> <code>int64_t</code> — 8 байт.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/01-sizes.png" alt="VS Code с файлом sizes.c и терминалом gcc: char 1, int 4, long 8, void * 8, int64_t 8, pid_t 4" loading="lazy">
+          <figcaption>VS Code: слева файл <code>sizes.c</code>, внизу терминал с gcc. <span class="mk">1</span> <code>long</code> — 8 байт, <span class="mk">2</span> адрес — 8 байт, <span class="mk">3</span> <code>int64_t</code> — 8 байт.</figcaption>
+        </figure>
+        <div data-os="win"><p>Первая строка после команды — <code>sizes.c</code>: так компилятор MSVC сообщает, какой файл он собрал. Ниже — вывод программы. Строка <span class="mk">1</span> отличается от macOS и Linux: в 64-битной Windows <code>long</code> занимает 4 байта. Адрес <span class="mk">2</span> занимает 8 байт: программа собрана для x64, а у 64-битного процессора адрес — 64 бита. Буква строки Windows <span class="mk">4</span> занимает 2 байта.</p></div>
+        <div data-os="mac linux"><p>Программа вывела шесть строк, по одной на тип. Строка <span class="mk">1</span> отличается от Windows: в 64-битных macOS и Linux <code>long</code> занимает 8 байт, в 64-битной Windows — 4. Адрес <span class="mk">2</span> занимает 8 байт: у 64-битного процессора адрес — 64 бита. Тип <span class="mk">3</span> одинаков на всех системах.</p></div>
+        <p>Ниже — те же числа для трёх систем рядом. Расхождение одно, в строке <code>long</code>.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Тип</th><th>Windows</th><th>macOS</th><th>Linux</th><th>Что в нём хранят</th></tr></thead>
+            <tbody>
+              <tr><td><code>char</code></td><td class="num-cell">1</td><td class="num-cell">1</td><td class="num-cell">1</td><td>один байт: букву ASCII или часть буквы UTF-8</td></tr>
+              <tr><td><code>int</code></td><td class="num-cell">4</td><td class="num-cell">4</td><td class="num-cell">4</td><td>целое число, код возврата</td></tr>
+              <tr><td><code>long</code></td><td class="num-cell">4</td><td class="num-cell">8</td><td class="num-cell">8</td><td>целое число; размер зависит от системы</td></tr>
+              <tr><td><code>void *</code></td><td class="num-cell">8</td><td class="num-cell">8</td><td class="num-cell">8</td><td>адрес в памяти</td></tr>
+              <tr><td><code>int64_t</code></td><td class="num-cell">8</td><td class="num-cell">8</td><td class="num-cell">8</td><td>целое число ровно в 8 байт</td></tr>
+              <tr><td><code>DWORD</code> / <code>pid_t</code></td><td class="num-cell">4</td><td class="num-cell">4</td><td class="num-cell">4</td><td>номер процесса и другие числа системы</td></tr>
+              <tr><td><code>WCHAR</code></td><td class="num-cell">2</td><td>—</td><td>—</td><td>одна буква строки Windows в кодировке UTF-16</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Расхождение в <code>long</code> записано в соглашениях о моделях данных. Windows использует модель <span class="term">LLP64</span>: в 8 байт расширены только <code>long long</code> и указатель. macOS и Linux используют модель <span class="term">LP64</span>: в 8 байт расширены <code>long</code> и указатель. Поэтому в структурах, которые передаются между системами или языками, пишут типы точного размера из <code>stdint.h</code>: <code>int32_t</code> — ровно 4 байта, <code>int64_t</code> — ровно 8. Так в ядре агента и будет сделано.</p>
+        <p class="step-done"><b>Что получилось.</b>Размер типа виден оператором <code>sizeof</code>. Типы <code>char</code>, <code>int</code>, адрес и <code>int64_t</code> на трёх системах совпадают, <code>long</code> — нет. Дальше — структура, которую заполняет система.</p>
+
+        <h2 id="s3"><span class="sec">§3</span>Шаг 2. Получить структуру от системы</h2>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>В МФЦ посетитель берёт пустой бланк, кладёт его в лоток окошка, и сотрудник вписывает в поля данные из базы. Посетитель не говорит сотруднику, что писать, — он только даёт бланк нужной формы. Возвращается тот же лист, но уже заполненный.</p>
+          <p class="miss">Бланк из лотка забирают и потом возвращают. В C функция получает только адрес бланка и пишет прямо в память вызывающей программы, копия не создаётся.</p>
+        </div></div>
+        <p><span class="term">Структура</span> (<code>struct</code>) — несколько переменных разных типов под одним именем, которые лежат в памяти подряд. Каждая переменная внутри структуры называется <span class="term">полем</span>, к полю обращаются через точку: <code>u.sysname</code>. Системные функции, которые возвращают больше одного числа, обычно заполняют структуру.</p>
+        <p>Через <code>return</code> функция возвращает одно значение, и системные функции отдают так код успеха или ошибки. Поэтому сведения передаются иначе: вызывающая программа сама объявляет пустую структуру и передаёт функции её адрес. <span class="term">Указатель</span> — переменная, в которой хранится адрес в памяти. Оператор <code>&amp;</code> берёт адрес переменной, а запись <code>struct utsname *</code> в объявлении функции означает «адрес структуры <code>utsname</code>». Функция пишет поля по этому адресу, и после возврата они видны в переменной вызывающей программы.</p>
+        <div data-os="win"><p>В Windows так устроена функция <code>GetNativeSystemInfo</code>: она заполняет структуру <code>SYSTEM_INFO</code> — число процессоров, размер страницы памяти, архитектуру процессора. Файл <code>sysname.c</code>:</p></div>
+        <div data-os="mac linux"><p>В POSIX так устроена функция <code>uname</code>: она заполняет структуру <code>struct utsname</code> — имя системы, версию ядра, тип процессора и имя компьютера. Файл <code>sysname.c</code>:</p></div>
+        <figure class="code" data-os="win">
+          <figcaption><span>sysname.c · Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="t">SYSTEM_INFO</span> si;
+
+    <span class="f">GetNativeSystemInfo</span>(&amp;si);
+    <span class="f">printf</span>(<span class="s">&quot;processors   %lu\n&quot;</span>, si.dwNumberOfProcessors);
+    <span class="f">printf</span>(<span class="s">&quot;page size    %lu\n&quot;</span>, si.dwPageSize);
+    <span class="f">printf</span>(<span class="s">&quot;architecture %u\n&quot;</span>, si.wProcessorArchitecture);
+    <span class="f">printf</span>(<span class="s">&quot;sizeof       %zu\n&quot;</span>, <span class="k">sizeof</span> si);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="mac linux">
+          <figcaption><span>sysname.c · macOS и Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;sys/utsname.h&gt;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="k">struct</span> utsname u;
+
+    <span class="k">if</span> (<span class="f">uname</span>(&amp;u) != <span class="n">0</span>) {
+        <span class="f">perror</span>(<span class="s">&quot;uname&quot;</span>);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;sysname  %s\n&quot;</span>, u.sysname);
+    <span class="f">printf</span>(<span class="s">&quot;release  %s\n&quot;</span>, u.release);
+    <span class="f">printf</span>(<span class="s">&quot;machine  %s\n&quot;</span>, u.machine);
+    <span class="f">printf</span>(<span class="s">&quot;nodename %s\n&quot;</span>, u.nodename);
+    <span class="f">printf</span>(<span class="s">&quot;sizeof   %zu\n&quot;</span>, <span class="k">sizeof</span> u);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <div data-os="win"><p>Объявление <code>SYSTEM_INFO si;</code> выделяет память под структуру, но поля в ней пока не заданы. Вызов <code>GetNativeSystemInfo(&amp;si)</code> передаёт адрес <code>si</code>, и функция заполняет поля. Функция ничего не возвращает: получить сведения о процессоре она может всегда.</p></div>
+        <div data-os="mac linux"><p>Объявление <code>struct utsname u;</code> выделяет память под структуру, но поля в ней пока не заданы. Вызов <code>uname(&amp;u)</code> передаёт адрес <code>u</code>, и функция заполняет поля. При успехе она возвращает 0, при ошибке −1 — поэтому вызов стоит внутри <code>if</code>, а функция <code>perror</code> печатает причину ошибки.</p></div>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 sysname.c &amp;&amp; sysname.exe</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>clang -Wall -Wextra -o sysname sysname.c &amp;&amp; ./sysname</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>gcc -Wall -Wextra -o sysname sysname.c &amp;&amp; ./sysname</pre>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/02-uname.png" alt="Командная строка MSVC: processors 4, page size 4096, architecture 9, sizeof 48" loading="lazy">
+          <figcaption><span class="mk">1</span> Поля <code>SYSTEM_INFO</code> после вызова: 4 процессора, страница 4096 байт, архитектура 9. <span class="mk">2</span> Вся структура занимает 48 байт.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/02-uname.png" alt="VS Code с файлом sysname.c: строки struct utsname u и uname(&amp;u) в рамках, вывод Darwin 25.1.0 arm64, sizeof 1280" loading="lazy">
+          <figcaption><span class="mk">1</span> Объявление структуры. <span class="mk">2</span> Вызов <code>uname</code> с адресом <code>&amp;u</code>. <span class="mk">3</span> Поля после вызова: <code>Darwin</code>, версия ядра 25.1.0, процессор <code>arm64</code>, имя компьютера. <span class="mk">4</span> Структура занимает 1280 байт.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/02-uname.png" alt="VS Code с файлом sysname.c: строки struct utsname u и uname(&amp;u) в рамках, вывод Linux aarch64 lab-linux, sizeof 390" loading="lazy">
+          <figcaption><span class="mk">1</span> Объявление структуры. <span class="mk">2</span> Вызов <code>uname</code> с адресом <code>&amp;u</code>. <span class="mk">3</span> Поля после вызова: <code>Linux</code>, версия ядра, процессор <code>aarch64</code>, имя <code>lab-linux</code>. <span class="mk">4</span> Структура занимает 390 байт.</figcaption>
+        </figure>
+        <div data-os="win"><p>Поле <code>dwPageSize</code> <span class="mk">1</span> — размер <span class="term">страницы памяти</span>: участков, которыми система выделяет память процессам. Архитектура 9 — значение <code>PROCESSOR_ARCHITECTURE_AMD64</code>, то есть x64. Кадры сняты на компьютере с процессором ARM, а программа собрана для x64. Она выполняется через эмулятор, как в ЛР 1, и функция сообщает ей архитектуру x64. Программа, собранная для ARM64, получила бы 12. На компьютере с Intel или AMD будет 9.</p></div>
+        <div data-os="mac"><p>Поля <span class="mk">3</span> — строки: имя ядра, его версия, тип процессора и имя компьютера в сети. Размер <span class="mk">4</span> показывает, как система хранит строки в этой структуре: пять полей по 256 байт. Длина каждой строки меньше 256, остаток поля не используется.</p></div>
+        <div data-os="linux"><p>Поля <span class="mk">3</span> — строки: имя ядра, его версия, тип процессора и имя компьютера в сети. Размер <span class="mk">4</span> — 390 байт: в Linux шесть полей по 65 байт, шестое — имя домена. У той же структуры в macOS другой размер, поэтому код, который копирует её байты, на другой системе прочитает не те поля.</p></div>
+        <figure class="scheme">
+          <p class="scheme__head">Вызов по адресу</p>
+          <div class="scheme__body">
+            <svg viewBox="0 0 720 170" role="img" aria-label="Схема: в памяти main лежит структура; её адрес передаётся системной функции; функция записывает поля в ту же память">
+              <text x="20" y="22" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="var(--ink)">память программы, функция main</text>
+              <rect x="20" y="34" width="330" height="56" fill="var(--acc-pale)" stroke="var(--ink)" stroke-width="3"/>
+              <text x="34" y="58" font-family="Roboto Mono, monospace" font-size="13" font-weight="700" fill="var(--ink)" data-os="mac linux">struct utsname u</text>
+              <text x="34" y="58" font-family="Roboto Mono, monospace" font-size="13" font-weight="700" fill="var(--ink)" data-os="win">SYSTEM_INFO si</text>
+              <text x="34" y="78" font-family="Inter, sans-serif" font-size="12" fill="var(--ink-soft)">после объявления поля не заданы</text>
+              <path d="M350 62 H470" stroke="var(--ink)" stroke-width="3" fill="none"/><path d="M462 55 L472 62 L462 69" stroke="var(--ink)" stroke-width="3" fill="none"/>
+              <text x="410" y="52" text-anchor="middle" font-family="Roboto Mono, monospace" font-size="12" fill="var(--ink-soft)" data-os="mac linux">&amp;u</text>
+              <text x="410" y="52" text-anchor="middle" font-family="Roboto Mono, monospace" font-size="12" fill="var(--ink-soft)" data-os="win">&amp;si</text>
+              <rect x="474" y="34" width="226" height="56" fill="var(--ng-pale)" stroke="var(--ink)" stroke-width="3"/>
+              <text x="587" y="58" text-anchor="middle" font-family="Roboto Mono, monospace" font-size="13" font-weight="700" fill="var(--ink)" data-os="mac linux">uname</text>
+              <text x="587" y="58" text-anchor="middle" font-family="Roboto Mono, monospace" font-size="13" font-weight="700" fill="var(--ink)" data-os="win">GetNativeSystemInfo</text>
+              <text x="587" y="78" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="var(--ink-soft)">системная функция</text>
+              <path d="M587 92 V130 H185 V94" stroke="var(--acc)" stroke-width="3" fill="none" stroke-dasharray="7 5"/><path d="M178 102 L185 92 L192 102" stroke="var(--acc)" stroke-width="3" fill="none"/>
+              <text x="386" y="152" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="var(--acc)">записывает поля по полученному адресу — в ту же память</text>
+            </svg>
+          </div>
+          <p class="scheme__note">Функция получает только адрес. Память под структуру выделила вызывающая программа, и ответ остаётся у неё.</p>
+        </figure>
+        <p class="step-done"><b>Что получилось.</b>Структура объявляется в вызывающей программе, системная функция получает её адрес и заполняет поля. Размер одной и той же структуры на разных системах разный. Часть полей — строки, и о них следующий шаг.</p>
+
+        <div class="part" role="separator"><span><b>2</b>Строки и ошибки</span></div>
+        <h2 id="s4"><span class="sec">§4</span>Шаг 3. Прочитать строку из буфера</h2>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Ряд ячеек камеры хранения пронумерован подряд. В каждой ячейке одна буква. Где кончается слово, по ряду не видно, поэтому после последней буквы кладут пустую карточку с нулём. Кто читает слово, идёт по ячейкам, пока не встретит ноль.</p>
+          <p class="miss">Ряд камеры хранения заканчивается стеной. Ряд байтов в памяти продолжается дальше, и если нуля нет, чтение идёт в чужие данные.</p>
+        </div></div>
+        <p><span class="term">Строка в C</span> — последовательность байтов, после которой стоит байт со значением 0. Его записывают как <code>'\0'</code> и называют <span class="term">завершающим нулём</span>. Длину строка не хранит: функция <code>strlen</code> считает байты до нуля, <code>printf</code> с форматом <code>%s</code> печатает до нуля. Память под строку — <span class="term">буфер</span> — выделяет вызывающая программа, например массивом <code>char host[256]</code>, и передаёт функции его адрес и размер.</p>
+        <div data-os="win"><p>В Windows у строк два вида. Функции с окончанием <code>A</code> работают с однобайтовой кодировкой, функции с окончанием <code>W</code> — с UTF-16, где буква занимает 2 байта (тип <code>WCHAR</code>). Внутри Windows строки хранятся в UTF-16, поэтому в курсе используются функции <code>W</code>. Ядро агента отдаёт строки в UTF-8, как macOS и Linux, и переводит их функцией <code>WideCharToMultiByte</code>.</p><p>Программа <code>hostbuf.c</code> получает имя компьютера функцией <code>GetComputerNameW</code>, печатает байты строки в UTF-16 и в UTF-8, а затем просит имя в буфер на 4 буквы:</p></div>
+        <div data-os="mac linux"><p>Программа <code>hostbuf.c</code> получает имя компьютера функцией <code>gethostname</code> в буфер на 256 байт и печатает байты строки в шестнадцатеричном виде функцией <code>dump</code>. Затем она просит то же имя в буфер на 4 байта <code>tiny</code>. Перед вызовом <code>memset</code> заполняет <code>tiny</code> буквами <code>X</code>, чтобы было видно, какие байты записала функция.</p></div>
+        <figure class="code" data-os="win">
+          <figcaption><span>hostbuf.c · Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">dump</span>(<span class="k">const</span> <span class="k">void</span> *p, <span class="t">size_t</span> n) {
+    <span class="k">const</span> <span class="k">unsigned</span> <span class="k">char</span> *b = p;
+    <span class="k">for</span> (<span class="t">size_t</span> i = <span class="n">0</span>; i &lt; n; i++)
+        <span class="f">printf</span>(<span class="s">&quot;%02x &quot;</span>, b[i]);
+    <span class="f">printf</span>(<span class="s">&quot;\n&quot;</span>);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="t">WCHAR</span> name[MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>];
+    <span class="t">DWORD</span> len = MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>;
+    <span class="k">char</span> utf8[<span class="n">64</span>];
+    <span class="t">WCHAR</span> tiny[<span class="n">4</span>];
+    <span class="t">DWORD</span> tiny_len = <span class="n">4</span>;
+
+    <span class="f">GetComputerNameW</span>(name, &amp;len);
+    <span class="f">printf</span>(<span class="s">&quot;WCHAR: %lu characters\n&quot;</span>, len);
+    <span class="f">dump</span>(name, (len + <span class="n">1</span>) * <span class="k">sizeof</span>(<span class="t">WCHAR</span>));
+
+    <span class="f">WideCharToMultiByte</span>(CP_UTF8, <span class="n">0</span>, name, -<span class="n">1</span>, utf8, <span class="k">sizeof</span> utf8, NULL, NULL);
+    <span class="f">printf</span>(<span class="s">&quot;UTF-8: \&quot;%s\&quot;, length %zu\n&quot;</span>, utf8, <span class="f">strlen</span>(utf8));
+    <span class="f">dump</span>(utf8, <span class="f">strlen</span>(utf8) + <span class="n">1</span>);
+
+    <span class="k">if</span> (!<span class="f">GetComputerNameW</span>(tiny, &amp;tiny_len))
+        <span class="f">printf</span>(<span class="s">&quot;tiny: error %lu, needed %lu\n&quot;</span>, <span class="f">GetLastError</span>(), tiny_len);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="mac linux">
+          <figcaption><span>hostbuf.c · macOS и Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">dump</span>(<span class="k">const</span> <span class="k">char</span> *buf, <span class="t">size_t</span> n) {
+    <span class="k">for</span> (<span class="t">size_t</span> i = <span class="n">0</span>; i &lt; n; i++)
+        <span class="f">printf</span>(<span class="s">&quot;%02x &quot;</span>, (<span class="k">unsigned</span> <span class="k">char</span>)buf[i]);
+    <span class="f">printf</span>(<span class="s">&quot;\n&quot;</span>);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="k">char</span> host[<span class="n">256</span>];
+    <span class="k">char</span> tiny[<span class="n">4</span>];
+
+    <span class="f">gethostname</span>(host, <span class="k">sizeof</span> host);
+    <span class="f">printf</span>(<span class="s">&quot;host  \&quot;%s\&quot;, length %zu\n&quot;</span>, host, <span class="f">strlen</span>(host));
+    <span class="f">dump</span>(host, <span class="f">strlen</span>(host) + <span class="n">1</span>);
+
+    <span class="f">memset</span>(tiny, <span class="s">&#x27;X&#x27;</span>, <span class="k">sizeof</span> tiny);
+    <span class="k">int</span> rc = <span class="f">gethostname</span>(tiny, <span class="k">sizeof</span> tiny);
+    <span class="f">printf</span>(<span class="s">&quot;tiny  rc=%d errno=%d (%s)\n&quot;</span>, rc, rc ? errno : <span class="n">0</span>, rc ? <span class="f">strerror</span>(errno) : <span class="s">&quot;-&quot;</span>);
+    <span class="f">dump</span>(tiny, <span class="k">sizeof</span> tiny);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 hostbuf.c &amp;&amp; hostbuf.exe</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>clang -Wall -Wextra -o hostbuf hostbuf.c &amp;&amp; ./hostbuf</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>gcc -Wall -Wextra -o hostbuf hostbuf.c &amp;&amp; ./hostbuf</pre>
+        </figure>
+        <div class="margin-note margin-note--warn" data-os="win">
+          <b>Имя small в Windows занято</b>
+          <p>Буфер в программе называется <code>tiny</code>. С именем <code>small</code> MSVC выдал ошибки C2628 и C2143. В заголовках, которые подключает <code>windows.h</code>, есть макрос <code>#define small char</code>, и компилятор видел строку <code>WCHAR char[4]</code>. Если компилятор сообщает о синтаксической ошибке в строке, где ошибки нет, причиной бывает макрос из заголовка.</p>
+        </div>
+        <figure class="shot" data-os="win">
+          <img src="img/win/03-hostbuf.png" alt="Командная строка MSVC: байты имени WIN11-LAB в UTF-16 и UTF-8, строка tiny: error 111, needed 10" loading="lazy">
+          <figcaption><span class="mk">1</span> Имя <code>WIN11-LAB</code> в UTF-16: после каждой буквы байт <code>00</code>, в конце два нулевых байта. <span class="mk">2</span> То же имя в UTF-8: 9 байт и <code>00</code>. <span class="mk">3</span> Буфер на 4 буквы: ошибка 111, нужно 10.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/03-hostbuf.png" alt="VS Code с hostbuf.c: байты имени MacBook-Air-Maxim.local, tiny rc=0 и байты 4d 61 63 00" loading="lazy">
+          <figcaption><span class="mk">1</span> Буфер на 4 байта. <span class="mk">2</span> Имя и его длина — 23. <span class="mk">3</span> Байты имени, последний — <code>00</code>. <span class="mk">4</span> Вызов с буфером <code>tiny</code> вернул 0. <span class="mk">5</span> В буфере три буквы <code>Mac</code> и <code>00</code>.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/03-hostbuf.png" alt="VS Code с hostbuf.c: байты имени lab-linux, tiny rc=-1 errno=36 File name too long и байты 6c 61 62 2d" loading="lazy">
+          <figcaption><span class="mk">1</span> Буфер на 4 байта. <span class="mk">2</span> Имя и его длина — 9. <span class="mk">3</span> Байты имени, последний — <code>00</code>. <span class="mk">4</span> Вызов с буфером <code>tiny</code> вернул −1, <code>errno</code> 36. <span class="mk">5</span> В буфере четыре буквы <code>lab-</code>, нуля нет.</figcaption>
+        </figure>
+        <p>Первая часть вывода показывает, как строка лежит в памяти. На полосе ниже — те же байты по одному: сверху буква, снизу её код. Зелёная ячейка — завершающий ноль.</p>
+        <div data-os="mac"><div class="bytes "><span class=""><i>M</i><small>4d</small></span><span class=""><i>a</i><small>61</small></span><span class=""><i>c</i><small>63</small></span><span class=""><i>B</i><small>42</small></span><span class=""><i>o</i><small>6f</small></span><span class=""><i>o</i><small>6f</small></span><span class=""><i>k</i><small>6b</small></span><span class=""><i>-</i><small>2d</small></span><span class=""><i>A</i><small>41</small></span><span class=""><i>i</i><small>69</small></span><span class=""><i>r</i><small>72</small></span><span class=""><i>-</i><small>2d</small></span><span class=""><i>M</i><small>4d</small></span><span class=""><i>a</i><small>61</small></span><span class=""><i>x</i><small>78</small></span><span class=""><i>i</i><small>69</small></span><span class=""><i>m</i><small>6d</small></span><span class=""><i>.</i><small>2e</small></span><span class=""><i>l</i><small>6c</small></span><span class=""><i>o</i><small>6f</small></span><span class=""><i>c</i><small>63</small></span><span class=""><i>a</i><small>61</small></span><span class=""><i>l</i><small>6c</small></span><span class="z"><i>\0</i><small>00</small></span></div></div>
+        <div data-os="linux"><div class="bytes "><span class=""><i>l</i><small>6c</small></span><span class=""><i>a</i><small>61</small></span><span class=""><i>b</i><small>62</small></span><span class=""><i>-</i><small>2d</small></span><span class=""><i>l</i><small>6c</small></span><span class=""><i>i</i><small>69</small></span><span class=""><i>n</i><small>6e</small></span><span class=""><i>u</i><small>75</small></span><span class=""><i>x</i><small>78</small></span><span class="z"><i>\0</i><small>00</small></span></div></div>
+        <div data-os="win"><div class="bytes "><span class=""><i>W</i><small>57</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>I</i><small>49</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>N</i><small>4e</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>1</i><small>31</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>1</i><small>31</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>-</i><small>2d</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>L</i><small>4c</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>A</i><small>41</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>B</i><small>42</small></span><span class="gap"><i></i><small>00</small></span><span class="z"><i>\0</i><small>00</small></span><span class="z"><i></i><small>00</small></span></div></div>
+        <div data-os="win"><p>В UTF-16 <span class="mk">1</span> у латинской буквы второй байт нулевой (на полосе — пунктирные ячейки), а конец строки отмечен двумя нулевыми байтами — нулевой буквой <code>WCHAR</code>. Функция вернула длину 9 букв, без нуля. После перевода в UTF-8 <span class="mk">2</span> буква занимает один байт, и строка выглядит так же, как в macOS и Linux.</p></div>
+        <div data-os="mac"><p>Длина <span class="mk">2</span> — 23, а байтов <span class="mk">3</span> — 24: последний байт <code>00</code> не входит в длину, но место в буфере занимает. Поэтому буфер всегда должен быть хотя бы на один байт больше самой длинной строки.</p></div>
+        <div data-os="linux"><p>Длина <span class="mk">2</span> — 9, а байтов <span class="mk">3</span> — 10: последний байт <code>00</code> не входит в длину, но место в буфере занимает. Поэтому буфер всегда должен быть хотя бы на один байт больше самой длинной строки.</p></div>
+        <p>Вторая часть — буфер, в который имя не помещается. Здесь три системы ведут себя по-разному.</p>
+        <div data-os="mac"><div class="bytes "><span class=""><i>M</i><small>4d</small></span><span class=""><i>a</i><small>61</small></span><span class=""><i>c</i><small>63</small></span><span class="z"><i>\0</i><small>00</small></span></div></div>
+        <div data-os="linux"><div class="bytes "><span class=""><i>l</i><small>6c</small></span><span class=""><i>a</i><small>61</small></span><span class=""><i>b</i><small>62</small></span><span class="x"><i>-</i><small>2d</small></span></div></div>
+        <div data-os="win"><p>Функция <code>GetComputerNameW</code> <span class="mk">3</span> вернула <code>FALSE</code>, код ошибки 111 и записала в переменную длины нужный размер — 10 букв: девять букв имени и ноль. Второй параметр функции — адрес переменной <code>tiny_len</code>: функция читает из неё размер буфера и пишет туда ответ. Программа может выделить буфер на 10 букв и вызвать функцию снова.</p></div>
+        <div data-os="mac"><p>macOS обрезала имя до трёх букв и поставила ноль <span class="mk">5</span>, а функция вернула 0 <span class="mk">4</span> — успех. Программа получила строку <code>Mac</code> и не узнала, что имя длиннее. Стандарт POSIX разрешает такое поведение: при обрезке функция может не сообщать об ошибке и не ставить ноль в конце.</p></div>
+        <div data-os="linux"><p>Linux вернул −1 и <code>errno</code> 36 <span class="mk">4</span>, «File name too long». В буфер записаны четыре байта <code>lab-</code> <span class="mk">5</span> и нуля нет (красная ячейка). Если программа не проверит код возврата и напечатает <code>tiny</code> как строку, <code>printf</code> прочитает байты за концом буфера и выведет их до первого нулевого байта в памяти.</p></div>
+        <p>Из шага следуют два правила для ядра агента. Размер буфера передаётся функции вместе с адресом выражением <code>sizeof host</code>: если размер буфера изменят, вызов останется верным. Последний байт буфера после вызова принудительно делается нулём — так строка останется строкой, даже если система её обрезала.</p>
+        <p class="step-done"><b>Что получилось.</b>Строка в C — байты до нуля, длина не хранится. Буфер выделяет вызывающая программа, функция получает его адрес и размер. При маленьком буфере результат зависит от системы, и узнать о проблеме можно только по коду возврата. Следующий шаг — как этот код читать.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>Шаг 4. Получить код ошибки</h2>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>На табло аэропорта у рейса стоит «Отменён». Причина — погода, техника или нехватка экипажа — записана в отдельной сводке у справочной. Табло отвечает только «да или нет», за причиной идут в сводку, и сделать это нужно сразу: следующая отмена её перепишет.</p>
+          <p class="miss">Сводка в аэропорту хранит все отмены за день. Место для кода ошибки одно на поток программы, и следующий неудачный вызов записывает туда свой код.</p>
+        </div></div>
+        <p>Системные функции сообщают об ошибке в два этапа. Сначала возвращаемое значение показывает, что вызов не удался: <span data-os="win"><code>FALSE</code> или <code>INVALID_HANDLE_VALUE</code></span><span data-os="mac linux"><code>-1</code></span>. Затем номер причины берут из отдельного места: <span data-os="win">функция <code>GetLastError</code> возвращает <span class="term">код последней ошибки</span> текущего потока</span><span data-os="mac linux">переменная <code>errno</code> из <code>errno.h</code> хранит <span class="term">код последней ошибки</span> текущего потока</span>. Код читают сразу после неудачного вызова, потому что любой следующий системный вызов, даже <code>printf</code>, может его перезаписать.</p>
+        <div data-os="win"><p>Программа <code>errors.c</code> открывает три файла функцией <code>CreateFileW</code>: обычный <code>win.ini</code>, несуществующий файл и <code>SAM</code> — базу учётных записей Windows, которую система держит закрытой. При неудаче программа сразу сохраняет <code>GetLastError()</code> в переменную <code>code</code>.</p></div>
+        <div data-os="mac"><p>Программа <code>errors.c</code> открывает три файла функцией <code>open</code>: <code>/etc/hosts</code>, который может читать любой пользователь, несуществующий файл и <code>/etc/sudoers</code> — настройки команды <code>sudo</code>, которые читает только администратор. При неудаче программа сразу сохраняет <code>errno</code> в переменную <code>code</code>, а функция <code>strerror</code> переводит код в текст.</p></div>
+        <div data-os="linux"><p>Программа <code>errors.c</code> открывает три файла функцией <code>open</code>: <code>/etc/hosts</code>, который может читать любой пользователь, несуществующий файл и <code>/etc/shadow</code> — хэши паролей, которые читает только администратор. При неудаче программа сразу сохраняет <code>errno</code> в переменную <code>code</code>, а функция <code>strerror</code> переводит код в текст.</p></div>
+        <figure class="code" data-os="win">
+          <figcaption><span>errors.c · Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">try_open</span>(<span class="k">const</span> <span class="t">WCHAR</span> *path) {
+    <span class="t">HANDLE</span> h = <span class="f">CreateFileW</span>(path, GENERIC_READ, FILE_SHARE_READ, NULL,
+                           OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    <span class="k">if</span> (h == INVALID_HANDLE_VALUE) {
+        <span class="t">DWORD</span> code = <span class="f">GetLastError</span>();
+        <span class="f">printf</span>(<span class="s">&quot;%-40ls error %lu\n&quot;</span>, path, code);
+        <span class="k">return</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;%-40ls handle %p\n&quot;</span>, path, (<span class="k">void</span> *)h);
+    <span class="f">CloseHandle</span>(h);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">try_open</span>(L<span class="s">&quot;C:\\Windows\\win.ini&quot;</span>);
+    <span class="f">try_open</span>(L<span class="s">&quot;C:\\Windows\\no-such-file.ini&quot;</span>);
+    <span class="f">try_open</span>(L<span class="s">&quot;C:\\Windows\\System32\\config\\SAM&quot;</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>errors.c · macOS</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;fcntl.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">try_open</span>(<span class="k">const</span> <span class="k">char</span> *path) {
+    <span class="k">int</span> fd = <span class="f">open</span>(path, O_RDONLY);
+    <span class="k">if</span> (fd == -<span class="n">1</span>) {
+        <span class="k">int</span> code = errno;
+        <span class="f">printf</span>(<span class="s">&quot;%-22s fd=-1 errno=%d %s\n&quot;</span>, path, code, <span class="f">strerror</span>(code));
+        <span class="k">return</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;%-22s fd=%d\n&quot;</span>, path, fd);
+    <span class="f">close</span>(fd);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/hosts&quot;</span>);
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/no-such-file&quot;</span>);
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/sudoers&quot;</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>errors.c · Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;fcntl.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">try_open</span>(<span class="k">const</span> <span class="k">char</span> *path) {
+    <span class="k">int</span> fd = <span class="f">open</span>(path, O_RDONLY);
+    <span class="k">if</span> (fd == -<span class="n">1</span>) {
+        <span class="k">int</span> code = errno;
+        <span class="f">printf</span>(<span class="s">&quot;%-22s fd=-1 errno=%d %s\n&quot;</span>, path, code, <span class="f">strerror</span>(code));
+        <span class="k">return</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;%-22s fd=%d\n&quot;</span>, path, fd);
+    <span class="f">close</span>(fd);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/hosts&quot;</span>);
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/no-such-file&quot;</span>);
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/shadow&quot;</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 errors.c &amp;&amp; errors.exe</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>clang -Wall -Wextra -o errors errors.c &amp;&amp; ./errors</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>gcc -Wall -Wextra -o errors errors.c &amp;&amp; ./errors</pre>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/04-errors.png" alt="Командная строка MSVC: win.ini handle 88, no-such-file.ini error 2, SAM error 5" loading="lazy">
+          <figcaption><code>win.ini</code> открыт, получен дескриптор. <span class="mk">1</span> Несуществующий файл — ошибка 2. <span class="mk">2</span> <code>SAM</code> — ошибка 5.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/04-errors.png" alt="VS Code с errors.c: /etc/hosts fd=3, no-such-file errno=2 No such file or directory, /etc/sudoers errno=13 Permission denied" loading="lazy">
+          <figcaption><span class="mk">1</span> Код сохраняется сразу после неудачного <code>open</code>. <code>/etc/hosts</code> открыт: дескриптор 3. <span class="mk">2</span> Несуществующий файл — <code>errno</code> 2. <span class="mk">3</span> <code>/etc/sudoers</code> — <code>errno</code> 13.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/04-errors.png" alt="VS Code с errors.c: /etc/hosts fd=3, no-such-file errno=2 No such file or directory, /etc/shadow errno=13 Permission denied" loading="lazy">
+          <figcaption><span class="mk">1</span> Код сохраняется сразу после неудачного <code>open</code>. <code>/etc/hosts</code> открыт: дескриптор 3. <span class="mk">2</span> Несуществующий файл — <code>errno</code> 2. <span class="mk">3</span> <code>/etc/shadow</code> — <code>errno</code> 13.</figcaption>
+        </figure>
+        <div data-os="win"><p>Ошибка 2 <span class="mk">1</span> — <code>ERROR_FILE_NOT_FOUND</code>, файла нет. Ошибка 5 <span class="mk">2</span> — <code>ERROR_ACCESS_DENIED</code>, доступ запрещён. Текст ошибки по номеру печатает команда <code>net helpmsg</code>. Для кода 2 она выводит «Не удается найти указанный файл.», для 5 — «Отказано в доступе.». Для кода 111 из шага 3 текст — «Указано слишком длинное имя файла.». Из программы текст получают функцией <code>FormatMessageW</code>.</p></div>
+        <div data-os="mac linux"><p>Код 2 <span class="mk">2</span> называется <code>ENOENT</code>, «No such file or directory». Код 13 <span class="mk">3</span> — <code>EACCES</code>, «Permission denied»: файл есть, но читать его этому пользователю нельзя. Имена кодов объявлены в <code>errno.h</code>, и в коде сравнивают с ними: <code>if (code == ENOENT)</code>.</p></div>
+        <p>Таблицы кодов у Windows и POSIX разные. Номер 2 у них совпал, а отказ в доступе — 5 в Windows и 13 в macOS и Linux. Поэтому код ошибки читают вместе с названием системы, на которой он получен.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Причина</th><th>Windows, <code>GetLastError</code></th><th>macOS и Linux, <code>errno</code></th></tr></thead>
+            <tbody>
+              <tr><td>Файла нет</td><td><code>2</code> ERROR_FILE_NOT_FOUND</td><td><code>2</code> ENOENT</td></tr>
+              <tr><td>Доступ запрещён</td><td><code>5</code> ERROR_ACCESS_DENIED</td><td><code>13</code> EACCES</td></tr>
+              <tr><td>Буфер или имя слишком длинные</td><td><code>111</code> ERROR_BUFFER_OVERFLOW</td><td><code>36</code> ENAMETOOLONG в Linux, <code>63</code> в macOS</td></tr>
+              <tr><td>Неверный параметр</td><td><code>87</code> ERROR_INVALID_PARAMETER</td><td><code>22</code> EINVAL</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="step-done"><b>Что получилось.</b>Неудачу показывает возвращаемое значение, причину — <span data-os="win"><code>GetLastError</code></span><span data-os="mac linux"><code>errno</code></span>, и её читают сразу после вызова. Теперь известно всё, что нужно для функции ядра: типы точного размера, структура по адресу, строка в буфере и код ошибки.</p>
+
+        <div class="part" role="separator"><span><b>3</b>Функция ядра</span></div>
+        <h2 id="s6"><span class="sec">§6</span>Шаг 5. Описать свою структуру</h2>
+        <p>Функции ядра понадобятся и программе на C, и мозгу агента на Python. Поэтому объявление структуры и функции выносится в отдельный <span class="term">заголовочный файл</span> <code>core.h</code>. Другие файлы подключают его строкой <code>#include "core.h"</code> — кавычки вместо угловых скобок означают, что файл ищется сначала в папке рядом с исходником. Строки <code>#ifndef CORE_H</code>, <code>#define CORE_H</code> и <code>#endif</code> не дают подключить файл дважды. Файл одинаков для трёх систем:</p>
+        <figure class="code" data-os="win mac linux">
+          <figcaption><span>core.h · все системы</span></figcaption>
+<pre><span class="k">#ifndef</span> CORE_H
+<span class="k">#define</span> CORE_H
+
+<span class="k">#include</span> <span class="s">&lt;stdint.h&gt;</span>
+
+<span class="k">#define</span> CORE_HOST_MAX <span class="n">256</span>
+
+<span class="k">struct</span> core_info {
+    <span class="t">int64_t</span> pid;
+    <span class="t">int32_t</span> cpus;
+    <span class="t">int32_t</span> page_size;
+    <span class="k">char</span>    host[CORE_HOST_MAX];
+};
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out);
+
+<span class="k">#endif</span></pre>
+        </figure>
+        <p>Поля выбраны по шагам 1–4. Номер процесса и два числа объявлены типами точного размера, поэтому структура занимает одинаково байт на всех системах. Имя компьютера хранится в буфере на 256 байт: <code>CORE_HOST_MAX</code> задан через <code>#define</code>, и размер меняется в одном месте. Последняя строка — <span class="term">объявление функции</span>: её имя, тип результата и параметр — адрес структуры. Сама функция будет в следующем файле.</p>
+        <p>Порядок полей подобран так, чтобы между ними не было пропусков. Компилятор выравнивает поля: 8-байтовое число он ставит на адрес, кратный 8. Два поля по 4 байта сразу после <code>pid</code> заполняют следующие 8 байт, и структура занимает 8 + 4 + 4 + 256 = 272 байта без пустых мест:</p>
+        <div class="bytes "><span class="w"><i>pid</i><small>байты 0–7 · int64_t</small></span><span class="w"><i>cpus</i><small>8–11 · int32_t</small></span><span class="w"><i>page_size</i><small>12–15 · int32_t</small></span><span class="w"><i>host</i><small>16–271 · char[256]</small></span></div>
+        <p style="margin-top:14px">Под полосой — <span class="term">смещение</span> каждого поля: номер его первого байта от начала структуры. Программа на другом языке находит поле по смещению, поэтому раскладка не должна зависеть от системы.</p>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/05-core-h.png" alt="VS Code с файлом core.h: структура core_info и объявление core_get_info в рамках" loading="lazy">
+          <figcaption>Файл <code>core.h</code> в VS Code. <span class="mk">1</span> Структура <code>core_info</code> из четырёх полей. <span class="mk">2</span> Объявление функции ядра.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/05-core-h.png" alt="VS Code с файлом core.h: структура core_info и объявление core_get_info в рамках" loading="lazy">
+          <figcaption>Файл <code>core.h</code> в VS Code. <span class="mk">1</span> Структура <code>core_info</code> из четырёх полей. <span class="mk">2</span> Объявление функции ядра.</figcaption>
+        </figure>
+        <p class="step-done"><b>Что получилось.</b>В <code>core.h</code> описано, что функция ядра отдаёт и как её вызвать. Структура занимает 272 байта на всех системах. Дальше — сама функция.</p>
+
+        <h2 id="s7"><span class="sec">§7</span>Шаг 6. Написать функцию ядра</h2>
+        <p>Функция <code>core_get_info</code> собирает приёмы шагов 1–4. Она получает адрес структуры, вызывает системные функции и записывает их ответы в поля. Результат функции — код ошибки: 0, если всё получилось, иначе код системы. Файл <code>core_info.c</code>:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>core_info.c · Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out) {
+    <span class="t">SYSTEM_INFO</span> si;
+    <span class="t">WCHAR</span> name[MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>];
+    <span class="t">DWORD</span> len = MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>;
+
+    <span class="k">if</span> (out == NULL)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="f">ZeroMemory</span>(out, <span class="k">sizeof</span> *out);
+
+    out-&gt;pid = <span class="f">GetCurrentProcessId</span>();
+    <span class="f">GetNativeSystemInfo</span>(&amp;si);
+    out-&gt;cpus = (<span class="t">int32_t</span>)si.dwNumberOfProcessors;
+    out-&gt;page_size = (<span class="t">int32_t</span>)si.dwPageSize;
+
+    <span class="k">if</span> (!<span class="f">GetComputerNameW</span>(name, &amp;len))
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">if</span> (<span class="f">WideCharToMultiByte</span>(CP_UTF8, <span class="n">0</span>, name, -<span class="n">1</span>, out-&gt;host,
+                            <span class="k">sizeof</span> out-&gt;host, NULL, NULL) == <span class="n">0</span>)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="mac linux">
+          <figcaption><span>core_info.c · macOS и Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out) {
+    <span class="k">if</span> (out == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="f">memset</span>(out, <span class="n">0</span>, <span class="k">sizeof</span> *out);
+
+    out-&gt;pid = <span class="f">getpid</span>();
+    out-&gt;cpus = (<span class="t">int32_t</span>)<span class="f">sysconf</span>(_SC_NPROCESSORS_ONLN);
+    out-&gt;page_size = (<span class="t">int32_t</span>)<span class="f">sysconf</span>(_SC_PAGESIZE);
+
+    <span class="k">if</span> (<span class="f">gethostname</span>(out-&gt;host, <span class="k">sizeof</span> out-&gt;host) != <span class="n">0</span>)
+        <span class="k">return</span> errno;
+    out-&gt;host[<span class="k">sizeof</span> out-&gt;host - <span class="n">1</span>] = <span class="s">&#x27;\0&#x27;</span>;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <p>Разбор по строкам.</p>
+        <ul>
+          <li><code>if (out == NULL)</code> — проверка адреса. <code>NULL</code> — нулевой указатель, «адреса нет». Если вызвать функцию с ним и писать в <code>out-&gt;pid</code>, программа упадёт. Функция возвращает код <span data-os="win"><code>ERROR_INVALID_PARAMETER</code> (87)</span><span data-os="mac linux"><code>EINVAL</code> (22)</span> — «неверный параметр».</li>
+          <li><code><span data-os="win">ZeroMemory</span><span data-os="mac linux">memset</span>(out, 0, sizeof *out)</code> — заполняет все 272 байта структуры нулями. После объявления в полях лежит то, что раньше было в этой памяти. Без обнуления при ошибке в поле <code>host</code> остался бы мусор. <code>sizeof *out</code> — размер того, на что указывает <code>out</code>, то есть всей структуры.</li>
+          <li><code>out-&gt;pid</code> — запись в поле структуры по адресу. Стрелка <code>-&gt;</code> используется, когда есть указатель на структуру: <code>out-&gt;pid</code> значит то же, что <code>(*out).pid</code>. Точка — когда есть сама структура, как <code>u.sysname</code> в шаге 2.</li>
+          <li data-os="mac linux"><code>sysconf(_SC_NPROCESSORS_ONLN)</code> и <code>sysconf(_SC_PAGESIZE)</code> — функция POSIX, которая возвращает настройки системы по имени: число работающих процессоров и размер страницы. Она возвращает <code>long</code>, поэтому результат явно приводится к <code>int32_t</code>: запись <code>(int32_t)</code> перед значением показывает, что сужение типа сделано намеренно.</li>
+          <li data-os="win"><code>GetNativeSystemInfo(&amp;si)</code> — структура из шага 2; из неё берутся два поля, <code>dwNumberOfProcessors</code> и <code>dwPageSize</code>. Они типа <code>DWORD</code>, поэтому при записи в поле <code>int32_t</code> стоит явное приведение <code>(int32_t)</code>.</li>
+          <li data-os="mac linux"><code>gethostname(out-&gt;host, sizeof out-&gt;host)</code> — имя в буфер структуры вместе с его размером. При ошибке функция сразу возвращает <code>errno</code>. Следующая строка ставит ноль в последний байт буфера — правило из шага 3 на случай, если система обрезала имя без нуля.</li>
+          <li data-os="win"><code>GetComputerNameW(name, &amp;len)</code> — имя в UTF-16 во временный буфер <code>name</code>; при ошибке функция возвращает <code>GetLastError()</code>. Затем <code>WideCharToMultiByte(CP_UTF8, …)</code> переводит имя в UTF-8 прямо в <code>out-&gt;host</code>. Параметр <code>-1</code> означает «длина — до нуля», и ноль тоже копируется.</li>
+        </ul>
+        <p>В функции нет <code>printf</code>. Ядро агента ничего не печатает, оно возвращает данные и код. Что с ними делать, определяет вызывающая программа: в этой главе — проверочная программа на C, в агенте — мозг на Python.</p>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/06-core-info.png" alt="VS Code с файлом core_info.c: заголовок core_get_info, строки out-&gt;pid, out-&gt;cpus, out-&gt;page_size и return errno в рамках" loading="lazy">
+          <figcaption>Файл <code>core_info.c</code>. <span class="mk">1</span> Заголовок функции: параметр — адрес структуры. <span class="mk">2</span> Запись трёх числовых полей через <code>-&gt;</code>. <span class="mk">3</span> Возврат кода ошибки системы.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/06-core-info.png" alt="VS Code с файлом core_info.c: заголовок core_get_info, строки out-&gt;pid, out-&gt;cpus, out-&gt;page_size и return errno в рамках" loading="lazy">
+          <figcaption>Файл <code>core_info.c</code>. <span class="mk">1</span> Заголовок функции: параметр — адрес структуры. <span class="mk">2</span> Запись трёх числовых полей через <code>-&gt;</code>. <span class="mk">3</span> Возврат кода ошибки системы.</figcaption>
+        </figure>
+        <p class="step-done"><b>Что получилось.</b>Функция ядра готова: адрес на входе, поля по адресу, код ошибки на выходе. Её нужно проверить отдельной программой.</p>
+
+        <h2 id="s8"><span class="sec">§8</span>Шаг 7. Проверить функцию программой</h2>
+        <p>Программа <code>show_info.c</code> вызывает функцию так же, как будет вызывать мозг агента: объявляет структуру, передаёт её адрес, проверяет код и печатает поля. Для полей точного размера используются макросы формата из <code>inttypes.h</code>: <code>PRId64</code> — формат для <code>int64_t</code>, <code>PRId32</code> — для <code>int32_t</code>. На каждой системе они раскрываются в свой формат, например <code>"lld"</code> или <code>"ld"</code>.</p>
+        <figure class="code" data-os="win mac linux">
+          <figcaption><span>show_info.c · все системы</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;inttypes.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="k">struct</span> core_info info;
+    <span class="k">int</span> err = <span class="f">core_get_info</span>(&amp;info);
+
+    <span class="k">if</span> (err != <span class="n">0</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;core_get_info: error %d\n&quot;</span>, err);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;pid       %&quot;</span> PRId64 <span class="s">&quot;\n&quot;</span>, info.pid);
+    <span class="f">printf</span>(<span class="s">&quot;cpus      %&quot;</span> PRId32 <span class="s">&quot;\n&quot;</span>, info.cpus);
+    <span class="f">printf</span>(<span class="s">&quot;page_size %&quot;</span> PRId32 <span class="s">&quot;\n&quot;</span>, info.page_size);
+    <span class="f">printf</span>(<span class="s">&quot;host      %s\n&quot;</span>, info.host);
+    <span class="f">printf</span>(<span class="s">&quot;sizeof    %zu\n&quot;</span>, <span class="k">sizeof</span> info);
+    <span class="f">printf</span>(<span class="s">&quot;&amp;info     %p\n&quot;</span>, (<span class="k">void</span> *)&amp;info);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <p>Программа собирается из двух файлов: компилятор собирает каждый, а компоновщик соединяет вызов <code>core_get_info</code> в <code>show_info.c</code> с самой функцией из <code>core_info.c</code>.</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 show_info.c core_info.c &amp;&amp; show_info.exe</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>clang -Wall -Wextra -o show_info show_info.c core_info.c &amp;&amp; ./show_info</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>gcc -Wall -Wextra -o show_info show_info.c core_info.c &amp;&amp; ./show_info</pre>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/07-info.png" alt="Командная строка MSVC: show_info.exe печатает pid 2820, cpus 4, page_size 4096, host WIN11-LAB, sizeof 272" loading="lazy">
+          <figcaption>MSVC собрал оба файла (строки <code>show_info.c</code>, <code>core_info.c</code>, «Создание кода…»). <span class="mk">1</span> Поля: PID 2820, 4 процессора, страница 4096, имя <code>WIN11-LAB</code>. <span class="mk">2</span> Структура — 272 байта.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/07-info.png" alt="VS Code с show_info.c: вызов core_get_info(&amp;info), вывод pid 34535, cpus 10, page_size 16384, host MacBook-Air-Maxim.local, sizeof 272" loading="lazy">
+          <figcaption><span class="mk">1</span> Вызов с адресом структуры. <span class="mk">2</span> Поля: PID 34535, 10 процессоров, страница 16384, имя компьютера. <span class="mk">3</span> Структура — 272 байта.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/07-info.png" alt="VS Code с show_info.c: вызов core_get_info(&amp;info), вывод pid 45, cpus 10, page_size 4096, host lab-linux, sizeof 272" loading="lazy">
+          <figcaption><span class="mk">1</span> Вызов с адресом структуры. <span class="mk">2</span> Поля: PID 45, 10 процессоров, страница 4096, имя <code>lab-linux</code>. <span class="mk">3</span> Структура — 272 байта.</figcaption>
+        </figure>
+        <div data-os="win"><p>Номер процесса проверяется так же, как в ЛР 1: число совпадает с тем, что показал бы Диспетчер задач, пока программа работает. Размер <span class="mk">2</span> — 272, как посчитано в шаге 5. Последняя строка — адрес структуры в памяти процесса: 16 шестнадцатеричных цифр, 8 байт.</p></div>
+        <div data-os="mac"><p>Размер <span class="mk">3</span> — 272, как посчитано в шаге 5. Страница памяти на Mac с процессором Apple — 16384 байта, в четыре раза больше, чем в Windows и Linux на тех же процессорах ARM. Последняя строка — адрес структуры в памяти процесса; он меняется при каждом запуске.</p></div>
+        <div data-os="linux"><p>Размер <span class="mk">3</span> — 272, как посчитано в шаге 5. Номер процесса маленький — 45: кадр снят в контейнере, где у процессов своя нумерация. На обычном компьютере с Ubuntu номер будет в тысячах, как в ЛР 1. Последняя строка — адрес структуры в памяти процесса; он меняется при каждом запуске.</p></div>
+        <p class="step-done"><b>Что получилось.</b>Функция ядра работает на своей системе и отдаёт 272 байта одинаковой раскладки. Осталось проверить, что компилятор найдёт ошибку формата, если она появится.</p>
+
+        <div class="part" role="separator"><span><b>4</b>Проверка и сдача</span></div>
+        <h2 id="s9"><span class="sec">§9</span>Шаг 8. Найти ошибку по предупреждению</h2>
+        <p>Ошибка формата в <code>printf</code> — частая ошибка при переносе кода между системами. Заменим в <code>show_info.c</code> формат номера процесса на <code>%d</code>, как пишут для обычного <code>int</code>:</p>
+        <div class="code-pair">
+          <figure class="code code--was" data-read>
+            <figcaption><span>show_info.c, строка 13</span><span>было</span></figcaption>
+<pre>    <span class="f">printf</span>(<span class="s">"pid       %"</span> PRId64 <span class="s">"\n"</span>, info.pid);</pre>
+          </figure>
+          <figure class="code code--now" data-read>
+            <figcaption><span>show_info.c, строка 13</span><span>стало</span></figcaption>
+<pre><mark>    <span class="f">printf</span>(<span class="s">"pid       %d\n"</span>, info.pid);</mark></pre>
+          </figure>
+        </div>
+        <p>Собираем снова, без запуска:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 show_info.c core_info.c</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>clang -Wall -Wextra -o show_info show_info.c core_info.c</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>gcc -Wall -Wextra -o show_info show_info.c core_info.c</pre>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/08-warning.png" alt="Командная строка MSVC: warning C4477 для show_info.c строка 13 и подсказки %lld, %Id, %I64d" loading="lazy">
+          <figcaption><span class="mk">1</span> Предупреждение C4477 для строки 13: формат <code>%d</code> требует <code>int</code>, а аргумент имеет тип <code>int64_t</code>. <span class="mk">2</span> Первая из трёх подсказок: использовать <code>%lld</code>.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/08-warning.png" alt="VS Code: в show_info.c строка 13 с %d, в терминале warning format specifies type int but the argument has type int64_t, 1 warning generated" loading="lazy">
+          <figcaption><span class="mk">1</span> Изменённая строка 13. <span class="mk">2</span> Предупреждение clang: формат требует <code>int</code>, аргумент — <code>int64_t</code> (<code>long long</code>). <span class="mk">3</span> Итог: одно предупреждение, программа собрана.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/08-warning.png" alt="VS Code: в show_info.c строка 13 с %d, в терминале warning format %d expects argument of type int, but argument 2 has type int64_t" loading="lazy">
+          <figcaption><span class="mk">1</span> Изменённая строка 13. <span class="mk">2</span> Предупреждение gcc: формат <code>%d</code> рассчитан на <code>int</code>, аргумент — <code>int64_t</code> (<code>long int</code>). <span class="mk">3</span> gcc показывает строку и отмечает в ней формат и аргумент.</figcaption>
+        </figure>
+        <div data-os="win"><p>Сообщение <span class="mk">1</span> начинается с места ошибки: файл, номер строки в скобках. Ниже <span class="mk">2</span> компилятор предлагает форматы, подходящие для 8-байтового числа. Программа собрана: предупреждение не останавливает сборку.</p></div>
+        <div data-os="mac"><p>Сообщение <span class="mk">2</span> начинается с места ошибки: файл, строка 13, позиция 30. Под ним clang повторяет строку, подчёркивает формат и аргумент и предлагает замену <code>%lld</code>. Программа собрана <span class="mk">3</span>: предупреждение не останавливает сборку.</p></div>
+        <div data-os="linux"><p>Сообщение <span class="mk">2</span> начинается с места ошибки: файл, строка 13, позиция 24. В квадратных скобках — имя проверки <code>-Wformat=</code>, её включил ключ <code>-Wall</code>. Ниже <span class="mk">3</span> gcc повторяет строку и предлагает <code>%ld</code>. Программа собрана: предупреждение не останавливает сборку.</p></div>
+        <p>Стандарт C называет несовпадение формата и типа аргумента неопределённым поведением. Что напечатает такая строка, зависит от компилятора и от того, как система передаёт параметры в функцию. На одной системе номер выйдет верным, на другой — другое число или сдвиг следующих аргументов. Поэтому предупреждения компилятора читают как ошибки. Возвращаем строку с <code>PRId64</code>, собираем снова — предупреждений нет.</p>
+        <p class="step-done"><b>Что получилось.</b>Ключи <span data-os="win"><code>/W4</code></span><span data-os="mac linux"><code>-Wall -Wextra</code></span> находят несовпадение формата и типа. Код ядра собран без предупреждений и готов к переносу в репозиторий.</p>
+
+        <h2 id="s10"><span class="sec">§10</span>Шаг 9. Положить ядро в репозиторий</h2>
+        <p>Файлы ядра переносятся в репозиторий <code>sysprog-start</code>, в папку <code>agent/core</code>. Демонстрационные программы шагов 1–4 остаются в <code>pair02</code>: они не входят в агента.</p>
+        <div class="filetree">
+          <p class="filetree__head">sysprog-start после шага</p>
+          <div class="dim"><span>agent/</span><span></span></div>
+          <div class="hot"><span>&nbsp;&nbsp;core/core.h</span><span>структура и объявление функции, шаг 5</span></div>
+          <div class="hot"><span>&nbsp;&nbsp;core/core_info.c</span><span>функция <code>core_get_info</code>, шаг 6</span></div>
+          <div class="hot"><span>&nbsp;&nbsp;core/show_info.c</span><span>программа проверки, шаг 7</span></div>
+          <div class="dim"><span>&nbsp;&nbsp;core/README.md</span><span>в таблицу дописываются три файла</span></div>
+          <div class="dim"><span>&nbsp;&nbsp;brain/</span><span>мозг на Python, с главы 1.2</span></div>
+        </div>
+        <p>Копируем три файла в копию репозитория в Документах, открываем её в VS Code и дописываем в таблицу <code>agent/core/README.md</code> по строке на файл. Сборка из папки репозитория проверяет, что все файлы на месте:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cd /d %USERPROFILE%\Documents\sysprog-start\agent\core
+cl /nologo /W4 show_info.c core_info.c &amp;&amp; show_info.exe</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>cd ~/Documents/sysprog-start/agent/core
+clang -Wall -Wextra -o show_info show_info.c core_info.c &amp;&amp; ./show_info</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал в папке pair02</span></figcaption>
+<pre>cd ~/Documents/sysprog-start/agent/core
+gcc -Wall -Wextra -o show_info show_info.c core_info.c &amp;&amp; ./show_info</pre>
+        </figure>
+        <p>Собранная программа в репозиторий не кладётся: <span data-os="win"><code>show_info.exe</code> и <code>.obj</code></span><span data-os="mac linux">файл <code>show_info</code></span> создаётся заново из исходников на любой системе. В панели Source Control отбираем плюсом четыре файла — три исходника и <code>README.md</code> — и делаем коммит, как в справочнике по Git:</p>
+        <figure class="code">
+          <figcaption><span>терминал в папке sysprog-start</span><span>то же, что плюс, Commit и Sync Changes</span></figcaption>
+<pre>git add agent/core/core.h agent/core/core_info.c agent/core/show_info.c agent/core/README.md
+git commit -m "core: core_get_info — сведения о системе"
+git push</pre>
+        </figure>
+        <p class="step-done"><b>Что получилось.</b>В репозитории первая функция ядра агента. Код написан вручную; последняя часть пары — сверить с ним объяснение помощника ИИ.</p>
+
+        <h2 id="s11"><span class="sec">§11</span>Запрос к помощнику ИИ</h2>
+        <p>В режиме Р1 из главы 0.3 помощник генерирует объяснение, а код пишется вручную. Запрос к помощнику в VS Code:</p>
+        <figure class="code">
+          <figcaption><span>запрос помощнику</span></figcaption>
+<pre>Объясни, почему в структуре core_info поля объявлены как int64_t и int32_t,
+а не long и int. Структура читается из Python через ctypes на Windows, macOS и Linux.</pre>
+        </figure>
+        <p>Ответ сверяется с шагами 1 и 5 по списку:</p>
+        <ul class="checklist">
+          <li>названо, что <code>long</code> в 64-битной Windows занимает 4 байта, а в macOS и Linux — 8 (модели LLP64 и LP64);</li>
+          <li>сказано, что Python должен знать точный размер и смещение каждого поля;</li>
+          <li>нет утверждения, что <code>int</code> на этих системах бывает 8 байт: на кадре шага 1 он 4 байта на всех трёх;</li>
+          <li>если в ответе есть код на Python, типы в нём точного размера: <code>c_int64</code>, <code>c_int32</code>.</li>
+        </ul>
+        <p>Если ответ расходится с кадром шага 1, проверка — запуск <code>sizes</code> на своей системе: вывод программы показывает настоящие размеры.</p>
+
+        <div class="part" role="separator"><span><b>5</b>Справка</span></div>
+        <h2 id="s12"><span class="sec">§12</span>Справка: функции и команды главы</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Что нужно</th><th>Windows</th><th>macOS и Linux</th></tr></thead>
+            <tbody>
+              <tr><td>Номер своего процесса</td><td><code>GetCurrentProcessId()</code></td><td><code>getpid()</code></td></tr>
+              <tr><td>Число процессоров, размер страницы</td><td><code>GetNativeSystemInfo(&amp;si)</code></td><td><code>sysconf(_SC_NPROCESSORS_ONLN)</code>, <code>sysconf(_SC_PAGESIZE)</code></td></tr>
+              <tr><td>Имя и версия системы</td><td><code>RtlGetVersion</code></td><td><code>uname(&amp;u)</code></td></tr>
+              <tr><td>Имя компьютера</td><td><code>GetComputerNameW(buf, &amp;len)</code></td><td><code>gethostname(buf, size)</code></td></tr>
+              <tr><td>Строку UTF-16 в UTF-8</td><td><code>WideCharToMultiByte(CP_UTF8, …)</code></td><td>не нужно: строки уже в UTF-8</td></tr>
+              <tr><td>Код последней ошибки</td><td><code>GetLastError()</code></td><td><code>errno</code></td></tr>
+              <tr><td>Текст ошибки</td><td><code>FormatMessageW</code>, в командной строке <code>net helpmsg код</code></td><td><code>strerror(code)</code>, <code>perror("…")</code></td></tr>
+              <tr><td>Обнулить память</td><td><code>ZeroMemory(p, n)</code></td><td><code>memset(p, 0, n)</code></td></tr>
+              <tr><td>Собрать с предупреждениями</td><td><code>cl /nologo /W4 a.c b.c</code></td><td><code>clang</code> или <code>gcc -Wall -Wextra -o prog a.c b.c</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Запись в C</th><th>Что значит</th><th>Пример из главы</th></tr></thead>
+            <tbody>
+              <tr><td><code>sizeof x</code></td><td>размер в байтах</td><td><code>sizeof info</code> — 272</td></tr>
+              <tr><td><code>&amp;x</code></td><td>адрес переменной</td><td><code>core_get_info(&amp;info)</code></td></tr>
+              <tr><td><code>T *p</code></td><td>указатель — переменная с адресом значения типа T</td><td><code>struct core_info *out</code></td></tr>
+              <tr><td><code>s.f</code> и <code>p-&gt;f</code></td><td>поле структуры по имени и по адресу</td><td><code>u.sysname</code>, <code>out-&gt;pid</code></td></tr>
+              <tr><td><code>char buf[N]</code></td><td>буфер на N байт, строка в нём — до байта 0</td><td><code>char host[256]</code></td></tr>
+              <tr><td><code>NULL</code></td><td>нулевой указатель, адреса нет</td><td><code>if (out == NULL)</code></td></tr>
+              <tr><td><code>(int32_t)x</code></td><td>явное приведение к типу</td><td><code>(int32_t)sysconf(…)</code></td></tr>
+              <tr><td><code>PRId64</code></td><td>формат <code>printf</code> для <code>int64_t</code></td><td><code>"%" PRId64</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="part" role="separator"><span><b>6</b>Проверка себя</span></div>
+        <h2 id="s13"><span class="sec">§13</span>Частые вопросы</h2>
+        <div class="myths">
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b><code>long</code> всегда 8 байт на 64-битной системе.</div>
+            <div class="myth__yes"><b>На самом деле</b>В 64-битной Windows <code>long</code> — 4 байта (кадр шага 1). Для полей, которые читают другие программы, пишут <code>int32_t</code> и <code>int64_t</code>.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Функция, которая заполняет структуру, возвращает её через <code>return</code>.</div>
+            <div class="myth__yes"><b>На самом деле</b>Структуру объявляет вызывающая программа и передаёт адрес. Через <code>return</code> функция отдаёт код успеха или ошибки.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Если функция получила размер буфера, строка в нём всегда закончится нулём.</div>
+            <div class="myth__yes"><b>На самом деле</b><code>gethostname</code> в Linux при маленьком буфере записала <code>lab-</code> без нуля. Последний байт буфера после вызова ставят в ноль вручную.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b><code>errno</code> можно прочитать в любой момент после ошибки.</div>
+            <div class="myth__yes"><b>На самом деле</b>Следующий вызов может его перезаписать. Код сохраняют в переменную сразу после неудачного вызова, как в <code>errors.c</code>.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Предупреждение компилятора можно не читать: программа же собралась.</div>
+            <div class="myth__yes"><b>На самом деле</b>Предупреждение формата в шаге 8 указывает на код, который на другой системе напечатает неверное число. Ядро агента собирается без предупреждений.</div>
+          </div>
+        </div>
+
+        <h2 id="s14"><span class="sec">§14</span>Проверьте себя</h2>
+        <details>
+          <summary>Сколько байт занимает <code>long</code> в Windows, macOS и Linux и какой тип взять для поля, которое читает Python?</summary>
+          <p>4 в 64-битной Windows, 8 в macOS и Linux. Для поля, которое читает другая программа, берут тип точного размера: <code>int32_t</code> или <code>int64_t</code>.</p>
+        </details>
+        <details>
+          <summary>Зачем функции <code>uname</code> или <code>GetNativeSystemInfo</code> передают адрес структуры <code>&amp;u</code>?</summary>
+          <p>Функция должна записать поля в структуру вызывающей программы. Для этого ей нужен адрес структуры. Без <code>&amp;</code> функция получила бы копию, и изменения пропали бы после возврата.</p>
+        </details>
+        <details>
+          <summary>Строка <code>"lab-linux"</code> — сколько байт нужно под неё в буфере?</summary>
+          <p>10: девять букв и завершающий ноль. <code>strlen</code> вернёт 9.</p>
+        </details>
+        <details>
+          <summary>Функция открытия файла вернула ошибку. Что нужно сделать до вызова <code>printf</code>?</summary>
+          <p>Сохранить <span data-os="win"><code>GetLastError()</code></span><span data-os="mac linux"><code>errno</code></span> в переменную: <code>printf</code> тоже обращается к системе и может перезаписать код.</p>
+        </details>
+        <details>
+          <summary>Почему в <code>core_get_info</code> нет <code>printf</code>?</summary>
+          <p>Ядро агента отдаёт данные и код ошибки тому, кто его вызвал. Печатает, записывает в журнал или отправляет в n8n мозг агента.</p>
+        </details>
+        <details>
+          <summary>Почему структура <code>core_info</code> занимает ровно 272 байта и пропусков в ней нет?</summary>
+          <p>8 + 4 + 4 + 256. Два поля по 4 байта стоят после 8-байтового <code>pid</code> и заполняют следующие 8 байт, поэтому буфер <code>host</code> начинается со смещения 16 без выравнивающих пропусков.</p>
+        </details>
+
+        <h2 id="s15"><span class="sec">§15</span>Шпаргалка по главе</h2>
+        <div class="cheat">
+          <div><b>Размеры</b><span><code>sizeof x</code></span><span><code>long</code>: 4 в Windows, 8 в macOS и Linux</span><span><code>int32_t</code>, <code>int64_t</code> — точно</span></div>
+          <div><b>Структура по адресу</b><span><code>struct core_info info;</code></span><span><code>core_get_info(&amp;info);</code></span><span><code>out-&gt;pid = …</code></span></div>
+          <div><b>Строка в буфере</b><span>байты до <code>'\0'</code></span><span>размер буфера — длина + 1</span><span><code>buf[sizeof buf - 1] = '\0';</code></span></div>
+          <div><b>Ошибка</b><span>возврат показывает неудачу</span><span><span data-os="win"><code>GetLastError()</code></span><span data-os="mac linux"><code>errno</code></span> — причину</span><span>сохранить сразу</span></div>
+          <div><b>Сборка</b><span data-os="win"><code>cl /nologo /W4 a.c b.c</code></span><span data-os="mac"><code>clang -Wall -Wextra -o p a.c b.c</code></span><span data-os="linux"><code>gcc -Wall -Wextra -o p a.c b.c</code></span><span>предупреждения читать как ошибки</span></div>
+          <div><b>Функция ядра</b><span>0 — успех, иначе код системы</span><span>нет <code>printf</code></span><span><code>agent/core</code> в репозитории</span></div>
+        </div>
+
+        <h3>Итог главы</h3>
+        <p>Системные функции принимают адреса и возвращают коды, поэтому для работы с ними нужны четыре вещи языка C. Размеры типов проверяются оператором <code>sizeof</code>. У <code>long</code> размер разный в Windows и в macOS и Linux, поэтому поля, которые читают другие программы, объявляются типами точного размера. Структуру объявляет вызывающая программа, а функция заполняет её по адресу. Строка — байты до нуля в буфере, размер которого передаётся вместе с адресом. При маленьком буфере три системы ведут себя по-разному, поэтому последний байт ставят в ноль вручную. Неудачу показывает возвращаемое значение, причину — <code>GetLastError</code> или <code>errno</code>, и её сохраняют сразу. Из этого собрана первая функция ядра агента <code>core_get_info</code>. Она заполняет структуру в 272 байта с одинаковой раскладкой на трёх системах, возвращает код ошибки и ничего не печатает.</p>
+
+        <div class="sources">
+          <b>Откуда взяты факты</b>
+          <ol>
+            <li>Кадры и выводы программ: macOS 26.1 на Apple M-серии, Apple clang 17.0.0, VS Code 1.138; Linux — терминал VS Code в контейнере Debian 13 с gcc 14.4, ядро 7.0 (Docker Desktop), имя машины <code>lab-linux</code>; Windows 11 24H2 ARM64 в VirtualBox, MSVC 19.44 (Build Tools 2022), сборка x64.</li>
+            <li>Модели данных LLP64 и LP64 и размер <code>long</code> в Windows — <a href="https://learn.microsoft.com/cpp/cpp/data-type-ranges">Microsoft Learn, Data Type Ranges</a>.</li>
+            <li><code>GetNativeSystemInfo</code>, <code>SYSTEM_INFO</code> и значения <code>wProcessorArchitecture</code> — <a href="https://learn.microsoft.com/windows/win32/api/sysinfoapi/nf-sysinfoapi-getnativesysteminfo">Microsoft Learn</a>; <code>GetComputerNameW</code> и <code>ERROR_BUFFER_OVERFLOW</code> — <a href="https://learn.microsoft.com/windows/win32/api/winbase/nf-winbase-getcomputernamew">Microsoft Learn</a>.</li>
+            <li><code>gethostname</code>: обрезка имени и отсутствие гарантии нуля — <a href="https://pubs.opengroup.org/onlinepubs/9799919799/functions/gethostname.html">POSIX.1-2024</a>; ошибка <code>ENAMETOOLONG</code> в glibc — <a href="https://man7.org/linux/man-pages/man2/gethostname.2.html">man 2 gethostname</a>.</li>
+            <li><code>uname</code> и <code>struct utsname</code> — <a href="https://pubs.opengroup.org/onlinepubs/9799919799/functions/uname.html">POSIX.1-2024</a>; <code>errno</code> и его значение в потоке — <a href="https://pubs.opengroup.org/onlinepubs/9799919799/functions/errno.html">POSIX.1-2024</a>.</li>
+            <li>Макрос <code>small</code> в <code>rpcndr.h</code> — ошибка сборки на кадре Windows (C2628, C2143) и заголовок Windows SDK.</li>
+          </ol>
+        </div>
+
+        <div class="pager">
+          <a href="../05-laboratornaya-1/index.html">← ЛР 1 Процесс изнутри</a>
+          <a href="../../index.html">Оглавление</a>
+        </div>
+
+        <div class="colophon">
+          <span>Глава 1.1 · C для системного программиста · Справочник по системному программированию</span>
+          <span class="author-line">Автор: Макаров Максим Николаевич</span>
+        </div>
+
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+</body>
+</html>

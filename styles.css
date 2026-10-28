@@ -771,3 +771,63 @@ table.labmap td:nth-child(2) b { font-size: 15px; }
 .report .blank { color: var(--ng-bright); }
 @media (max-width: 760px) { .lab__notes { grid-template-columns: 1fr; } .lab__notes > div + div { border-left: 0; border-top: 2px solid var(--rule); } .lab__do { grid-template-columns: 1fr; } .lab__do::before { grid-row: auto; justify-self: start; } }
 .lab__shot.shot { margin: 0; border: 0; box-shadow: none; background: none; }
+
+/* ── 9. Главы-инструкции модуля 1 (по образцу справочника по Git) ──
+   Глава идёт шагами: действие → кадр с рамками → что видно → «Что получилось». */
+
+/* Разделитель частей главы: «1 Типы», «2 Строки»… */
+.part { display: flex; align-items: center; gap: 14px; margin: 56px 0 6px; }
+.part::before, .part::after { content: ''; flex: 1 1 0; border-top: 3px dashed var(--acc); }
+.part::before { flex: 0 0 18px; }
+.part span { flex: 0 1 auto; padding: 6px 12px 5px; border: 3px solid var(--ink); background: var(--page); font: 600 11px/1.3 var(--pixel); letter-spacing: 1.2px; text-transform: uppercase; }
+.part b { font: 700 13px/1 var(--mono); margin-right: 8px; color: var(--acc); }
+.part + h2 { margin-top: 18px; }
+
+/* Итог шага и переход к следующему. */
+.step-done { margin: 18px 0 0; padding: 9px 14px; border-left: 4px solid var(--good); background: var(--good-pale); font-size: 15px; line-height: 1.5; }
+.step-done b { color: var(--good); margin-right: 4px; }
+
+/* «Зачем это нужно в работе»: рабочие ситуации списком. */
+.why { margin: 24px 0; border: 3px solid var(--good); box-shadow: 6px 6px 0 rgba(31, 122, 76, .28); background: var(--page); }
+.why__head { margin: 0; padding: 9px 16px; background: var(--good); color: #FFFDF8; font: 600 10.5px/1.4 var(--pixel); letter-spacing: 1.2px; text-transform: uppercase; }
+.why__list { margin: 0; padding: 6px 0; list-style: none; }
+.why__list li { position: relative; margin: 0; padding: 9px 16px 9px 42px; font-size: 15px; line-height: 1.5; }
+.why__list li + li { border-top: 1px solid var(--rule); }
+.why__list li::before { content: "→"; position: absolute; left: 16px; top: 9px; color: var(--good); font: 700 15px/1.5 var(--mono); }
+
+/* Было и стало: два блока кода рядом, изменённые строки отмечены <mark>. */
+.code-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin: 20px 0; }
+.code-pair figure.code { margin: 0; }
+figure.code--was figcaption { background: var(--ink-soft); }
+figure.code--was pre { color: var(--ink-soft); }
+figure.code mark { color: inherit; }
+figure.code--was mark { background: #F3D3CC; }
+figure.code--now mark { background: #D6E8CF; }
+@media (max-width: 720px) { .code-pair { grid-template-columns: minmax(0, 1fr); } }
+
+/* Команда в блоке «команда и ответ». */
+figure.code--out .cmd { display: block; margin: 0 0 8px; padding: 0 0 8px; border-bottom: 1px dashed rgba(220, 230, 245, .25); color: var(--acc-bright); font-weight: 700; white-space: pre-wrap; }
+figure.code--out .cmd::before { content: '$ '; color: rgba(220, 230, 245, .45); font-weight: 400; }
+:root[data-os="win"] figure.code--out .cmd::before { content: '> '; }
+
+/* Частые вопросы: «Обычно думают» и «На самом деле». */
+.myths { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 22px 0; }
+.myths .myth { border: 3px solid var(--ink); background: var(--page); box-shadow: 5px 5px 0 var(--ink); }
+.myth__no { padding: 10px 15px; border-bottom: 3px solid var(--ink); background: var(--ng-pale); font-size: 15px; }
+.myth__no > b:first-child, .myth__yes > b:first-child { display: block; font: 600 10px/1.4 var(--pixel); letter-spacing: 1.1px; text-transform: uppercase; margin-bottom: 4px; }
+.myth__no > b:first-child { color: var(--ng); }
+.myth__yes { padding: 11px 15px; font-size: 15px; line-height: 1.5; }
+.myth__yes > b:first-child { color: var(--acc); }
+
+/* Номер рамки на кадре, упомянутый в тексте. */
+.mk { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; background: #E52828; color: #fff; font: 700 12px/1 var(--body); vertical-align: 2px; }
+
+/* Ячейки памяти: байты буфера или поля структуры полосой. */
+.bytes { display: flex; flex-wrap: wrap; gap: 0; margin: 4px 0 20px; font: 500 13px/1 var(--mono); }
+.bytes > span { display: grid; grid-template-rows: auto auto; min-width: 34px; border: 2px solid var(--ink); margin: 0 -2px -2px 0; text-align: center; background: var(--page); }
+.bytes > span > i { padding: 6px 4px; font-style: normal; font-weight: 700; }
+.bytes > span > small { padding: 3px 4px; border-top: 1px solid var(--rule); font-size: 10.5px; color: var(--ink-faint); }
+.bytes > span.z { background: var(--good-pale); }
+.bytes > span.x { background: var(--clay-pale); }
+.bytes > span.w { min-width: 0; flex: 1 1 auto; }
+.bytes > span.gap { border-style: dashed; color: var(--ink-faint); }

@@ -310,7 +310,8 @@ HTML = f'''<!doctype html>
 
         <div class="pager">
           <a href="../04-kak-ustroena-disciplina/index.html">← 0.4 Как устроена дисциплина</a>
-          <a href="../../index.html">Оглавление →</a>
+          <a href="../../index.html">Оглавление</a>
+          <a href="../06-c-dlya-sistemnogo-programmista/index.html">1.1 C для системного программиста →</a>
         </div>
 
         <div class="colophon">

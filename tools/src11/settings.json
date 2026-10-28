@@ -1,0 +1,41 @@
+{
+ "workbench.startupEditor": "none",
+ "security.workspace.trust.enabled": false,
+ "telemetry.telemetryLevel": "off",
+ "update.mode": "none",
+ "window.commandCenter": false,
+ "window.dialogStyle": "custom",
+ "window.menuStyle": "custom",
+ "workbench.colorTheme": "Dark Modern",
+ "workbench.tips.enabled": false,
+ "chat.commandCenter.enabled": false,
+ "chat.disableAIFeatures": true,
+ "workbench.secondarySideBar.defaultVisibility": "hidden",
+ "extensions.ignoreRecommendations": true,
+ "workbench.layoutControl.enabled": false,
+ "editor.minimap.enabled": false,
+ "editor.fontSize": 13,
+ "editor.stickyScroll.enabled": false,
+ "editor.renderWhitespace": "none",
+ "breadcrumbs.enabled": false,
+ "terminal.integrated.fontSize": 13,
+ "terminal.integrated.gpuAcceleration": "off",
+ "terminal.integrated.shellIntegration.enabled": false,
+ "terminal.integrated.stickyScroll.enabled": false,
+ "terminal.integrated.enablePersistentSessions": false,
+ "terminal.integrated.defaultProfile.osx": "zsh",
+ "terminal.integrated.env.osx": {
+  "ZDOTDIR": "/private/tmp/vsc-sp11/zdot"
+ },
+ "files.associations": {
+  "*.h": "c"
+ },
+ "git.openRepositoryInParentFolders": "never",
+ "git.autofetch": false,
+ "scm.diffDecorations": "none",
+ "files.hotExit": "off",
+ "workbench.editor.enablePreview": false,
+ "explorer.decorations.badges": false,
+ "git.enabled": false,
+ "terminal.integrated.lineHeight": 1.2
+}
