@@ -1,0 +1,52 @@
+cls
+mkdir C:\syspro\sysprog-start\agent\core C:\syspro\sysprog-start\agent\brain
+cd /d C:\syspro\sysprog-start\agent\core
+for %f in (core.h core_info.c show_info.c) do @curl -s --noproxy * -o %f http://10.0.2.2:8811/%f
+for %f in (v1_load v2_struct v3_call v4_swap v5_null brain) do @curl -s --noproxy * -o ..\brain\%f.txt http://10.0.2.2:8811/py/%f.py
+set PATH=C:\Py314x64;%PATH%
+#wait 3
+cls
+cl /nologo /W4 /LD core_info.c /Fe:sentry_core.dll
+#wait 16
+dir /b sentry_core.*
+#wait 2
+#shot w12-01-build
+cls
+dumpbin /nologo /exports sentry_core.dll
+#wait 6
+#shot w12-02-exports
+cd ..\brain
+copy /y v1_load.txt brain.py >nul
+cls
+python brain.py
+#wait 6
+#shot w12-03-load
+copy /y v2_struct.txt brain.py >nul
+cls
+python brain.py
+#wait 6
+#shot w12-04-struct
+copy /y v3_call.txt brain.py >nul
+cls
+python brain.py
+#wait 6
+#shot w12-05-call
+copy /y v4_swap.txt brain.py >nul
+cls
+python brain.py
+#wait 6
+#shot w12-06-swap
+copy /y v5_null.txt brain.py >nul
+cls
+python brain.py
+#wait 6
+#shot w12-07-null
+copy /y brain.txt brain.py >nul
+cls
+python brain.py
+#wait 6
+#shot w12-08-brain
+cls
+C:\Users\user\AppData\Local\Programs\Python\Python314\python.exe brain.py
+#wait 8
+#shot w12-arm

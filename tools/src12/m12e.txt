@@ -1,0 +1,9 @@
+set PATHX64=%PATH%
+set PATH=C:\Users\user\AppData\Local\Programs\Python\Python314-arm64;%PATH%
+cls
+python -c "import platform; print(platform.machine())"
+#wait 4
+python brain.py
+#wait 8
+#shot w12-arm
+set PATH=%PATHX64%

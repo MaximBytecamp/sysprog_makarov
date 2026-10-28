@@ -1,0 +1,8 @@
+cls
+curl -L -s -o C:\setup\py-x64.exe https://www.python.org/ftp/python/3.14.0/python-3.14.0-amd64.exe
+#wait 40
+C:\setup\py-x64.exe /quiet InstallAllUsers=0 TargetDir=C:\Py314x64 PrependPath=0 Include_launcher=0 Include_test=0 Shortcuts=0
+#wait 90
+C:\Py314x64\python.exe -c "import platform,sys; print(sys.version, platform.machine())"
+#wait 8
+#shot m12a

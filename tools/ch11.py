@@ -595,6 +595,7 @@ S['end'] = f'''
         <div class="pager">
           <a href="../05-laboratornaya-1/index.html">← ЛР 1 Процесс изнутри</a>
           <a href="../../index.html">Оглавление</a>
+          <a href="../07-c-i-python-vmeste/index.html">1.2 C и Python вместе →</a>
         </div>
 
         <div class="colophon">
@@ -661,5 +662,6 @@ PAGE = f'''<!doctype html>
 </html>
 '''
 
-OUT.write_text(PAGE)
-print('ok', OUT, len(PAGE))
+if __name__ == '__main__':
+    OUT.write_text(PAGE)
+    print('ok', OUT, len(PAGE))
