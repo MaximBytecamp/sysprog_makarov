@@ -3,7 +3,7 @@
 Кадры macOS — VS Code 1.138 на Mac (macOS 26, Apple clang 17, расширение C/C++ 1.34.4, отладчик lldb через lldb-mi).
 Кадры Linux — VS Code 1.138 для Linux в контейнере sp-lab2-linux (Debian, gcc 14, gdb 16.3), виртуальный экран Xvfb.
 Съёмка: ~/sysprog-shots/lab2/shoot.py mac|linux, рамки — mark.py. Числа в тексте взяты с этих кадров.
-Кадры Windows — места под кадры: снимаются в ВМ Win11-lab (VS Code, MSVC, отладчик cppvsdbg)."""
+Кадры Windows — ВМ Win11-lab (Windows 11 ARM64, VS Code 1.144, MSVC x64 через эмулятор, cppvsdbg); VS Code в ВМ снимается по CDP через проброс порта (~/sysprog-shots/winsrv/start.cmd)."""
 from pathlib import Path
 from lab_build import steps
 from ch11 import hl
@@ -18,21 +18,16 @@ def mk(n):
     return f'<span class="mk">{n}</span>'
 
 
-def todo(text):
-    return 'todo:' + text
-
-
 S = []
 
 # ─────────────── Часть 1. Запуск под отладчиком ───────────────
 S.append(dict(
-    do={'win': ('Соберите и запустите программу без отладчика', 'Откройте папку <code>02-debugger</code> в VS Code командой <code>code .</code> из <b>x64 Native Tools Command Prompt</b>. Откройте встроенный терминал (<b>Terminal → New Terminal</b>) и выполните <code>cl /nologo /Zi /Od /W4 debug.c</code>, затем <code>.\\debug.exe</code>.'),
+    do={'win': ('Соберите и запустите программу без отладчика', 'Откройте папку <code>02-debugger</code> в VS Code командой <code>code .</code> из <b>x64 Native Tools Command Prompt</b>. Откройте встроенный терминал (<b>Terminal → New Terminal</b>). Если в нём PowerShell, выберите справа от <b>+</b> стрелку и пункт <b>Command Prompt</b>. Выполните <code>cl /nologo /Zi /Od /W4 debug.c && debug.exe</code>.'),
         'mac': ('Соберите и запустите программу без отладчика', 'Откройте папку <code>02-debugger</code> в VS Code (<b>File → Open Folder</b>), затем встроенный терминал: <b>Terminal → New Terminal</b>. Выполните <code>clang -g -O0 -Wall -Wextra -o debug debug.c && ./debug</code>.'),
         'linux': ('Соберите и запустите программу без отладчика', 'Откройте папку <code>02-debugger</code> в VS Code (<b>File → Open Folder</b>), затем встроенный терминал: <b>Terminal → New Terminal</b>. Выполните <code>gcc -g -O0 -Wall -Wextra -o debug debug.c && ./debug</code>.')},
-    shot={'win': todo('Встроенный терминал VS Code: команда <code>cl /nologo /Zi /Od /W4 debug.c</code>, строка <code>debug.c</code>, затем <code>.\\debug.exe</code> и вывод <code>agent: total=6 area=12</code>. Рамки: 1 — команда сборки, 2 — вывод.'),
-          'mac': '01-build.png', 'linux': '01-build.png'},
-    notes={'win': ('<p>' + mk(1) + ' — команда сборки с ключами отладки. ' + mk(2) + ' — вывод программы: <code>agent: total=6 area=12</code>.</p>',
-                   '<p>Программа отработала целиком за долю секунды и напечатала одну строку. Что происходило внутри, по выводу не видно. Ключ <code>/Zi</code> добавил к программе файл <code>debug.pdb</code> со сведениями для отладчика: какая машинная команда относится к какой строке кода и где лежит каждая переменная.</p>'),
+    shot='01-build.png',
+    notes={'win': ('<p>' + mk(1) + ' — команда сборки и запуска. Ниже компилятор вывел имя файла и предупреждение C4996 для строки 19: функция <code>strcpy</code> «может быть небезопасна». ' + mk(2) + ' — вывод программы: <code>agent: total=6 area=12</code>.</p>',
+                   '<p>Программа отработала целиком за долю секунды и напечатала одну строку. Что происходило внутри, по выводу не видно. Ключ <code>/Zi</code> записал рядом файл <code>debug.pdb</code> со сведениями для отладчика: какая машинная команда относится к какой строке кода и где лежит каждая переменная. Ключ <code>/Od</code> выключил оптимизацию. Предупреждение C4996 MSVC выдаёт на <code>strcpy</code>, потому что она не проверяет размер буфера: в главе 1.1, шаг 3, показано, что бывает при записи за его границу. Программа собрана, предупреждение работу не останавливает.</p>'),
            'mac': ('<p>' + mk(1) + ' — команда сборки и запуска. ' + mk(2) + ' — вывод программы: <code>agent: total=6 area=12</code>.</p>',
                    '<p>Программа отработала целиком за долю секунды и напечатала одну строку. Что происходило внутри, по выводу не видно. Ключ <code>-g</code> добавил сведения для отладчика: какая машинная команда относится к какой строке кода и где лежит каждая переменная. В macOS они лежат в папке <code>debug.dSYM</code> рядом с программой. Ключ <code>-O0</code> выключил оптимизацию, чтобы порядок команд совпадал с порядком строк.</p>'),
            'linux': ('<p>' + mk(1) + ' — команда сборки и запуска. ' + mk(2) + ' — вывод программы: <code>agent: total=6 area=12</code>.</p>',
@@ -41,10 +36,9 @@ S.append(dict(
 
 S.append(dict(
     do=('Откройте настройки запуска', 'В панели Explorer раскройте папку <code>.vscode</code> и откройте <code>launch.json</code>. Файлы <code>launch.json</code> и <code>tasks.json</code> вы создали в §1 «Подготовка».'),
-    shot={'win': todo('Explorer с раскрытой папкой <code>.vscode</code> и открытый <code>launch.json</code>. Рамки: 1 — папка <code>.vscode</code> с двумя файлами, 2 — <code>"program"</code>, 3 — <code>"type": "cppvsdbg"</code>, 4 — <code>"preLaunchTask"</code>.'),
-          'mac': '02-launch.png', 'linux': '02-launch.png'},
-    notes={'win': ('<p>' + mk(1) + ' — папка настроек VS Code с двумя файлами. ' + mk(2) + ' — какую программу запускать: <code>debug.exe</code> в папке проекта. ' + mk(3) + ' — <code>cppvsdbg</code>, отладчик Visual Studio для программ MSVC. ' + mk(4) + ' — перед запуском выполнить задачу <code>build</code> из <code>tasks.json</code>.</p>',
-                   '<p>Ничего не запустилось: файл только описывает, как запускать отладку. Кнопка запуска отладчика прочитает его.</p>'),
+    shot='02-launch.png',
+    notes={'win': ('<p>' + mk(1) + ' — папка настроек VS Code с двумя файлами. ' + mk(2) + ' — какую программу запускать: <code>debug.exe</code> в папке проекта. ' + mk(3) + ' — <code>"type": "cppvsdbg"</code>, отладчик Visual Studio для программ MSVC. ' + mk(4) + ' — перед запуском выполнить задачу <code>build</code> из <code>tasks.json</code>, то есть собрать программу заново.</p>',
+                   '<p>Ничего не запустилось: файл только описывает, как запускать отладку. В Explorer видны файлы сборки из шага 1: <code>debug.exe</code>, <code>debug.obj</code>, <code>debug.pdb</code>, <code>debug.ilk</code> и <code>vc140.pdb</code>. Строка <code>"console": "integratedTerminal"</code> — программа будет печатать во встроенный терминал VS Code.</p>'),
            'mac': ('<p>' + mk(1) + ' — папка настроек VS Code с двумя файлами. ' + mk(2) + ' — какую программу запускать: <code>debug</code> в папке проекта. ' + mk(3) + ' — <code>"MIMode": "lldb"</code>, отладчик LLDB из Command Line Tools. ' + mk(4) + ' — перед запуском выполнить задачу <code>build</code> из <code>tasks.json</code>, то есть собрать программу заново.</p>',
                    '<p>Ничего не запустилось: файл только описывает, как запускать отладку. Строка <code>"targetArchitecture": "arm64"</code> нужна на Mac с процессором Apple: без неё отладчик считает программу программой для Intel и не останавливается. На Mac с Intel в ней пишут <code>x86_64</code>.</p>'),
            'linux': ('<p>' + mk(1) + ' — папка настроек VS Code с двумя файлами. ' + mk(2) + ' — какую программу запускать: <code>debug</code> в папке проекта. ' + mk(3) + ' — <code>"MIMode": "gdb"</code>, отладчик GDB. ' + mk(4) + ' — перед запуском выполнить задачу <code>build</code> из <code>tasks.json</code>, то есть собрать программу заново.</p>',
@@ -52,18 +46,16 @@ S.append(dict(
 
 S.append(dict(
     do=('Поставьте точку останова на строке 15', 'Откройте <code>debug.c</code> и щёлкните слева от номера строки 15 — <code>struct point p = {3, 4};</code>. Появится красная точка. Затем откройте панель <b>Run and Debug</b> на левой полосе (значок треугольника с жуком) или нажмите <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> (на Mac — <kbd>⌘</kbd>+<kbd>⇧</kbd>+<kbd>D</kbd>).'),
-    shot={'win': todo('Файл <code>debug.c</code> с красной точкой у строки 15, слева панель Run and Debug с разделом Breakpoints. Рамки: 1 — строка 15, 2 — запись <code>debug.c 15</code> в Breakpoints.'),
-          'mac': '03-breakpoint.png', 'linux': '03-breakpoint.png'},
+    shot='03-breakpoint.png',
     notes=('<p>' + mk(1) + ' — строка 15 с красной точкой слева. ' + mk(2) + ' — та же точка в списке <b>Breakpoints</b>: файл <code>debug.c</code>, строка 15. Остальные разделы панели — Variables, Watch, Call Stack — пустые: программа ещё не запущена.</p>',
            '<p>Программа не изменилась, точка хранится в настройках VS Code. Когда программа под отладчиком дойдёт до строки 15, отладчик остановит её <b>перед</b> выполнением этой строки.</p>'),
     q='номер строки, на которой стоит точка останова.'))
 
 S.append(dict(
     do=('Запустите отладку', 'Нажмите <kbd>F5</kbd> или зелёный треугольник <b>debug</b> вверху панели Run and Debug. Дождитесь, пока строка 15 подсветится жёлтым. В разделе <b>Variables</b> раскройте <b>Locals</b> и <code>p</code>.'),
-    shot={'win': todo('Остановка на строке 15: жёлтая стрелка и подсветка, в Variables раскрыты Locals и <code>p</code> со случайными значениями, в Call Stack — <code>debug.exe!main</code>. Рамки: 1 — строка 15, 2 — Locals, 3 — main в стеке.'),
-          'mac': '04-paused.png', 'linux': '04-paused.png'},
-    notes={'win': ('<p>' + mk(1) + ' — жёлтая стрелка у строки 15: программа стоит перед ней. ' + mk(2) + ' — локальные переменные <code>main</code>. ' + mk(3) + ' — стек вызовов: сейчас работает <code>main</code>.</p>',
-                   '<p>Программа запущена и стоит. Все переменные <code>main</code> уже существуют, но строки, которые их заполняют, ещё не выполнены. В них лежат случайные числа — то, что осталось в этой памяти от прошлой работы.</p>'),
+    shot='04-paused.png',
+    notes={'win': ('<p>' + mk(1) + ' — жёлтая стрелка у строки 15: программа стоит перед ней. ' + mk(2) + ' — локальные переменные <code>main</code>, по алфавиту: <code>a = 0</code>, массив <code>name</code> (справа его адрес), <code>p</code> с полями <code>x = 0</code> и <code>y = 0</code>, <code>total = 0</code>. ' + mk(3) + ' — стек вызовов: <code>debug.exe!main()</code>, строка 15.</p>',
+                   '<p>Программа запущена и стоит. Все переменные <code>main</code> уже существуют, но строки, которые их заполняют, ещё не выполнены. В них лежит то, что осталось в этой памяти: в этот раз нули, при другом запуске или на другом компьютере могут быть случайные числа. Под <code>main</code> в стеке — функции, которые её запустили: служебный код MSVC <code>__scrt_common_main</code> и функции Windows из <code>kernel32.dll</code> и <code>ntdll.dll</code>. Строка состояния внизу стала синей: идёт отладка.</p>'),
            'mac': ('<p>' + mk(1) + ' — жёлтая стрелка у строки 15: программа стоит перед ней. ' + mk(2) + ' — локальные переменные <code>main</code>: <code>p</code> с полями <code>x = -16</code> и <code>y = -1</code>, массив <code>name</code>, <code>total = 2</code>, <code>a = 0</code>. ' + mk(3) + ' — стек вызовов: <code>debug!main</code>, файл <code>debug.c</code>, строка 15.</p>',
                    '<p>Программа запущена и стоит. Все переменные <code>main</code> уже существуют, но строки, которые их заполняют, ещё не выполнены. В них лежат случайные числа — то, что осталось в этой памяти от прошлой работы: <code>x = -16</code>, <code>total = 2</code>. При следующем запуске числа могут быть другими. Внизу экрана строка состояния стала синей: идёт отладка.</p>'),
            'linux': ('<p>' + mk(1) + ' — жёлтая стрелка у строки 15: программа стоит перед ней. ' + mk(2) + ' — локальные переменные <code>main</code>: <code>p</code> с полями <code>x = -136240616</code> и <code>y = 2555903</code>, массив <code>name</code>, <code>total = 2</code>, <code>a = 65535</code>. ' + mk(3) + ' — стек вызовов: <code>main()</code>, файл <code>debug.c</code>, строка 15.</p>',
@@ -72,18 +64,16 @@ S.append(dict(
 
 S.append(dict(
     do=('Выполните строку 15', 'Нажмите <kbd>F10</kbd> — <b>Step Over</b>, шаг с обходом. Это вторая кнопка на панели отладки, стрелка дугой.'),
-    shot={'win': todo('Жёлтая стрелка у строки 17, в Locals у <code>p</code> поля <code>x = 3</code>, <code>y = 4</code>. Рамки: 1 — строка 17, 2 — поля p.'),
-          'mac': '05-step.png', 'linux': '05-step.png'},
+    shot='05-step.png',
     notes=('<p>' + mk(1) + ' — стрелка теперь у строки 17 <code>int total = 0;</code>. ' + mk(2) + ' — поля <code>p</code>: <code>x = 3</code>, <code>y = 4</code>.</p>',
            '<p>Строка 15 выполнилась: в <code>p</code> записаны 3 и 4. Строку 16 отладчик пропустил: <code>char name[8];</code> только объявляет массив, машинных команд для неё нет. <code>total</code> пока прежний: строка 17 ещё не выполнена.</p>'),
     q='значения <code>p.x</code> и <code>p.y</code> после шага.'))
 
 S.append(dict(
     do=('Пройдите строки 17 и 19, раскройте массив name', 'Нажмите <kbd>F10</kbd> ещё два раза: стрелка встанет у строки 20. В Variables сверните <code>p</code> и раскройте <code>name</code>.'),
-    shot={'win': todo('Стрелка у строки 20 <code>for</code>, в Locals раскрыт <code>name</code>: восемь ячеек <code>[0]</code>–<code>[7]</code>, буквы a, g, e, n, t и нули. Рамки: 1 — строка 20, 2 — массив name.'),
-          'mac': '06-strcpy.png', 'linux': '06-strcpy.png'},
-    notes={'win': ('<p>' + mk(1) + ' — стрелка у строки 20. ' + mk(2) + ' — массив <code>name</code>: ячейки <code>[0]</code>–<code>[4]</code> — буквы слова <code>agent</code>, <code>[5]</code> — завершающий ноль.</p>',
-                   '<p>Функция <code>strcpy</code> записала в массив пять букв и ноль. Что лежит в <code>[6]</code> и <code>[7]</code>, зависит от того, что было в памяти раньше: <code>strcpy</code> их не трогает.</p>'),
+    shot='06-strcpy.png',
+    notes={'win': ('<p>' + mk(1) + ' — стрелка у строки 20 <code>for</code>. ' + mk(2) + ' — массив <code>name</code> по ячейкам: <code>[0] = 97 \'a\'</code>, <code>[1] = 103 \'g\'</code>, <code>[2] = 101 \'e\'</code>, <code>[3] = 110 \'n\'</code>, <code>[4] = 116 \'t\'</code>, <code>[5]</code>–<code>[7]</code> — <code>0 \'\\0\'</code>. Выше — переменная цикла <code>i = 0</code>.</p>',
+                   '<p>Строка 17 записала 0 в <code>total</code>. Строка 19 — функция <code>strcpy</code> — записала в массив пять букв и завершающий ноль в <code>[5]</code>. Отладчик показывает каждую ячейку дважды: числом и буквой. 97 — код буквы <code>a</code>. Ячейки <code>[6]</code> и <code>[7]</code> <code>strcpy</code> не трогает: в них осталось то, что было. Переменная цикла <code>i</code> уже видна, но цикл ещё не начался.</p>'),
            'mac': ('<p>' + mk(1) + ' — стрелка у строки 20 <code>for</code>. ' + mk(2) + ' — массив <code>name</code> по ячейкам: <code>[0] = 97 \'a\'</code>, <code>[1] = 103 \'g\'</code>, <code>[2] = 101 \'e\'</code>, <code>[3] = 110 \'n\'</code>, <code>[4] = 116 \'t\'</code>, <code>[5]</code>–<code>[7]</code> — <code>0 \'\\0\'</code>. Ниже — <code>total = 0</code>.</p>',
                    '<p>Строка 17 записала 0 в <code>total</code>. Строка 19 — функция <code>strcpy</code> — записала в массив пять букв и завершающий ноль в <code>[5]</code>. Отладчик показывает каждую ячейку дважды: числом и буквой. 97 — код буквы <code>a</code>. Ячейки <code>[6]</code> и <code>[7]</code> <code>strcpy</code> не трогает: в этот раз в них оказались нули.</p>'),
            'linux': ('<p>' + mk(1) + ' — стрелка у строки 20 <code>for</code>. ' + mk(2) + ' — массив <code>name</code> по ячейкам: <code>[0] = 97 \'a\'</code> … <code>[4] = 116 \'t\'</code>, <code>[5]</code>–<code>[7]</code> — <code>0 \'\\000\'</code>. Выше — переменная цикла <code>i = 0</code>.</p>',
@@ -92,18 +82,16 @@ S.append(dict(
 
 S.append(dict(
     do=('Следите за циклом в Watch', 'В разделе <b>Watch</b> нажмите <b>+</b> (Add Expression), введите <code>i</code> и нажмите Enter. Так же добавьте <code>total</code>. Нажмите <kbd>F10</kbd> три раза.'),
-    shot={'win': todo('Стрелка у строки 21 <code>total += i;</code>, в Watch: <code>i = 2</code>, <code>total = 1</code>. Рамки: 1 — строка 21, 2 — Watch.'),
-          'mac': '07-loop.png', 'linux': '07-loop.png'},
+    shot='07-loop.png',
     notes=('<p>' + mk(1) + ' — стрелка у строки 21 <code>total += i;</code>. ' + mk(2) + ' — Watch: <code>i = 2</code>, <code>total = 1</code>.</p>',
            '<p>Стрелка прошла строки 20 → 21 → 20 → 21: цикл идёт второй раз. На первом проходе <code>total</code> стал 1. Сейчас <code>i = 2</code>, и строка 21 ещё не выполнена — после неё <code>total</code> станет 3. В Watch можно вписать любое выражение на C, например <code>total * 2</code> или <code>name[1]</code>.</p>'),
     q='значения <code>i</code> и <code>total</code> на кадре и каким станет <code>total</code> после следующего шага.'))
 
 S.append(dict(
-    do=('Зайдите в функцию area', 'Нажимайте <kbd>F10</kbd>, пока стрелка не встанет у строки 22 <code>int a = area(p);</code>. В Watch нажмите <b>Remove All Expressions</b>. Затем нажмите <kbd>F11</kbd> — <b>Step Into</b>, шаг с заходом: стрелка вниз на панели отладки.'),
-    shot={'win': todo('Стрелка у строки 10 внутри <code>area</code>, в Locals <code>s</code> и <code>p</code> (x = 3, y = 4), в Call Stack две строки: <code>area</code> и <code>main</code>. Рамки: 1 — строка 10, 2 — Locals, 3 — стек.'),
-          'mac': '08-step-into.png', 'linux': '08-step-into.png'},
-    notes={'win': ('<p>' + mk(1) + ' — стрелка у строки 10 в функции <code>area</code>. ' + mk(2) + ' — переменные <code>area</code>: копия <code>p</code> и ещё не заданная <code>s</code>. ' + mk(3) + ' — стек вызовов из двух строк: <code>area</code> сверху, <code>main</code> под ней.</p>',
-                   '<p>Отладчик вошёл в функцию. В Variables теперь переменные <code>area</code>, а переменные <code>main</code> скрыты, но не исчезли: щелчок по строке <code>main</code> в стеке покажет их.</p>'),
+    do=('Зайдите в функцию area', 'Нажимайте <kbd>F10</kbd>, пока стрелка не встанет у строки 22 <code>int a = area(p);</code>. В Watch нажмите <b>Remove All Expressions</b>. Затем нажмите <kbd>F11</kbd> — <b>Step Into</b>, шаг с заходом: стрелка вниз на панели отладки. В Windows отладчик сначала встаёт на строку 9 с именем функции — нажмите <kbd>F10</kbd> ещё раз, чтобы перейти на строку 10.'),
+    shot='08-step-into.png',
+    notes={'win': ('<p>' + mk(1) + ' — стрелка у строки 10 в функции <code>area</code>. ' + mk(2) + ' — переменные <code>area</code>: <code>p</code> с полями <code>x = 3</code>, <code>y = 4</code> и <code>s = 0</code>. ' + mk(3) + ' — стек вызовов: <code>debug.exe!area(point p)</code> сверху, <code>debug.exe!main()</code> на строке 22 под ней.</p>',
+                   '<p>Отладчик вошёл в функцию. В Variables теперь переменные <code>area</code>. <code>p</code> здесь — копия структуры из <code>main</code>: в C структура передаётся в функцию по значению. <code>s</code> ещё не вычислена, строка 10 не выполнена. Стек показывает, кто кого вызвал: <code>main</code> на строке 22 вызвала <code>area</code>. На строке 9 стек был таким же, но <code>p</code> ещё не была заполнена: код входа в функцию копирует аргументы до первой строки тела.</p>'),
            'mac': ('<p>' + mk(1) + ' — стрелка у строки 10 в функции <code>area</code>. ' + mk(2) + ' — переменные <code>area</code>: <code>s = 1</code> и <code>p</code> с полями <code>x = 3</code>, <code>y = 4</code>. ' + mk(3) + ' — стек вызовов: <code>debug!area</code> на строке 10 сверху, <code>debug!main</code> на строке 22 под ней.</p>',
                    '<p>Отладчик вошёл в функцию. В Variables теперь переменные <code>area</code>. <code>p</code> здесь — копия структуры из <code>main</code>: в C структура передаётся в функцию по значению. <code>s = 1</code> — случайное число, строка 10 ещё не выполнена. Стек показывает, кто кого вызвал: <code>main</code> на строке 22 вызвала <code>area</code>.</p>'),
            'linux': ('<p>' + mk(1) + ' — стрелка у строки 10 в функции <code>area</code>. ' + mk(2) + ' — переменные <code>area</code>: <code>s = 0</code> и <code>p</code> с полями <code>x = 3</code>, <code>y = 4</code>. ' + mk(3) + ' — стек вызовов: <code>area(struct point p)</code> на строке 10 сверху, <code>main()</code> на строке 22 под ней.</p>',
@@ -112,10 +100,9 @@ S.append(dict(
 
 S.append(dict(
     do=('Посмотрите машинный код строки 10', 'Щёлкните правой кнопкой по строке 10 и выберите <b>Open Disassembly View</b>.'),
-    shot={'win': todo('Вкладка Disassembly: команды x64 строки 10 — <code>mov eax, dword ptr [p]</code>, <code>imul eax, dword ptr [rsp+…]</code>, <code>mov dword ptr [s], eax</code>. Рамки: 1 — загрузка x и y, 2 — <code>imul</code>, 3 — запись в s. Если ВМ на ARM, а программа собрана для x64, команды будут x64.'),
-          'mac': '09-disasm.png', 'linux': '09-disasm.png'},
-    notes={'win': ('<p>' + mk(1) + ' — загрузка полей <code>p.x</code> и <code>p.y</code> в регистр процессора. ' + mk(2) + ' — команда умножения <code>imul</code>. ' + mk(3) + ' — запись результата в <code>s</code>.</p>',
-                   '<p>Одна строка C стала несколькими машинными командами. Процессор не умеет умножать числа прямо в памяти: сначала он берёт их в регистры, умножает и кладёт результат обратно.</p>'),
+    shot='09-disasm.png',
+    notes={'win': ('<p>Вкладка <b>Disassembly</b>: строки C вперемешку с командами процессора x64, у каждой команды — адрес, байты и текст. ' + mk(1) + ' — строка 10 и команда <code>mov eax, dword ptr [p]</code>: взять <code>p.x</code> в регистр <code>eax</code>. ' + mk(2) + ' — <code>imul eax, dword ptr [rsp+24h]</code>: умножить <code>eax</code> на <code>p.y</code> прямо из памяти. ' + mk(3) + ' — <code>mov dword ptr [rsp], eax</code>: записать результат в <code>s</code>.</p>',
+                   '<p>Одна строка C стала тремя машинными командами. Результат умножения процессор держит в <span class="term">регистре</span> <code>eax</code> — ячейке внутри процессора — и потом кладёт в память. Команды x64 разной длины: 4, 5 и 3 байта. Строки <code>CC  int 3</code> выше и ниже — заполнитель между функциями. Кадр снят на компьютере с процессором ARM: программа собрана для x64 и выполняется через эмулятор, поэтому команды те же, что на компьютере с Intel или AMD.</p>'),
            'mac': ('<p>Вкладка <b>Disassembly</b>: слева адрес команды в памяти, справа сама команда процессора ARM64. ' + mk(1) + ' — <code>ldr w8, [sp, #0x8]</code> и <code>ldr w9, [sp, #0xc]</code>: взять из памяти <code>p.x</code> и <code>p.y</code> в регистры <code>w8</code> и <code>w9</code>. ' + mk(2) + ' — <code>mul w8, w8, w9</code>: умножить. ' + mk(3) + ' — <code>str w8, [sp, #0x4]</code>: записать результат в <code>s</code>.</p>',
                    '<p>Одна строка C стала четырьмя машинными командами. Процессор не умеет умножать числа прямо в памяти: сначала он берёт их в <span class="term">регистры</span> — ячейки внутри процессора, — умножает и кладёт результат обратно. <code>sp</code> — адрес места функции в стеке, <code>#0x8</code> — смещение поля от него. Сверху видны строки <code>udf #0x0</code>: это байты, которые не являются командами, отладчик показывает их как есть.</p>'),
            'linux': ('<p>Вкладка <b>Disassembly</b>: адрес команды, её байты в шестнадцатеричном виде и сама команда процессора ARM64. ' + mk(1) + ' — <code>ldr w1, [sp, #8]</code> и <code>ldr w0, [sp, #12]</code>: взять из памяти <code>p.x</code> и <code>p.y</code> в регистры. ' + mk(2) + ' — <code>mul w0, w1, w0</code>: умножить. ' + mk(3) + ' — <code>str w0, [sp, #28]</code>: записать результат в <code>s</code>.</p>',
@@ -124,20 +111,18 @@ S.append(dict(
 
 S.append(dict(
     do=('Выйдите из функции', 'Нажмите <kbd>Shift</kbd>+<kbd>F11</kbd> — <b>Step Out</b>, выход из функции: стрелка вверх. Затем один раз <kbd>F10</kbd>. Вернитесь на вкладку <code>debug.c</code>.'),
-    shot={'win': todo('Стрелка у строки 23 <code>printf</code>, в Locals <code>a = 12</code>, <code>total = 6</code>. Рамки: 1 — строка 23, 2 — a.'),
-          'mac': '10-step-out.png', 'linux': '10-step-out.png'},
+    shot='10-step-out.png',
     notes=('<p>' + mk(1) + ' — стрелка у строки 23 <code>printf</code>. ' + mk(2) + ' — <code>a = 12</code>. Выше — <code>total = 6</code> и <code>p</code> с полями 3 и 4.</p>',
-           '<p>Функция <code>area</code> доработала до конца и вернула 12, отладчик снова в <code>main</code>. Шаг с обходом выполнил присваивание <code>a = area(p)</code>, и в <code>a</code> вместо случайного числа появился результат. В стеке снова одна строка — <code>main</code>.</p>'),
+           '<p>Функция <code>area</code> доработала до конца и вернула 12, отладчик снова в <code>main</code>. Шаг с обходом выполнил присваивание <code>a = area(p)</code>, и в <code>a</code> вместо прежнего значения появился результат. В стеке снова одна строка — <code>main</code>.</p>'),
     q='значения <code>a</code> и <code>total</code> перед <code>printf</code>.'))
 
 S.append(dict(
-    do={'win': ('Доведите программу до конца', 'Нажмите <kbd>F5</kbd> — <b>Continue</b>. Откройте вкладку <b>Terminal</b> внизу.'),
+    do={'win': ('Доведите программу до конца', 'Нажмите <kbd>F5</kbd> — <b>Continue</b>, продолжить. Откройте вкладку <b>Terminal</b> внизу и справа в списке терминалов выберите строку с путём к <code>debug.exe</code>.'),
         'mac': ('Доведите программу до конца', 'Нажмите <kbd>F5</kbd> — <b>Continue</b>, продолжить. Откройте вкладку <b>Debug Console</b> внизу.'),
         'linux': ('Доведите программу до конца', 'Нажмите <kbd>F5</kbd> — <b>Continue</b>, продолжить. Откройте вкладку <b>Terminal</b> внизу и справа в списке терминалов выберите <b>cppdbg: debug</b>.')},
-    shot={'win': todo('Терминал VS Code с выводом <code>agent: total=6 area=12</code>, панель отладки исчезла, строка состояния снова обычного цвета. Рамки: 1 — вывод, 2 — сообщение о коде завершения 0 в Debug Console.'),
-          'mac': '11-finish.png', 'linux': '11-finish.png'},
-    notes={'win': ('<p>' + mk(1) + ' — вывод программы. ' + mk(2) + ' — код завершения 0.</p>',
-                   '<p>Программа отработала без остановок до <code>return 0</code>. Разделы Variables и Call Stack опустели: процесса больше нет.</p>'),
+    shot='11-finish.png',
+    notes={'win': ('<p>' + mk(1) + ' — вывод программы <code>agent: total=6 area=12</code>. ' + mk(2) + ' — терминал программы в списке справа: он называется путём к <code>debug.exe</code>. Выше — терминал <code>cmd</code> из шага 1 и терминал задачи <code>build</code>.</p>',
+                   '<p>Программа отработала без остановок до <code>return 0</code>. Разделы Variables и Call Stack опустели: процесса больше нет. Сообщение о коде завершения — «The program … has exited with code 0» — появляется во вкладке <b>Debug Console</b>. Вывод тот же, что в шаге 1: отладчик не меняет работу программы.</p>'),
            'mac': ('<p>Вкладка <b>Debug Console</b> — служебные сообщения отладчика. ' + mk(1) + ' — вывод программы <code>agent: total=6 area=12</code>. ' + mk(2) + ' — «The program … has exited with code 0»: программа завершилась с кодом 0.</p>',
                    '<p>Программа отработала без остановок до <code>return 0</code>. Разделы Variables и Call Stack опустели, панель отладки исчезла: процесса больше нет. Вывод тот же, что в шаге 1: отладчик не меняет работу программы, он только останавливает её и показывает память.</p>'),
            'linux': ('<p>' + mk(1) + ' — вывод программы <code>agent: total=6 area=12</code> в терминале отладчика. Строка <code>[1] + Done "/usr/bin/gdb" …</code> под ним — оболочка сообщает, что отладчик GDB завершился. ' + mk(2) + ' — терминал <b>cppdbg: debug</b> в списке.</p>',

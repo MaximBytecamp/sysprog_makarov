@@ -10,9 +10,9 @@ from lab2 import *
 OS = sys.argv[1]
 MARKS = HERE / 'marks.json'
 STAND = Path(f'/private/tmp/sp-lab2/{OS}/02-debugger')
-CC = {'mac': 'clang', 'linux': 'gcc'}[OS]
-FN = {'mac': 'debug!', 'linux': ''}[OS]  # так стек вызовов подписывает функции
-if OS == 'linux':
+CC = {'mac': 'clang', 'linux': 'gcc', 'win': 'cl'}[OS]
+FN = {'mac': 'debug!', 'linux': '', 'win': 'debug.exe!'}[OS]  # так стек вызовов подписывает функции
+if OS in ('linux', 'win'):
     async def _open(self, name):
         await self.key('Ctrl+P', 0.8)
         await self.paste(name, 0.8)
@@ -21,6 +21,8 @@ if OS == 'linux':
 
 
 def prepare():
+    if OS == 'win':
+        return  # файлы раскладывает start.cmd внутри ВМ
     shutil.rmtree(STAND, ignore_errors=True)
     (STAND / '.vscode').mkdir(parents=True)
     shutil.copy(HERE / 'src/debug.c', STAND / 'debug.c')
@@ -84,7 +86,8 @@ async def rect_disasm(e):
       const box = (i, j) => { const a = rows[i].getBoundingClientRect(), b = rows[j].getBoundingClientRect();
         const right = Math.max(...rows.slice(i, j + 1).flatMap(ROW => [...(function* (r) { const w = document.createTreeWalker(r, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) if (n.textContent.trim()) yield n; })(ROW)].map(n => { const g = document.createRange(); g.selectNodeContents(n); return g.getBoundingClientRect().right; })));
         return [a.x + 16, a.y, right - a.x - 16, b.bottom - a.y]; };
-      return [box(m - 2, m - 1), box(m, m), box(m + 1, m + 1)]; })()""")
+      const s = /ldr/.test(rows[m - 2].textContent) ? m - 2 : m - 1;
+      return [box(s, m - 1), box(m, m), box(m + 1, m + 1)]; })()""")
 
 
 async def rect_css(e, sel):
@@ -143,13 +146,15 @@ async def main():
     if OS == 'mac':
         profile('lab2', 9362)
         cdp.launch(str(STAND))
-    else:
+    elif OS == 'linux':
         profile('lab2-linux', 9363, {
             'terminal.integrated.defaultProfile.linux': 'bash',
             'terminal.integrated.profiles.linux': {'bash': {'path': '/bin/bash', 'args': ['--norc']}},
             'terminal.integrated.env.linux': {'PS1': '\\W $ '},
             'window.titleBarStyle': 'custom'})
         launch_linux()
+    if OS == 'win':
+        launch_win()
     await asyncio.sleep(5)
     async with E() as e:
         await e.size(1240, 820)
@@ -159,9 +164,10 @@ async def main():
 
         # 1. Сборка и запуск без отладчика
         await e.palette('Terminal: Create New Terminal', 3)
-        await e.term_type('clear', 0.8)
-        await e.term_type(f'{CC} -g -O0 -Wall -Wextra -o debug debug.c && ./debug', 4)
-        await frame(e, '01-build', [await rect_term(e, f'{CC} -g'), await rect_term(e, 'agent: total')])
+        await e.term_type('cls' if OS == 'win' else 'clear', 0.8)
+        build = 'cl /nologo /Zi /Od /W4 debug.c && debug.exe' if OS == 'win' else f'{CC} -g -O0 -Wall -Wextra -o debug debug.c && ./debug'
+        await e.term_type(build, 15 if OS == 'win' else 4)
+        await frame(e, '01-build', [await rect_term(e, build[:12]), await rect_term(e, 'agent: total')])
 
         # 2. Настройки запуска
         await e.palette('View: Close Panel', 0.8)
@@ -169,7 +175,7 @@ async def main():
         await e.open('launch.json')
         await expand(e, '.vscode')
         await frame(e, '02-launch', [await rect_rows(e, '.vscode', 'tasks.json'), await rect_ed(e, '"program"'),
-                                     await rect_ed(e, '"MIMode"'), await rect_ed(e, '"preLaunchTask"')])
+                                     await rect_ed(e, '"type"' if OS == 'win' else '"MIMode"'), await rect_ed(e, '"preLaunchTask"')])
 
         # 3. Точка останова
         await e.palette('View: Close All Editors', 0.8)
@@ -190,7 +196,7 @@ async def main():
         await e.click(r[0] + 20, r[1] + r[3] / 2, wait=1.5)
         await expand(e, 'Locals')
         await expand(e, 'p')
-        await frame(e, '04-paused', [await rect_ed(e, 'struct point p ='), await rect_rows(e, 'Locals', 'a ='),
+        await frame(e, '04-paused', [await rect_ed(e, 'struct point p ='), await rect_rows(e, 'Locals', 'total =' if OS == 'win' else 'a ='),
                                      await rect_rows(e, FN + 'main', scope='.debug-call-stack')])
 
         # 5. Шаг с обходом: строка 15 выполнена
@@ -225,6 +231,9 @@ async def main():
         await e.js("[...document.querySelectorAll('.action-label')].find(x => x.getAttribute('aria-label') === 'Remove All Expressions').click()")
         await asyncio.sleep(0.8)
         await debug_cmd(e, 'Debug: Step Into', 3)
+        if OS == 'win':
+            # отладчик Visual Studio встаёт на открывающую строку функции (9), ещё один шаг — на строку 10
+            await debug_cmd(e, 'Debug: Step Over', 3)
         await expand(e, 'p')
         await frame(e, '08-step-into', [await rect_ed(e, 'int s = p.x'), await rect_rows(e, 's =', 'y ='),
                                         await rect_rows(e, FN + 'area', FN + 'main', scope='.debug-call-stack')])
@@ -248,15 +257,15 @@ async def main():
 
         # 11. Продолжить до конца
         await debug_cmd(e, 'Debug: Continue', 5)
-        if OS == 'linux':
-            # в Linux программа под отладчиком пишет в отдельный терминал
+        if OS in ('linux', 'win'):
+            # в Linux и Windows программа под отладчиком пишет в отдельный терминал
             await e.palette('Terminal: Focus Terminal', 1.5)
             pos = await e.js("""(() => { const r = [...document.querySelectorAll('.terminal-tabs-entry, .tabs-list .monaco-list-row')]
-              .find(x => x.textContent.includes('cppdbg')); if (!r) return null; const b = r.getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; })()""")
+              .find(x => x.textContent.includes('cppdbg') || x.textContent.includes('cppvsdbg') || x.textContent.includes('debug')); if (!r) return null; const b = r.getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; })()""")
             if not pos:
                 raise SystemExit('нет вкладки терминала cppdbg')
             await e.click(*pos, wait=1.5)
-            await frame(e, '11-finish', [await rect_term(e, 'agent: total'), await rect_rows(e, 'cppdbg')])
+            await frame(e, '11-finish', [await rect_term(e, 'agent: total'), await rect_rows(e, 'C:\\Users' if OS == 'win' else 'cppdbg')])
             return await stop()
         await e.palette('Debug Console: Focus on Debug Console View', 1.5)
         await frame(e, '11-finish', [await rect_text(e, '.repl .monaco-list-row', ('agent: total',)),
@@ -264,7 +273,30 @@ async def main():
     await stop()
 
 
+def launch_win():
+    """VS Code в ВМ Win11-lab: start.cmd с хоста, порт 9365 гостя → 9366 (portproxy) → 9365 хоста (NAT)."""
+    sys.path.insert(0, str(Path.home() / 'sysprog_makarov/tools'))
+    import w  # noqa: F401  ввод в ВМ скан-кодами
+    cdp.PORT = 9365
+    vm = w.vm
+    subprocess.run(['VBoxManage', 'controlvm', 'Win11-lab', 'natpf1', 'cdp,tcp,127.0.0.1,9365,,9366'], capture_output=True)
+    vm.key('win+r'); time.sleep(1.5)
+    vm.text(r'cmd /c curl.exe --noproxy * -s -o %TEMP%\st.cmd http://10.0.2.2:8811/start.cmd && %TEMP%\st.cmd')
+    vm.key('enter')
+    time.sleep(12)  # start.cmd сначала закрывает прежний VS Code
+    for _ in range(90):
+        try:
+            if cdp.page_ws():
+                return
+        except OSError:
+            pass
+        time.sleep(1)
+    raise SystemExit('порт отладки VS Code в ВМ не открылся')
+
+
 async def stop():
+    if OS == 'win':
+        return  # окно VS Code в ВМ закрывается вручную или следующим запуском
     if OS == 'mac':
         subprocess.run(['pkill', '-f', f'user-data-dir={cdp.PROFILE}/data'])
     else:
