@@ -600,7 +600,7 @@ S['end'] = f'''
         </div>
 
         <div class="pager">
-          <a href="../05-laboratornaya-1/index.html">← ЛР 1 Процесс изнутри</a>
+          <a href="../09-laboratornaya-2/index.html">← ЛР 2 Программа в отладчике</a>
           <a href="../../index.html">Оглавление</a>
           <a href="../07-c-i-python-vmeste/index.html">1.2 C и Python вместе →</a>
         </div>
