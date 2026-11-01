@@ -218,13 +218,33 @@ core = ctypes.<span class="f">CDLL</span>(<span class="f">str</span>(CORE_DIR / 
 <span class="f">print</span>(core)
 <span class="f">print</span>(core.core_get_info)</pre>
         </figure>
-        <p>Разбор по строкам.</p>
-        <ul>
-          <li><code>Path(__file__).resolve().parent.parent / "core"</code> — путь к папке ядра от места, где лежит сам <code>brain.py</code>: на уровень вверх из <code>brain</code> и в <code>core</code>. Так скрипт находит библиотеку, из какой бы папки его ни запустили.</li>
-          <li><code>sys.platform</code> — строка с названием системы: <code>win32</code>, <code>darwin</code> (macOS) или <code>linux</code>. По ней выбирается имя файла библиотеки; для Linux имя берётся по умолчанию из <code>.get</code>.</li>
-          <li><code>ctypes.CDLL(путь)</code> — загружает библиотеку в процесс и возвращает объект, через который доступны её функции. <code>CDLL</code> вызывает функции по обычному соглашению C. Путь передаётся строкой, поэтому <code>Path</code> обёрнут в <code>str</code>.</li>
-          <li><code>core.core_get_info</code> — функция ищется в таблице экспорта при первом обращении к имени. Если имени нет, Python сообщит <code>AttributeError</code>.</li>
-        </ul>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор brain.py · шаг 3 по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Загрузить библиотеку ядра в процесс Python и найти в ней функцию <code>core_get_info</code>. Пока функция не вызывается: шаг проверяет, что Python видит библиотеку.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>brain.py</b><small>Python</small></span><span><b>ctypes.CDLL</b><small>загрузка</small></span><span><b>библиотека ядра</b><small>.dll / .dylib / .so</small></span><span><b>core_get_info</b><small>найдена по имени</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">import</span> ctypes
+<span class="k">import</span> sys
+<span class="k">from</span> pathlib <span class="k">import</span> Path
+
+CORE_DIR = <span class="f">Path</span>(__file__).<span class="f">resolve</span>().parent.parent / <span class="s">&quot;core&quot;</span>
+LIB_NAME = {<span class="s">&quot;win32&quot;</span>: <span class="s">&quot;sentry_core.dll&quot;</span>, <span class="s">&quot;darwin&quot;</span>: <span class="s">&quot;libsentry_core.dylib&quot;</span>}.<span class="f">get</span>(sys.platform, <span class="s">&quot;libsentry_core.so&quot;</span>)
+
+core = ctypes.<span class="f">CDLL</span>(<span class="f">str</span>(CORE_DIR / LIB_NAME))
+<span class="f">print</span>(core)
+<span class="f">print</span>(core.core_get_info)</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-3"><b>Подключить модули Python</b><p><code>import</code> подключает готовый модуль из стандартной библиотеки Python.</p><ul class="words"><li><code>ctypes</code> — загрузка библиотек на C и вызов их функций;</li><li><code>sys</code> — сведения о самом Python, здесь нужен <code>sys.platform</code>;</li><li><code>from pathlib import Path</code> — из модуля <code>pathlib</code> берётся только <code>Path</code>, работа с путями к файлам.</li></ul><p class="like">Перед работой из ящика достают нужные инструменты: переходник, линейку и карту.</p></li>
+              <li data-lines="5"><b>Найти папку ядра</b><p>Выражение читается слева направо:</p><ul class="words"><li><code>__file__</code> — путь к самому <code>brain.py</code>;</li><li><code>.resolve()</code> — полный путь от корня диска;</li><li><code>.parent</code> — папка, где лежит файл: <code>agent/brain</code>; второй <code>.parent</code> — на уровень выше: <code>agent</code>;</li><li><code>/ "core"</code> — в <code>Path</code> знак <code>/</code> соединяет части пути: <code>agent/core</code>.</li></ul><p>Так скрипт находит библиотеку, из какой бы папки его ни запустили.</p><p class="like">Адрес «соседний подъезд, второй этаж» работает, откуда бы ни вышел человек из своего подъезда.</p></li>
+              <li data-lines="6"><b>Выбрать имя файла библиотеки</b><p><code>{"win32": …, "darwin": …}</code> — <span class="term">словарь</span>: пары «ключ: значение». <code>.get(sys.platform, "libsentry_core.so")</code> берёт значение по ключу, а если ключа нет — значение по умолчанию.</p><ul class="words"><li>Windows: <code>sys.platform</code> = <code>win32</code> → <code>sentry_core.dll</code>;</li><li>macOS: <code>darwin</code> → <code>libsentry_core.dylib</code>;</li><li>Linux: <code>linux</code>, такого ключа нет → <code>libsentry_core.so</code>.</li></ul><p class="like">Таблица на двери: «Windows — кабинет 1, macOS — кабинет 2, остальные — кабинет 3».</p></li>
+              <li data-lines="8"><b>Загрузить библиотеку</b><p><code>ctypes.CDLL(путь)</code> загружает библиотеку в память процесса Python и возвращает объект <code>core</code>. Через него доступны функции библиотеки. <code>str(…)</code> переводит <code>Path</code> в обычную строку, которую ждёт <code>CDLL</code>.</p><p class="like">Переходник для розетки: вилка C входит в гнездо Python.</p></li>
+              <li data-lines="9-10"><b>Проверить, что функция нашлась</b><p><code>print(core)</code> печатает объект библиотеки с путём к файлу. <code>core.core_get_info</code> ищет функцию в таблице экспорта библиотеки — той, что показали <span data-os="win"><code>dumpbin /exports</code></span><span data-os="mac linux"><code>nm</code></span> в шаге 2. Если имени там нет, Python сообщит <code>AttributeError</code>.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <p>Запускаем из папки <code>agent/brain</code>:</p>
         <figure class="code" data-os="win">
           <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
@@ -462,13 +482,77 @@ core.core_get_info.restype = ctypes.c_int
     message = {<span class="s">&quot;event&quot;</span>: <span class="s">&quot;agent_started&quot;</span>, <span class="s">&quot;os&quot;</span>: sys.platform, **<span class="f">get_info</span>()}
     <span class="f">print</span>(json.<span class="f">dumps</span>(message, ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))</pre>
         </figure>
-        <ul>
-          <li><code>error_text</code> — текст ошибки по коду, отдельно для Windows и для macOS и Linux.</li>
-          <li><code>raise OSError(err, error_text(err))</code> — код ядра становится исключением. Тот, кто вызывает <code>get_info</code>, обрабатывает его через <code>try</code>/<code>except OSError</code>.</li>
-          <li><code>info.host.decode("utf-8")</code> — имя из байтов в строку Python.</li>
-          <li><code>if __name__ == "__main__":</code> — блок выполняется, только когда <code>brain.py</code> запущен как программа. Если его подключат командой <code>import</code>, сообщение не печатается.</li>
-          <li><code>**get_info()</code> — поля словаря вставляются в сообщение рядом с <code>event</code> и <code>os</code>.</li>
-        </ul>
+        <p>Ниже тот же файл целиком по шагам: шаги 3–7 главы собраны в одном месте.</p>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор brain.py по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Получить сведения о компьютере от ядра на C и превратить их в сообщение агента. Python здесь — «мозг»: он вызывает ядро, проверяет ответ и готовит JSON, который в главе 1.3 уйдёт в n8n.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>ядро на C</b><small>core_get_info</small></span><span><b>ctypes</b><small>CoreInfo, byref</small></span><span><b>словарь Python</b><small>pid, cpus, page_size, host</small></span><span><b>JSON agent_started</b><small>уйдёт в n8n, глава 1.3</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="s">&quot;&quot;&quot;Мозг агента: загружает ядро на C и получает сведения о системе.&quot;&quot;&quot;</span>
+<span class="k">import</span> ctypes
+<span class="k">import</span> json
+<span class="k">import</span> os
+<span class="k">import</span> sys
+<span class="k">from</span> pathlib <span class="k">import</span> Path
+
+CORE_DIR = <span class="f">Path</span>(__file__).<span class="f">resolve</span>().parent.parent / <span class="s">&quot;core&quot;</span>
+LIB_NAME = {<span class="s">&quot;win32&quot;</span>: <span class="s">&quot;sentry_core.dll&quot;</span>, <span class="s">&quot;darwin&quot;</span>: <span class="s">&quot;libsentry_core.dylib&quot;</span>}.<span class="f">get</span>(sys.platform, <span class="s">&quot;libsentry_core.so&quot;</span>)
+
+
+<span class="k">class</span> <span class="f">CoreInfo</span>(ctypes.Structure):
+    _fields_ = [
+        (<span class="s">&quot;pid&quot;</span>, ctypes.c_int64),
+        (<span class="s">&quot;cpus&quot;</span>, ctypes.c_int32),
+        (<span class="s">&quot;page_size&quot;</span>, ctypes.c_int32),
+        (<span class="s">&quot;host&quot;</span>, ctypes.c_char * <span class="n">256</span>),
+    ]
+
+
+core = ctypes.<span class="f">CDLL</span>(<span class="f">str</span>(CORE_DIR / LIB_NAME))
+core.core_get_info.argtypes = [ctypes.<span class="f">POINTER</span>(CoreInfo)]
+core.core_get_info.restype = ctypes.c_int
+
+
+<span class="k">def</span> <span class="f">error_text</span>(code):
+    <span class="k">if</span> sys.platform == <span class="s">&quot;win32&quot;</span>:
+        <span class="k">return</span> ctypes.<span class="f">FormatError</span>(code)
+    <span class="k">return</span> os.<span class="f">strerror</span>(code)
+
+
+<span class="k">def</span> <span class="f">get_info</span>():
+    info = <span class="f">CoreInfo</span>()
+    err = core.<span class="f">core_get_info</span>(ctypes.<span class="f">byref</span>(info))
+    <span class="k">if</span> err != <span class="n">0</span>:
+        <span class="k">raise</span> <span class="f">OSError</span>(err, <span class="f">error_text</span>(err))
+    <span class="k">return</span> {
+        <span class="s">&quot;pid&quot;</span>: info.pid,
+        <span class="s">&quot;cpus&quot;</span>: info.cpus,
+        <span class="s">&quot;page_size&quot;</span>: info.page_size,
+        <span class="s">&quot;host&quot;</span>: info.host.<span class="f">decode</span>(<span class="s">&quot;utf-8&quot;</span>),
+    }
+
+
+<span class="k">if</span> __name__ == <span class="s">&quot;__main__&quot;</span>:
+    message = {<span class="s">&quot;event&quot;</span>: <span class="s">&quot;agent_started&quot;</span>, <span class="s">&quot;os&quot;</span>: sys.platform, **<span class="f">get_info</span>()}
+    <span class="f">print</span>(json.<span class="f">dumps</span>(message, ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1"><b>Строка описания</b><p>Текст в тройных кавычках в начале файла — описание модуля. Python его не выполняет, его показывают редактор и команда <code>help</code>.</p></li>
+              <li data-lines="2-6"><b>Модули</b><p>К модулям из шага 3 добавились <code>json</code> — перевод словаря в текст JSON — и <code>os</code> — функции системы, здесь <code>os.strerror</code>.</p></li>
+              <li data-lines="8-9"><b>Путь к библиотеке</b><p>Те же две строки, что в шаге 3: папка <code>agent/core</code> и имя файла по системе. Имена из заглавных букв — договорённость Python: значение задаётся один раз и дальше не меняется.</p></li>
+              <li data-lines="12-18"><b>Описать структуру ядра на Python</b><p><code>class CoreInfo(ctypes.Structure)</code> — новый тип Python, устроенный в памяти как структура C. <code>_fields_</code> — список полей в том же порядке и того же размера, что в <code>core.h</code>:</p><div class="bytes "><span class="w"><i>pid</i><small>0 · c_int64</small></span><span class="w"><i>cpus</i><small>8 · c_int32</small></span><span class="w"><i>page_size</i><small>12 · c_int32</small></span><span class="w"><i>host</i><small>16 · c_char × 256</small></span></div><ul class="words"><li><code>ctypes.c_int64</code> — то же, что <code>int64_t</code> в C, 8 байт;</li><li><code>ctypes.c_char * 256</code> — массив из 256 байт, как <code>char host[256]</code>.</li></ul><p>Python не читает <code>core.h</code>. Если порядок полей здесь разойдётся с C, ошибки не будет, но числа окажутся в чужих полях — опыт шага 6.</p><p class="like">Трафарет, который кладут на чужой бланк: прорези должны совпасть с графами до клетки.</p></li>
+              <li data-lines="21"><b>Загрузить библиотеку</b><p><code>core = ctypes.CDLL(…)</code> — как в шаге 3. Строки печати убраны: проверка уже пройдена.</p></li>
+              <li data-lines="22-23"><b>Описать функцию для Python</b><ul class="words"><li><code>argtypes</code> — типы параметров. <code>ctypes.POINTER(CoreInfo)</code> — «адрес структуры <code>CoreInfo</code>», то есть <code>struct core_info *</code>;</li><li><code>restype</code> — тип результата, <code>int</code>.</li></ul><p>С этим описанием ctypes проверяет, что в функцию передают адрес нужной структуры, и правильно читает её ответ.</p><p class="like">Инструкция к переходнику: какую вилку можно вставлять и какое напряжение выйдет.</p></li>
+              <li data-lines="26-29"><b>Текст ошибки по коду</b><p><code>def error_text(code):</code> — своя функция Python с параметром <code>code</code>. Тело функции — строки с отступом.</p><ul class="words"><li><code>if sys.platform == "win32":</code> — на Windows текст даёт <code>ctypes.FormatError</code>: 87 → «Параметр задан неверно.»;</li><li>иначе <code>os.strerror</code>: 22 → «Invalid argument».</li></ul><p>Таблицы кодов у систем разные — это вывод шага 4 главы 1.1.</p></li>
+              <li data-lines="32-34"><b>Вызвать ядро</b><ul class="words"><li><code>info = CoreInfo()</code> — пустая структура, 272 байта нулей. Память выделяет Python;</li><li><code>ctypes.byref(info)</code> — адрес этой структуры, то же, что <code>&amp;info</code> в C;</li><li><code>err</code> — код, который вернула <code>core_get_info</code>: 0 или код ошибки.</li></ul><p class="like">Тот же бланк в окошке МФЦ, только посетитель теперь Python.</p></li>
+              <li data-lines="35-36"><b>Код ошибки → исключение</b><p>Если ядро вернуло не 0, <code>raise OSError(err, error_text(err))</code> поднимает <span class="term">исключение</span>: выполнение функции прерывается, и Python сообщает код и текст. Тот, кто вызвал <code>get_info</code>, может перехватить его через <code>try</code>/<code>except OSError</code>.</p><p class="like">Пожарная сигнализация: при сбое работа сразу останавливается, и сигнал идёт тому, кто отвечает за здание.</p></li>
+              <li data-lines="37-42"><b>Собрать словарь</b><p>Фигурные скобки с парами «ключ: значение» — словарь Python. Числа берутся из полей структуры как есть.</p><p><code>info.host</code> ctypes отдаёт как <code>bytes</code> — байты до первого нуля. <code>.decode("utf-8")</code> переводит их в строку Python: ядро отдаёт имя в UTF-8 на всех системах.</p><div class="bytes "><span class="w"><i>b&quot;lab-linux&quot;</i><small>bytes</small></span><span class=""><i>→</i><small></small></span><span class="w"><i>&quot;lab-linux&quot;</i><small>str</small></span></div></li>
+              <li data-lines="45-47"><b>Запуск как программы</b><p><code>if __name__ == "__main__":</code> — блок выполняется, только когда <code>brain.py</code> запущен командой <code>python brain.py</code>. Если его подключат через <code>import</code>, сообщение не печатается.</p><ul class="words"><li><code>**get_info()</code> — пары словаря вставляются в новый словарь рядом с <code>event</code> и <code>os</code>;</li><li><code>json.dumps(…, ensure_ascii=False, indent=2)</code> — словарь в текст JSON: кириллица без кодов <code>\u…</code>, отступ 2 пробела.</li></ul><p>Это первое сообщение агента <code>agent_started</code>. В главе 1.3 его же функция <code>send</code> отправит в n8n.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <figure class="shot" data-os="win">
           <img src="img/win/08-brain.png" alt="python brain.py печатает JSON agent_started с os win32, cpus 4, page_size 4096, host WIN11-LAB" loading="lazy">
           <figcaption><span class="mk">1</span> Сообщение <code>agent_started</code> в JSON: система <code>win32</code>, номер процесса, 4 процессора, страница 4096, имя <code>WIN11-LAB</code>.</figcaption>

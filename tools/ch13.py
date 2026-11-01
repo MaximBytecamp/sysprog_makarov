@@ -152,6 +152,8 @@ S.append(f'''
 ''')
 
 SEND = between(BRAIN, 'def send(message, url)')
+import walk13
+WK = walk13.build(hl_py, SEND)
 S.append(f'''
         <h2 id="s5"><span class="sec">§5</span>Шаг 4. Отправить сообщение из brain.py</h2>
         <p>Отправка делается модулем <code>urllib.request</code> из стандартной библиотеки Python: ставить ничего не нужно. В <code>brain.py</code> добавляются строка <code>import urllib.request</code> в начале и функция <code>send</code>, а блок запуска получает адрес из командной строки:</p>
@@ -159,12 +161,7 @@ S.append(f'''
           <figcaption><span>agent/brain/brain.py · конец файла</span></figcaption>
 <pre>{hl_py(SEND)}</pre>
         </figure>
-        <ul>
-          <li><code>json.dumps(...).encode("utf-8")</code> — словарь превращается в текст JSON, текст — в байты UTF-8: по сети передаются байты. <code>ensure_ascii=False</code> оставляет русские буквы как есть.</li>
-          <li><code>urllib.request.Request(url, data=..., method="POST", headers=...)</code> — описание запроса: адрес, тело, метод и заголовок <code>Content-Type: application/json</code>. По заголовку n8n разбирает тело как JSON.</li>
-          <li><code>with urllib.request.urlopen(request, timeout=120) as response</code> — запрос отправляется. Если n8n не ответит за 120 секунд, Python поднимет исключение. <code>with</code> закрывает соединение после чтения ответа.</li>
-          <li><code>sys.argv</code> — список слов командной строки, <code>sys.argv[1]</code> — первое слово после имени скрипта. Адрес передаётся при запуске, поэтому один и тот же <code>brain.py</code> отправляет и на тестовый, и на боевой адрес.</li>
-        </ul>
+{WK['send']}
         <p>В окне узла Webhook нажимаем <b>Listen for test event</b> — узел переходит в режим приёма. Сразу после этого в терминале из папки <code>agent/brain</code> запускаем:</p>
 {cmd('python brain.py http://localhost:5678/webhook-test/agent', 'python3 brain.py http://localhost:5678/webhook-test/agent', 'python3 brain.py http://localhost:5678/webhook-test/agent', 'терминал в папке agent/brain')}
 {out('терминал на macOS', OUT_TEST, 'python3 brain.py http://localhost:5678/webhook-test/agent')}

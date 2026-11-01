@@ -67,6 +67,9 @@ LIB = '<span data-os="win"><code>sentry_core.dll</code></span><span data-os="mac
 PYRUN = '<span data-os="win"><code>python brain.py</code></span><span data-os="mac linux"><code>python3 brain.py</code></span>'
 LAYOUT = cells([('pid', '0 · c_int64', 'w'), ('cpus', '8 · c_int32', 'w'), ('page_size', '12 · c_int32', 'w'), ('host', '16 · c_char × 256', 'w')])
 
+import walk12
+WK = walk12.build(hl_py, cells, V1, BRAIN)
+
 S = []
 
 S.append(f'''
@@ -190,13 +193,7 @@ S.append(f'''
         <h2 id="s4"><span class="sec">§4</span>Шаг 3. Загрузить библиотеку</h2>
         <p>Создаём файл <code>agent/brain/brain.py</code>. В первой версии он только загружает библиотеку и печатает, что получилось:</p>
 {pyfile('agent/brain/brain.py · шаг 3', V1)}
-        <p>Разбор по строкам.</p>
-        <ul>
-          <li><code>Path(__file__).resolve().parent.parent / "core"</code> — путь к папке ядра от места, где лежит сам <code>brain.py</code>: на уровень вверх из <code>brain</code> и в <code>core</code>. Так скрипт находит библиотеку, из какой бы папки его ни запустили.</li>
-          <li><code>sys.platform</code> — строка с названием системы: <code>win32</code>, <code>darwin</code> (macOS) или <code>linux</code>. По ней выбирается имя файла библиотеки; для Linux имя берётся по умолчанию из <code>.get</code>.</li>
-          <li><code>ctypes.CDLL(путь)</code> — загружает библиотеку в процесс и возвращает объект, через который доступны её функции. <code>CDLL</code> вызывает функции по обычному соглашению C. Путь передаётся строкой, поэтому <code>Path</code> обёрнут в <code>str</code>.</li>
-          <li><code>core.core_get_info</code> — функция ищется в таблице экспорта при первом обращении к имени. Если имени нет, Python сообщит <code>AttributeError</code>.</li>
-        </ul>
+{WK['v1']}
         <p>Запускаем из папки <code>agent/brain</code>:</p>
 {cmd('cd ..\\brain\npython brain.py', 'cd ../brain\npython3 brain.py', 'cd ../brain\npython3 brain.py')}
 {shot('03-load', dict(
@@ -316,13 +313,8 @@ S.append(f'''
         <h2 id="s9"><span class="sec">§9</span>Шаг 8. Собрать brain.py</h2>
         <p>Окончательная версия собирает шаги 3–7 в функцию <code>get_info</code>. Она возвращает словарь Python, а при коде ошибки поднимает исключение <code>OSError</code> с кодом и текстом — так же поступают функции Python для работы с файлами. При запуске скрипт печатает первое сообщение агента в формате JSON:</p>
 {pyfile('agent/brain/brain.py · окончательная версия', BRAIN)}
-        <ul>
-          <li><code>error_text</code> — текст ошибки по коду, отдельно для Windows и для macOS и Linux.</li>
-          <li><code>raise OSError(err, error_text(err))</code> — код ядра становится исключением. Тот, кто вызывает <code>get_info</code>, обрабатывает его через <code>try</code>/<code>except OSError</code>.</li>
-          <li><code>info.host.decode("utf-8")</code> — имя из байтов в строку Python.</li>
-          <li><code>if __name__ == "__main__":</code> — блок выполняется, только когда <code>brain.py</code> запущен как программа. Если его подключат командой <code>import</code>, сообщение не печатается.</li>
-          <li><code>**get_info()</code> — поля словаря вставляются в сообщение рядом с <code>event</code> и <code>os</code>.</li>
-        </ul>
+        <p>Ниже тот же файл целиком по шагам: шаги 3–7 главы собраны в одном месте.</p>
+{WK['brain']}
 {shot('08-brain', dict(
     win=f'{M(1)} Сообщение <code>agent_started</code> в JSON: система <code>win32</code>, номер процесса, 4 процессора, страница 4096, имя <code>WIN11-LAB</code>.',
     mac=f'{M(1)} Функция <code>get_info</code>. {M(2)} Код ошибки становится исключением. {M(3)} Сообщение <code>agent_started</code> в JSON с системой <code>darwin</code>.',

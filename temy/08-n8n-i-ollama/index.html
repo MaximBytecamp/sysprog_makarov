@@ -188,12 +188,39 @@ npx n8n</pre>
         status, body = <span class="f">send</span>(message, sys.argv[<span class="n">1</span>])
         <span class="f">print</span>(<span class="s">&quot;n8n:&quot;</span>, status, body)</pre>
         </figure>
-        <ul>
-          <li><code>json.dumps(...).encode("utf-8")</code> — словарь превращается в текст JSON, текст — в байты UTF-8: по сети передаются байты. <code>ensure_ascii=False</code> оставляет русские буквы как есть.</li>
-          <li><code>urllib.request.Request(url, data=..., method="POST", headers=...)</code> — описание запроса: адрес, тело, метод и заголовок <code>Content-Type: application/json</code>. По заголовку n8n разбирает тело как JSON.</li>
-          <li><code>with urllib.request.urlopen(request, timeout=120) as response</code> — запрос отправляется. Если n8n не ответит за 120 секунд, Python поднимет исключение. <code>with</code> закрывает соединение после чтения ответа.</li>
-          <li><code>sys.argv</code> — список слов командной строки, <code>sys.argv[1]</code> — первое слово после имени скрипта. Адрес передаётся при запуске, поэтому один и тот же <code>brain.py</code> отправляет и на тестовый, и на боевой адрес.</li>
-        </ul>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор brain.py · send по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Отправить сообщение агента в n8n по сети. Ядро и мозг работают на компьютере, а сценарий n8n — отдельная программа; связь между ними — запрос HTTP на адрес вебхука.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>brain.py</b><small>словарь agent_started</small></span><span><b>JSON → байты</b><small>json.dumps, encode</small></span><span><b>POST по HTTP</b><small>urllib.request</small></span><span><b>n8n</b><small>вебхук /agent → модель → письмо</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">def</span> <span class="f">send</span>(message, url):
+    data = json.<span class="f">dumps</span>(message, ensure_ascii=<span class="k">False</span>).<span class="f">encode</span>(<span class="s">&quot;utf-8&quot;</span>)
+    request = urllib.request.<span class="f">Request</span>(url, data=data, method=<span class="s">&quot;POST&quot;</span>,
+                                     headers={<span class="s">&quot;Content-Type&quot;</span>: <span class="s">&quot;application/json&quot;</span>})
+    with urllib.request.<span class="f">urlopen</span>(request, timeout=<span class="n">120</span>) as response:
+        <span class="k">return</span> response.status, response.<span class="f">read</span>().<span class="f">decode</span>(<span class="s">&quot;utf-8&quot;</span>)
+
+
+<span class="k">if</span> __name__ == <span class="s">&quot;__main__&quot;</span>:
+    message = {<span class="s">&quot;event&quot;</span>: <span class="s">&quot;agent_started&quot;</span>, <span class="s">&quot;os&quot;</span>: sys.platform, **<span class="f">get_info</span>()}
+    <span class="f">print</span>(json.<span class="f">dumps</span>(message, ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+    <span class="k">if</span> <span class="f">len</span>(sys.argv) &gt; <span class="n">1</span>:
+        status, body = <span class="f">send</span>(message, sys.argv[<span class="n">1</span>])
+        <span class="f">print</span>(<span class="s">&quot;n8n:&quot;</span>, status, body)</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1"><b>Функция с двумя параметрами</b><p><code>def send(message, url):</code> — своя функция. <code>message</code> — словарь с данными агента, <code>url</code> — адрес вебхука, куда отправлять.</p><p class="like">Конверт и адрес на нём: что отправить и куда.</p></li>
+              <li data-lines="2"><b>Словарь → текст → байты</b><p>Строка делает два превращения подряд:</p><ul class="words"><li><code>json.dumps(message, ensure_ascii=False)</code> — словарь в текст JSON, русские буквы остаются буквами;</li><li><code>.encode("utf-8")</code> — текст в байты UTF-8. По сети передаются байты.</li></ul><p><code>{"event": "agent_started", …}</code> → <code>b'{"event": "agent_started", …}'</code></p><p class="like">Письмо сначала пишут, потом запечатывают в конверт. Почта возит конверты.</p></li>
+              <li data-lines="3-4"><b>Описать запрос</b><p><code>urllib.request.Request(…)</code> собирает запрос, но ещё не отправляет его:</p><ul class="words"><li><code>url</code> — куда;</li><li><code>data=data</code> — тело запроса, те самые байты;</li><li><code>method="POST"</code> — метод «принять данные». Вебхук в n8n настроен на POST;</li><li><code>headers={"Content-Type": "application/json"}</code> — заголовок: «в теле JSON». По нему n8n разбирает тело в поле <code>body</code>.</li></ul><p class="like">Бланк заказного письма: адрес, вложение и пометка «внутри документы».</p></li>
+              <li data-lines="5"><b>Отправить и дождаться ответа</b><p><code>urllib.request.urlopen(request, timeout=120)</code> отправляет запрос. Если n8n не ответит за 120 секунд, Python поднимет исключение.</p><p><code>with … as response:</code> — ответ доступен под именем <code>response</code> внутри блока. После блока соединение закрывается само.</p></li>
+              <li data-lines="6"><b>Вернуть код и текст ответа</b><p><code>response.status</code> — код ответа HTTP: 200 значит «принято». <code>response.read().decode("utf-8")</code> — тело ответа из байтов в строку, у n8n это <code>Workflow was started</code>.</p><p>Функция возвращает сразу два значения через запятую.</p><p class="like">Квитанция о вручении: отметка «вручено» и подпись получателя.</p></li>
+              <li data-lines="9-11"><b>Собрать и напечатать сообщение</b><p>Блок запуска из главы 1.2 без изменений: словарь <code>agent_started</code> со сведениями от ядра и его печать в JSON.</p></li>
+              <li data-lines="12-14"><b>Отправить, если адрес передан</b><ul class="words"><li><code>sys.argv</code> — список слов командной строки: <code>["brain.py", "http://localhost:5678/…"]</code>;</li><li><code>len(sys.argv) &gt; 1</code> — «после имени скрипта есть ещё слово»;</li><li><code>status, body = send(…)</code> — два значения функции раскладываются в две переменные.</li></ul><p>Без адреса скрипт только печатает сообщение, как в главе 1.2. С адресом — отправляет и печатает ответ n8n.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <p>В окне узла Webhook нажимаем <b>Listen for test event</b> — узел переходит в режим приёма. Сразу после этого в терминале из папки <code>agent/brain</code> запускаем:</p>
         <figure class="code" data-os="win">
           <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>

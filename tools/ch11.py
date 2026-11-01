@@ -109,6 +109,9 @@ for ch in 'WIN11-LAB':
     HOST_WIN += [(ch, f'{ord(ch):02x}', ''), ('', '00', 'gap')]
 HOST_WIN += [('\\0', '00', 'z'), ('', '00', 'z')]
 
+import walk11
+WK = walk11.build(hl, src, cells)
+
 S = {}
 
 # ─────────────────────────────── §1 ───────────────────────────────
@@ -195,6 +198,8 @@ S['s2'] = f'''
         <p>Каждая переменная в C занимает в памяти определённое число байт, и это число задаёт её <span class="term">тип</span>. Стандарт языка C задаёт для части типов только нижнюю границу: <code>int</code> — не меньше 2 байт, <code>long</code> — не меньше 4. Точный размер выбирают создатели компилятора и системы. Структуру, заполненную системой, читают байт за байтом. Поэтому размер каждого поля в программе должен совпадать с тем, что записала система.</p>
         <p>Размер типа в байтах возвращает оператор <code>sizeof</code>. Создаём в VS Code папку <code>pair02</code>, в ней файл <code>sizes.c</code> и вставляем код:</p>
 {code('sizes.c')}
+{WK['sizes_win']}
+{WK['sizes_posix']}
         <p>Формат <code>%zu</code> в <code>printf</code> печатает значение типа <code>size_t</code> — его возвращает <code>sizeof</code>. <span data-os="win">Кроме общих типов C, программа измеряет три типа Windows из <code>windows.h</code>. <code>DWORD</code> — число, которое возвращает <code>GetCurrentProcessId</code>. <code>WCHAR</code> — одна буква строки Windows. <code>HANDLE</code> — дескриптор объекта ядра из ЛР 1.</span><span data-os="mac linux">Тип <code>pid_t</code> из <code>sys/types.h</code> — тот, что возвращает <code>getpid</code>.</span> Собираем и запускаем:</p>
 {cmd('cl /nologo /W4 sizes.c && sizes.exe', 'clang -Wall -Wextra -o sizes sizes.c && ./sizes', 'gcc -Wall -Wextra -o sizes sizes.c && ./sizes')}
         <p>Ключи <span data-os="win"><code>/W4</code></span><span data-os="mac linux"><code>-Wall -Wextra</code></span> включают предупреждения компилятора. Они понадобятся в шаге 8; включать их стоит с первой программы.</p>
@@ -226,6 +231,8 @@ S['s3'] = f'''
 {per(win='<p>В Windows так устроена функция <code>GetNativeSystemInfo</code>: она заполняет структуру <code>SYSTEM_INFO</code> — число процессоров, размер страницы памяти, архитектуру процессора. Файл <code>sysname.c</code>:</p>',
      maclinux='<p>В POSIX так устроена функция <code>uname</code>: она заполняет структуру <code>struct utsname</code> — имя системы, версию ядра, тип процессора и имя компьютера. Файл <code>sysname.c</code>:</p>')}
 {code('sysname.c')}
+{WK['sysname_win']}
+{WK['sysname_posix']}
 {per(win='<p>Объявление <code>SYSTEM_INFO si;</code> выделяет память под структуру, но поля в ней пока не заданы. Вызов <code>GetNativeSystemInfo(&amp;si)</code> передаёт адрес <code>si</code>, и функция заполняет поля. Функция ничего не возвращает: получить сведения о процессоре она может всегда.</p>',
      maclinux='<p>Объявление <code>struct utsname u;</code> выделяет память под структуру, но поля в ней пока не заданы. Вызов <code>uname(&amp;u)</code> передаёт адрес <code>u</code>, и функция заполняет поля. При успехе она возвращает 0, при ошибке −1 — поэтому вызов стоит внутри <code>if</code>, а функция <code>perror</code> печатает причину ошибки.</p>')}
 {cmd('cl /nologo /W4 sysname.c && sysname.exe', 'clang -Wall -Wextra -o sysname sysname.c && ./sysname', 'gcc -Wall -Wextra -o sysname sysname.c && ./sysname')}
@@ -277,6 +284,8 @@ S['s4'] = f'''
 {per(win='<p>В Windows у строк два вида. Функции с окончанием <code>A</code> работают с однобайтовой кодировкой, функции с окончанием <code>W</code> — с UTF-16, где буква занимает 2 байта (тип <code>WCHAR</code>). Внутри Windows строки хранятся в UTF-16, поэтому в курсе используются функции <code>W</code>. Ядро агента отдаёт строки в UTF-8, как macOS и Linux, и переводит их функцией <code>WideCharToMultiByte</code>.</p><p>Программа <code>hostbuf.c</code> получает имя компьютера функцией <code>GetComputerNameW</code>, печатает байты строки в UTF-16 и в UTF-8, а затем просит имя в буфер на 4 буквы:</p>',
      maclinux='<p>Программа <code>hostbuf.c</code> получает имя компьютера функцией <code>gethostname</code> в буфер на 256 байт и печатает байты строки в шестнадцатеричном виде функцией <code>dump</code>. Затем она просит то же имя в буфер на 4 байта <code>tiny</code>. Перед вызовом <code>memset</code> заполняет <code>tiny</code> буквами <code>X</code>, чтобы было видно, какие байты записала функция.</p>')}
 {code('hostbuf.c')}
+{WK['hostbuf_win']}
+{WK['hostbuf_posix']}
 {cmd('cl /nologo /W4 hostbuf.c && hostbuf.exe', 'clang -Wall -Wextra -o hostbuf hostbuf.c && ./hostbuf', 'gcc -Wall -Wextra -o hostbuf hostbuf.c && ./hostbuf')}
         <div class="margin-note margin-note--warn" data-os="win">
           <b>Имя small в Windows занято</b>
@@ -319,6 +328,9 @@ S['s5'] = f'''
      mac='<p>Программа <code>errors.c</code> открывает три файла функцией <code>open</code>: <code>/etc/hosts</code>, который может читать любой пользователь, несуществующий файл и <code>/etc/sudoers</code> — настройки команды <code>sudo</code>, которые читает только администратор. При неудаче программа сразу сохраняет <code>errno</code> в переменную <code>code</code>, а функция <code>strerror</code> переводит код в текст.</p>',
      linux='<p>Программа <code>errors.c</code> открывает три файла функцией <code>open</code>: <code>/etc/hosts</code>, который может читать любой пользователь, несуществующий файл и <code>/etc/shadow</code> — хэши паролей, которые читает только администратор. При неудаче программа сразу сохраняет <code>errno</code> в переменную <code>code</code>, а функция <code>strerror</code> переводит код в текст.</p>')}
 {code('errors.c', ('win', 'mac', 'linux'))}
+{WK['errors_win']}
+{WK['errors_mac']}
+{WK['errors_linux']}
 {cmd('cl /nologo /W4 errors.c && errors.exe', 'clang -Wall -Wextra -o errors errors.c && ./errors', 'gcc -Wall -Wextra -o errors errors.c && ./errors')}
 {shot('04-errors', dict(
     win=f'<code>win.ini</code> открыт, получен дескриптор. {M(1)} Несуществующий файл — ошибка 2. {M(2)} <code>SAM</code> — ошибка 5.',
@@ -352,6 +364,7 @@ S['s6'] = f'''
         <h2 id="s6"><span class="sec">§6</span>Шаг 5. Описать свою структуру</h2>
         <p>Функции ядра понадобятся и программе на C, и мозгу агента на Python. Поэтому объявление структуры и функции выносится в отдельный <span class="term">заголовочный файл</span> <code>core.h</code>. Другие файлы подключают его строкой <code>#include "core.h"</code> — кавычки вместо угловых скобок означают, что файл ищется сначала в папке рядом с исходником. Строки <code>#ifndef CORE_H</code>, <code>#define CORE_H</code> и <code>#endif</code> не дают подключить файл дважды. Файл одинаков для трёх систем:</p>
 {code('core.h', ('win mac linux',))}
+{WK['core_h']}
         <p>Поля выбраны по шагам 1–4. Номер процесса и два числа объявлены типами точного размера, поэтому структура занимает одинаково байт на всех системах. Имя компьютера хранится в буфере на 256 байт: <code>CORE_HOST_MAX</code> задан через <code>#define</code>, и размер меняется в одном месте. Последняя строка — <span class="term">объявление функции</span>: её имя, тип результата и параметр — адрес структуры. Сама функция будет в следующем файле.</p>
         <p>Порядок полей подобран так, чтобы между ними не было пропусков. Компилятор выравнивает поля: 8-байтовое число он ставит на адрес, кратный 8. Два поля по 4 байта сразу после <code>pid</code> заполняют следующие 8 байт, и структура занимает 8 + 4 + 4 + 256 = 272 байта без пустых мест:</p>
         {LAYOUT}
@@ -369,16 +382,9 @@ S['s7'] = f'''
         <h2 id="s7"><span class="sec">§7</span>Шаг 6. Написать функцию ядра</h2>
         <p>Функция <code>core_get_info</code> собирает приёмы шагов 1–4. Она получает адрес структуры, вызывает системные функции и записывает их ответы в поля. Результат функции — код ошибки: 0, если всё получилось, иначе код системы. Файл <code>core_info.c</code>:</p>
 {code('core_info.c')}
-        <p>Разбор по строкам.</p>
-        <ul>
-          <li><code>if (out == NULL)</code> — проверка адреса. <code>NULL</code> — нулевой указатель, «адреса нет». Если вызвать функцию с ним и писать в <code>out-&gt;pid</code>, программа упадёт. Функция возвращает код <span data-os="win"><code>ERROR_INVALID_PARAMETER</code> (87)</span><span data-os="mac linux"><code>EINVAL</code> (22)</span> — «неверный параметр».</li>
-          <li><code><span data-os="win">ZeroMemory</span><span data-os="mac linux">memset</span>(out, 0, sizeof *out)</code> — заполняет все 272 байта структуры нулями. После объявления в полях лежит то, что раньше было в этой памяти. Без обнуления при ошибке в поле <code>host</code> остался бы мусор. <code>sizeof *out</code> — размер того, на что указывает <code>out</code>, то есть всей структуры.</li>
-          <li><code>out-&gt;pid</code> — запись в поле структуры по адресу. Стрелка <code>-&gt;</code> используется, когда есть указатель на структуру: <code>out-&gt;pid</code> значит то же, что <code>(*out).pid</code>. Точка — когда есть сама структура, как <code>u.sysname</code> в шаге 2.</li>
-          <li data-os="mac linux"><code>sysconf(_SC_NPROCESSORS_ONLN)</code> и <code>sysconf(_SC_PAGESIZE)</code> — функция POSIX, которая возвращает настройки системы по имени: число работающих процессоров и размер страницы. Она возвращает <code>long</code>, поэтому результат явно приводится к <code>int32_t</code>: запись <code>(int32_t)</code> перед значением показывает, что сужение типа сделано намеренно.</li>
-          <li data-os="win"><code>GetNativeSystemInfo(&amp;si)</code> — структура из шага 2; из неё берутся два поля, <code>dwNumberOfProcessors</code> и <code>dwPageSize</code>. Они типа <code>DWORD</code>, поэтому при записи в поле <code>int32_t</code> стоит явное приведение <code>(int32_t)</code>.</li>
-          <li data-os="mac linux"><code>gethostname(out-&gt;host, sizeof out-&gt;host)</code> — имя в буфер структуры вместе с его размером. При ошибке функция сразу возвращает <code>errno</code>. Следующая строка ставит ноль в последний байт буфера — правило из шага 3 на случай, если система обрезала имя без нуля.</li>
-          <li data-os="win"><code>GetComputerNameW(name, &amp;len)</code> — имя в UTF-16 во временный буфер <code>name</code>; при ошибке функция возвращает <code>GetLastError()</code>. Затем <code>WideCharToMultiByte(CP_UTF8, …)</code> переводит имя в UTF-8 прямо в <code>out-&gt;host</code>. Параметр <code>-1</code> означает «длина — до нуля», и ноль тоже копируется.</li>
-        </ul>
+        <p>Ниже та же функция по шагам: какие строки что делают и что после них лежит в структуре.</p>
+{WK['core_info_win']}
+{WK['core_info_posix']}
         <p>В функции нет <code>printf</code>. Ядро агента ничего не печатает, оно возвращает данные и код. Что с ними делать, определяет вызывающая программа: в этой главе — проверочная программа на C, в агенте — мозг на Python.</p>
 {shot('06-core-info', dict(
     mac=f'Файл <code>core_info.c</code>. {M(1)} Заголовок функции: параметр — адрес структуры. {M(2)} Запись трёх числовых полей через <code>-&gt;</code>. {M(3)} Возврат кода ошибки системы.',
@@ -393,6 +399,7 @@ S['s8'] = f'''
         <h2 id="s8"><span class="sec">§8</span>Шаг 7. Проверить функцию программой</h2>
         <p>Программа <code>show_info.c</code> вызывает функцию так же, как будет вызывать мозг агента: объявляет структуру, передаёт её адрес, проверяет код и печатает поля. Для полей точного размера используются макросы формата из <code>inttypes.h</code>: <code>PRId64</code> — формат для <code>int64_t</code>, <code>PRId32</code> — для <code>int32_t</code>. На каждой системе они раскрываются в свой формат, например <code>"lld"</code> или <code>"ld"</code>.</p>
 {code('show_info.c', ('win mac linux',))}
+{WK['show_info']}
         <p>Программа собирается из двух файлов: компилятор собирает каждый, а компоновщик соединяет вызов <code>core_get_info</code> в <code>show_info.c</code> с самой функцией из <code>core_info.c</code>.</p>
 {cmd('cl /nologo /W4 show_info.c core_info.c && show_info.exe', 'clang -Wall -Wextra -o show_info show_info.c core_info.c && ./show_info', 'gcc -Wall -Wextra -o show_info show_info.c core_info.c && ./show_info')}
 {shot('07-info', dict(

@@ -152,6 +152,69 @@
     <span class="k">return</span> <span class="n">0</span>;
 }</pre>
         </figure>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор sizes.c по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Показать, сколько байт занимает каждый тип на своей системе. Эти числа нужны, чтобы в шаге 5 описать структуру ядра, которая одинаково читается на трёх системах.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>типы C и Windows</b><small>long, DWORD, WCHAR…</small></span><span><b>sizes.c</b><small>sizeof каждого</small></span><span><b>числа</b><small>long = 4 байта</small></span><span><b>core.h</b><small>поля int64_t и int32_t</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdint.h&gt;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">printf</span>(<span class="s">&quot;char     %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">char</span>));
+    <span class="f">printf</span>(<span class="s">&quot;int      %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">int</span>));
+    <span class="f">printf</span>(<span class="s">&quot;long     %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">long</span>));
+    <span class="f">printf</span>(<span class="s">&quot;void *   %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">void</span> *));
+    <span class="f">printf</span>(<span class="s">&quot;int64_t  %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">int64_t</span>));
+    <span class="f">printf</span>(<span class="s">&quot;DWORD    %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">DWORD</span>));
+    <span class="f">printf</span>(<span class="s">&quot;WCHAR    %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">WCHAR</span>));
+    <span class="f">printf</span>(<span class="s">&quot;HANDLE   %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">HANDLE</span>));
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-3"><b>Подключить заголовочные файлы</b><p>Строка <code>#include &lt;windows.h&gt;</code> вставляет в программу объявления из файла <code>windows.h</code>. Без него компилятор не знает типов Windows.</p><ul class="words"><li><code>windows.h</code> — типы и функции WinAPI: <code>DWORD</code>, <code>WCHAR</code>, <code>HANDLE</code>;</li><li><code>stdio.h</code> — ввод и вывод, здесь нужен ради <code>printf</code>;</li><li><code>stdint.h</code> — типы точного размера, например <code>int64_t</code>.</li></ul><p class="like">Заголовочный файл — оглавление справочника. В нём записано, какие функции и типы есть и как их вызывать. Сами функции лежат в библиотеках системы.</p></li>
+              <li data-lines="5"><b>Начать главную функцию</b><p>Строка <code>int main(void) {</code> начинает функцию <code>main</code>. С неё система запускает любую программу на C. Разбор по словам:</p><ul class="words"><li><code>int</code> — функция вернёт целое число, код завершения программы;</li><li><code>main</code> — имя функции, его ищет компилятор;</li><li><code>(void)</code> — функция ничего не принимает;</li><li><code>{</code> — начало тела функции, конец — <code>}</code> в последней строке.</li></ul><p class="like">Функция похожа на рецепт: у него есть название, список того, что нужно на входе, и шаги. <code>main</code> — рецепт, с которого начинают готовить.</p></li>
+              <li data-lines="6-10"><b>Напечатать размеры общих типов C</b><p>Каждая из этих строк печатает одну строку вывода: название типа и его размер в байтах.</p><ul class="words"><li><code>printf(…)</code> — функция печати из <code>stdio.h</code>;</li><li><code>"char     %zu\n"</code> — шаблон строки. Текст печатается как есть, вместо <code>%zu</code> подставляется число, <code>\n</code> — перевод строки;</li><li><code>sizeof(char)</code> — оператор, который считает размер типа в байтах ещё при сборке программы. Результат имеет тип <code>size_t</code>, поэтому в шаблоне стоит формат <code>%zu</code>.</li></ul><p>Строки одинаковые, меняется только тип в скобках. Что получается в 64-битной Windows:</p><div class="bytes "><span class=""><i>char</i><small>1</small></span><span class=""><i>int</i><small>4</small></span><span class="x"><i>long</i><small>4</small></span><span class=""><i>void *</i><small>8</small></span><span class=""><i>int64_t</i><small>8</small></span></div><p class="like"><code>sizeof</code> — линейка. Её прикладывают к типу и читают число делений. Деления — байты.</p></li>
+              <li data-lines="11-13"><b>Напечатать размеры типов Windows</b><ul class="words"><li><code>DWORD</code> — 4 байта, беззнаковое число. Его возвращает <code>GetCurrentProcessId</code> и многие другие функции WinAPI;</li><li><code>WCHAR</code> — 2 байта, одна буква строки Windows в UTF-16;</li><li><code>HANDLE</code> — 8 байт, дескриптор объекта ядра из ЛР 1. По размеру он равен адресу.</li></ul><p class="like">Это внутренние меры одной фирмы. Чтобы обмениваться с другими, их переводят в общие сантиметры — типы точного размера.</p></li>
+              <li data-lines="8"><b>Строка, ради которой нужна программа</b><p>В Windows <code>long</code> занимает 4 байта, на macOS и Linux — 8. Остальные общие типы на трёх системах дают одинаковые числа. Это расхождение и объясняет, почему в структуре ядра поля объявлены типами <code>int64_t</code> и <code>int32_t</code>, у которых размер записан прямо в названии.</p><p class="like">Размер «L» у одежды разных фирм разный, а сантиметры одинаковые. <code>long</code> — это «L», <code>int64_t</code> — сантиметры.</p></li>
+              <li data-lines="14-15"><b>Завершить программу</b><p><code>return 0;</code> заканчивает функцию <code>main</code> и отдаёт системе код завершения 0 — «всё прошло без ошибок». Закрывающая скобка <code>}</code> — конец тела функции.</p><p>Код завершения видно после запуска командой <code>echo %errorlevel%</code>: она печатает 0.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="mac linux">
+          <p class="trace__head"><span>Разбор sizes.c по шагам</span><span>macOS и Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Показать, сколько байт занимает каждый тип на своей системе. Эти числа нужны, чтобы в шаге 5 описать структуру ядра, которая одинаково читается на трёх системах.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>типы C</b><small>char, int, long…</small></span><span><b>sizes.c</b><small>sizeof каждого</small></span><span><b>числа</b><small>1, 4, 8, 8, 8, 4</small></span><span><b>core.h</b><small>поля int64_t и int32_t</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdint.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;sys/types.h&gt;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">printf</span>(<span class="s">&quot;char     %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">char</span>));
+    <span class="f">printf</span>(<span class="s">&quot;int      %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">int</span>));
+    <span class="f">printf</span>(<span class="s">&quot;long     %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">long</span>));
+    <span class="f">printf</span>(<span class="s">&quot;void *   %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="k">void</span> *));
+    <span class="f">printf</span>(<span class="s">&quot;int64_t  %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">int64_t</span>));
+    <span class="f">printf</span>(<span class="s">&quot;pid_t    %zu\n&quot;</span>, <span class="k">sizeof</span>(<span class="t">pid_t</span>));
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-3"><b>Подключить заголовочные файлы</b><p>Строка <code>#include &lt;stdio.h&gt;</code> вставляет в программу объявления из файла <code>stdio.h</code>. Без него компилятор не знает, что такое <code>printf</code>.</p><ul class="words"><li><code>stdio.h</code> — ввод и вывод, здесь нужен ради <code>printf</code>;</li><li><code>stdint.h</code> — типы точного размера, например <code>int64_t</code>;</li><li><code>sys/types.h</code> — системные типы POSIX, например <code>pid_t</code>.</li></ul><p class="like">Заголовочный файл — оглавление справочника. В нём записано, какие функции и типы есть и как их вызывать. Сами функции лежат в библиотеке системы.</p></li>
+              <li data-lines="5"><b>Начать главную функцию</b><p>Строка <code>int main(void) {</code> начинает функцию <code>main</code>. С неё система запускает любую программу на C. Разбор по словам:</p><ul class="words"><li><code>int</code> — функция вернёт целое число, код завершения программы;</li><li><code>main</code> — имя функции, его ищет компилятор;</li><li><code>(void)</code> — функция ничего не принимает;</li><li><code>{</code> — начало тела функции, конец — <code>}</code> в последней строке.</li></ul><p class="like">Функция похожа на рецепт: у него есть название, список того, что нужно на входе, и шаги. <code>main</code> — рецепт, с которого начинают готовить.</p></li>
+              <li data-lines="6-11"><b>Напечатать размеры шести типов</b><p>Каждая из этих строк печатает одну строку вывода: название типа и его размер в байтах.</p><ul class="words"><li><code>printf(…)</code> — функция печати из <code>stdio.h</code>;</li><li><code>"char     %zu\n"</code> — шаблон строки. Текст печатается как есть, вместо <code>%zu</code> подставляется число, <code>\n</code> — перевод строки;</li><li><code>sizeof(char)</code> — оператор, который считает размер типа в байтах ещё при сборке программы. Результат имеет тип <code>size_t</code>, поэтому в шаблоне стоит формат <code>%zu</code>.</li></ul><p>Строки одинаковые, меняется только тип в скобках. Что получается на macOS и Linux:</p><div class="bytes "><span class=""><i>char</i><small>1</small></span><span class=""><i>int</i><small>4</small></span><span class=""><i>long</i><small>8</small></span><span class=""><i>void *</i><small>8</small></span><span class=""><i>int64_t</i><small>8</small></span><span class=""><i>pid_t</i><small>4</small></span></div><p class="like"><code>sizeof</code> — линейка. Её прикладывают к типу и читают число делений. Деления — байты.</p></li>
+              <li data-lines="8"><b>Строка, ради которой нужна программа</b><p>На macOS и Linux <code>long</code> занимает 8 байт, в Windows — 4. Остальные строки на трёх системах дают одинаковые числа. Это расхождение и объясняет, почему в структуре ядра поля объявлены типами <code>int64_t</code> и <code>int32_t</code>, у которых размер записан прямо в названии.</p><p class="like">Размер «L» у одежды разных фирм разный, а сантиметры одинаковые. <code>long</code> — это «L», <code>int64_t</code> — сантиметры.</p></li>
+              <li data-lines="12-13"><b>Завершить программу</b><p><code>return 0;</code> заканчивает функцию <code>main</code> и отдаёт системе код завершения 0 — «всё прошло без ошибок». Закрывающая скобка <code>}</code> — конец тела функции.</p><p>Код завершения видно после запуска командой <code>echo $?</code>: она печатает 0.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <p>Формат <code>%zu</code> в <code>printf</code> печатает значение типа <code>size_t</code> — его возвращает <code>sizeof</code>. <span data-os="win">Кроме общих типов C, программа измеряет три типа Windows из <code>windows.h</code>. <code>DWORD</code> — число, которое возвращает <code>GetCurrentProcessId</code>. <code>WCHAR</code> — одна буква строки Windows. <code>HANDLE</code> — дескриптор объекта ядра из ЛР 1.</span><span data-os="mac linux">Тип <code>pid_t</code> из <code>sys/types.h</code> — тот, что возвращает <code>getpid</code>.</span> Собираем и запускаем:</p>
         <figure class="code" data-os="win">
           <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
@@ -244,6 +307,71 @@
     <span class="k">return</span> <span class="n">0</span>;
 }</pre>
         </figure>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор sysname.c по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Получить от системы сразу несколько сведений: число процессоров, размер страницы памяти и архитектуру процессора. Так же потом функция ядра агента будет получать сведения о компьютере.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>пустая структура</b><small>SYSTEM_INFO si</small></span><span><b>GetNativeSystemInfo</b><small>системная функция</small></span><span><b>заполненные поля</b><small>процессоры, страница</small></span><span><b>ядро агента</b><small>возьмёт cpus и page_size</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="t">SYSTEM_INFO</span> si;
+
+    <span class="f">GetNativeSystemInfo</span>(&amp;si);
+    <span class="f">printf</span>(<span class="s">&quot;processors   %lu\n&quot;</span>, si.dwNumberOfProcessors);
+    <span class="f">printf</span>(<span class="s">&quot;page size    %lu\n&quot;</span>, si.dwPageSize);
+    <span class="f">printf</span>(<span class="s">&quot;architecture %u\n&quot;</span>, si.wProcessorArchitecture);
+    <span class="f">printf</span>(<span class="s">&quot;sizeof       %zu\n&quot;</span>, <span class="k">sizeof</span> si);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-2"><b>Подключить заголовки</b><p><code>windows.h</code> нужен для структуры <code>SYSTEM_INFO</code> и функции <code>GetNativeSystemInfo</code>, <code>stdio.h</code> — для <code>printf</code>.</p></li>
+              <li data-lines="5"><b>Объявить пустую структуру</b><p><code>SYSTEM_INFO si;</code> выделяет в памяти функции <code>main</code> место под структуру и называет его <code>si</code>.</p><ul class="words"><li><code>SYSTEM_INFO</code> — тип: набор полей, описанный в заголовках Windows;</li><li><code>si</code> — имя переменной, его выбирает программист.</li></ul><p>Сразу после объявления в полях лежат старые байты этой памяти:</p><div class="bytes "><span class="w"><i>?</i><small>dwNumberOfProcessors</small></span><span class="w"><i>?</i><small>dwPageSize</small></span><span class="w"><i>?</i><small>wProcessorArchitecture</small></span></div><p class="like">Пустой бланк анкеты: графы напечатаны, но ничего не вписано.</p></li>
+              <li data-lines="7"><b>Передать системе адрес структуры</b><p>Вызов <code>GetNativeSystemInfo(&amp;si)</code> передаёт функции адрес структуры, а не её копию. <code>&amp;si</code> — «адрес переменной <code>si</code>», номер первого байта структуры в памяти.</p><p>Функция записывает ответы прямо в память <code>si</code>:</p><div class="bytes "><span class="w"><i>4</i><small>dwNumberOfProcessors</small></span><span class="w"><i>4096</i><small>dwPageSize</small></span><span class="w"><i>9</i><small>wProcessorArchitecture</small></span></div><p>Проверки результата нет: функция ничего не возвращает, сведения о процессоре она может получить всегда.</p><p class="like">Бланк кладут в окошко МФЦ, сотрудник вписывает данные в графы. Бланк остаётся тем же листом, только заполненным.</p></li>
+              <li data-lines="8-10"><b>Прочитать поля через точку</b><p><code>si.dwPageSize</code> — поле <code>dwPageSize</code> структуры <code>si</code>. Точка соединяет имя структуры и имя поля.</p><ul class="words"><li>приставка <code>dw</code> в имени поля означает тип <code>DWORD</code>, <code>w</code> — <code>WORD</code> (2 байта);</li><li><code>%lu</code> — формат для <code>DWORD</code>, <code>%u</code> — для меньших беззнаковых чисел.</li></ul><p class="like">Графа анкеты «Фамилия»: чтобы прочитать её, называют анкету и графу.</p></li>
+              <li data-lines="11-12"><b>Узнать размер всей структуры</b><p><code>sizeof si</code> — размер переменной <code>si</code> в байтах, 48. В macOS и Linux похожая структура <code>struct utsname</code> занимает 1280 и 390 байт. Поэтому структура ядра агента описывается своя, с одинаковой раскладкой на трёх системах.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="mac linux">
+          <p class="trace__head"><span>Разбор sysname.c по шагам</span><span>macOS и Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Получить от системы сразу несколько сведений: имя ядра, его версию, тип процессора и имя компьютера. Так же потом функция ядра агента будет получать сведения о компьютере.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>пустая структура</b><small>struct utsname u</small></span><span><b>uname(&amp;u)</b><small>системная функция</small></span><span><b>заполненные поля</b><small>ядро, версия, процессор</small></span><span><b>ядро агента</b><small>так же заполнит core_info</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;sys/utsname.h&gt;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="k">struct</span> utsname u;
+
+    <span class="k">if</span> (<span class="f">uname</span>(&amp;u) != <span class="n">0</span>) {
+        <span class="f">perror</span>(<span class="s">&quot;uname&quot;</span>);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;sysname  %s\n&quot;</span>, u.sysname);
+    <span class="f">printf</span>(<span class="s">&quot;release  %s\n&quot;</span>, u.release);
+    <span class="f">printf</span>(<span class="s">&quot;machine  %s\n&quot;</span>, u.machine);
+    <span class="f">printf</span>(<span class="s">&quot;nodename %s\n&quot;</span>, u.nodename);
+    <span class="f">printf</span>(<span class="s">&quot;sizeof   %zu\n&quot;</span>, <span class="k">sizeof</span> u);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-2"><b>Подключить заголовки</b><p><code>stdio.h</code> нужен для <code>printf</code> и <code>perror</code>, <code>sys/utsname.h</code> — для структуры <code>struct utsname</code> и функции <code>uname</code>.</p></li>
+              <li data-lines="5"><b>Объявить пустую структуру</b><p><code>struct utsname u;</code> выделяет в памяти функции <code>main</code> место под структуру и называет его <code>u</code>.</p><ul class="words"><li><code>struct utsname</code> — тип: набор полей, описанный в <code>sys/utsname.h</code>;</li><li><code>u</code> — имя переменной, его выбирает программист.</li></ul><p>Сразу после объявления в полях лежат старые байты этой памяти, их ещё никто не заполнил:</p><div class="bytes "><span class="w"><i>?</i><small>sysname</small></span><span class="w"><i>?</i><small>release</small></span><span class="w"><i>?</i><small>machine</small></span><span class="w"><i>?</i><small>nodename</small></span></div><p class="like">Пустой бланк анкеты: графы напечатаны, но ничего не вписано.</p></li>
+              <li data-lines="7"><b>Передать системе адрес структуры</b><p>Вызов <code>uname(&amp;u)</code> передаёт функции адрес структуры, а не её копию.</p><ul class="words"><li><code>&amp;u</code> — «адрес переменной <code>u</code>», номер первого байта структуры в памяти;</li><li><code>!= 0</code> — «не равно нулю». <code>uname</code> возвращает 0 при успехе и −1 при ошибке;</li><li><code>if (…) {</code> — блок в фигурных скобках выполнится, только если условие верно.</li></ul><p>Функция записывает ответы прямо в память <code>u</code>. Значения — с кадра macOS:</p><div class="bytes "><span class="w"><i>Darwin</i><small>sysname</small></span><span class="w"><i>25.1.0</i><small>release</small></span><span class="w"><i>arm64</i><small>machine</small></span><span class="w"><i>MacBook…</i><small>nodename</small></span></div><p class="like">Бланк кладут в окошко МФЦ, сотрудник вписывает данные в графы. Бланк остаётся тем же листом, только заполненным.</p></li>
+              <li data-lines="8-9"><b>Сообщить об ошибке и выйти</b><p>Эти строки выполняются, только если <code>uname</code> вернула не 0.</p><ul class="words"><li><code>perror("uname")</code> печатает слово <code>uname</code> и текст последней ошибки системы, например «Bad address»;</li><li><code>return 1;</code> завершает программу с кодом 1 — «что-то пошло не так».</li></ul><p>На практике <code>uname</code> почти не ошибается, но проверка нужна: так пишут каждый системный вызов.</p></li>
+              <li data-lines="11-14"><b>Прочитать поля через точку</b><p><code>u.sysname</code> — поле <code>sysname</code> структуры <code>u</code>. Точка соединяет имя структуры и имя поля. Формат <code>%s</code> печатает строку до завершающего нуля.</p><p class="like">Графа анкеты «Фамилия»: чтобы прочитать её, называют анкету и графу.</p></li>
+              <li data-lines="15-16"><b>Узнать размер всей структуры</b><p><code>sizeof u</code> — размер переменной <code>u</code> в байтах. На macOS 1280: пять полей по 256 байт. На Linux 390: шесть полей по 65 байт. Одна и та же структура на двух системах устроена по-разному. Поэтому структура ядра агента описывается своя, с одинаковой раскладкой.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <div data-os="win"><p>Объявление <code>SYSTEM_INFO si;</code> выделяет память под структуру, но поля в ней пока не заданы. Вызов <code>GetNativeSystemInfo(&amp;si)</code> передаёт адрес <code>si</code>, и функция заполняет поля. Функция ничего не возвращает: получить сведения о процессоре она может всегда.</p></div>
         <div data-os="mac linux"><p>Объявление <code>struct utsname u;</code> выделяет память под структуру, но поля в ней пока не заданы. Вызов <code>uname(&amp;u)</code> передаёт адрес <code>u</code>, и функция заполняет поля. При успехе она возвращает 0, при ошибке −1 — поэтому вызов стоит внутри <code>if</code>, а функция <code>perror</code> печатает причину ошибки.</p></div>
         <figure class="code" data-os="win">
@@ -368,6 +496,98 @@
     <span class="k">return</span> <span class="n">0</span>;
 }</pre>
         </figure>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор hostbuf.c по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Увидеть, как строка лежит в памяти байт за байтом в UTF-16 и в UTF-8, и что происходит, когда буфер для неё мал. Ядро агента будет класть имя компьютера в буфер, и от этого шага зависит, не прочитает ли оно чужую память.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>буфер UTF-16</b><small>WCHAR name[16]</small></span><span><b>GetComputerNameW</b><small>адрес + размер</small></span><span><b>UTF-8</b><small>WideCharToMultiByte</small></span><span><b>ядро агента</b><small>поле host[256]</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">dump</span>(<span class="k">const</span> <span class="k">void</span> *p, <span class="t">size_t</span> n) {
+    <span class="k">const</span> <span class="k">unsigned</span> <span class="k">char</span> *b = p;
+    <span class="k">for</span> (<span class="t">size_t</span> i = <span class="n">0</span>; i &lt; n; i++)
+        <span class="f">printf</span>(<span class="s">&quot;%02x &quot;</span>, b[i]);
+    <span class="f">printf</span>(<span class="s">&quot;\n&quot;</span>);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="t">WCHAR</span> name[MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>];
+    <span class="t">DWORD</span> len = MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>;
+    <span class="k">char</span> utf8[<span class="n">64</span>];
+    <span class="t">WCHAR</span> tiny[<span class="n">4</span>];
+    <span class="t">DWORD</span> tiny_len = <span class="n">4</span>;
+
+    <span class="f">GetComputerNameW</span>(name, &amp;len);
+    <span class="f">printf</span>(<span class="s">&quot;WCHAR: %lu characters\n&quot;</span>, len);
+    <span class="f">dump</span>(name, (len + <span class="n">1</span>) * <span class="k">sizeof</span>(<span class="t">WCHAR</span>));
+
+    <span class="f">WideCharToMultiByte</span>(CP_UTF8, <span class="n">0</span>, name, -<span class="n">1</span>, utf8, <span class="k">sizeof</span> utf8, NULL, NULL);
+    <span class="f">printf</span>(<span class="s">&quot;UTF-8: \&quot;%s\&quot;, length %zu\n&quot;</span>, utf8, <span class="f">strlen</span>(utf8));
+    <span class="f">dump</span>(utf8, <span class="f">strlen</span>(utf8) + <span class="n">1</span>);
+
+    <span class="k">if</span> (!<span class="f">GetComputerNameW</span>(tiny, &amp;tiny_len))
+        <span class="f">printf</span>(<span class="s">&quot;tiny: error %lu, needed %lu\n&quot;</span>, <span class="f">GetLastError</span>(), tiny_len);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="5-10"><b>Своя функция dump</b><p>Вспомогательная функция печатает байты в шестнадцатеричном виде.</p><ul class="words"><li><code>const void *p</code> — адрес чего угодно: строки UTF-16 или UTF-8;</li><li><code>const unsigned char *b = p;</code> — тот же адрес, но читать по нему байты как числа 0–255;</li><li><code>for (size_t i = 0; i &lt; n; i++)</code> повторяет печать для <code>i</code> = 0, 1, 2 … до <code>n − 1</code>;</li><li><code>%02x</code> — две шестнадцатеричные цифры: <code>57</code>, <code>00</code>.</li></ul><p class="like">Палец идёт по ряду ячеек камеры хранения и называет номер в каждой.</p></li>
+              <li data-lines="13-17"><b>Буферы и их размеры</b><ul class="words"><li><code>WCHAR name[MAX_COMPUTERNAME_LENGTH + 1]</code> — массив букв UTF-16 на 16 букв: 15 на имя и одна на ноль;</li><li><code>DWORD len</code> — размер буфера. Функция прочитает его и запишет сюда длину имени;</li><li><code>char utf8[64]</code> — буфер для того же имени в UTF-8;</li><li><code>WCHAR tiny[4]</code> и <code>tiny_len = 4</code> — маленький буфер для опыта.</li></ul><p class="like">Коробка для письма и бумажка с её размером. Почта читает бумажку и пишет на ней, сколько места понадобилось.</p></li>
+              <li data-lines="19-21"><b>Имя в UTF-16</b><p><code>GetComputerNameW(name, &amp;len)</code> пишет имя в <code>name</code>. Второй параметр — адрес <code>len</code>: функция читает из него размер буфера и записывает туда длину имени, 9.</p><p><code>(len + 1) * sizeof(WCHAR)</code> — сколько байт печатать: 10 букв по 2 байта.</p><div class="bytes "><span class=""><i>W</i><small>57</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>I</i><small>49</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>N</i><small>4e</small></span><span class="gap"><i></i><small>00</small></span><span class=""><i>…</i><small></small></span><span class="z"><i>\0</i><small>00</small></span><span class="z"><i></i><small>00</small></span></div><p>У латинской буквы второй байт нулевой (пунктир), конец строки — два нулевых байта.</p></li>
+              <li data-lines="23-25"><b>Перевести имя в UTF-8</b><p><code>WideCharToMultiByte(CP_UTF8, 0, name, -1, utf8, sizeof utf8, NULL, NULL)</code> переводит строку из UTF-16 в UTF-8.</p><ul class="words"><li><code>CP_UTF8</code> — в какую кодировку;</li><li><code>name, -1</code> — откуда, длина «до нуля»;</li><li><code>utf8, sizeof utf8</code> — куда и сколько там места;</li><li>два <code>NULL</code> — параметры, которые для UTF-8 не используются.</li></ul><div class="bytes "><span class=""><i>W</i><small>57</small></span><span class=""><i>I</i><small>49</small></span><span class=""><i>N</i><small>4e</small></span><span class=""><i>1</i><small>31</small></span><span class=""><i>1</i><small>31</small></span><span class=""><i>-</i><small>2d</small></span><span class=""><i>L</i><small>4c</small></span><span class=""><i>A</i><small>41</small></span><span class=""><i>B</i><small>42</small></span><span class="z"><i>\0</i><small>00</small></span></div><p class="like">Тот же текст, переписанный из широкой тетради в узкую: буквы те же, клеток меньше.</p></li>
+              <li data-lines="27-28"><b>Попросить имя в буфер на 4 буквы</b><p><code>!GetComputerNameW(…)</code> — «если функция вернула FALSE». Знак <code>!</code> означает «не».</p><p>Имя не помещается: функция вернула <code>FALSE</code>, <code>GetLastError()</code> дал 111, а в <code>tiny_len</code> записано 10 — столько букв нужно. Программа может выделить буфер на 10 букв и вызвать функцию снова.</p><p class="like">Письмо не влезает в коробок. Почта возвращает его с запиской: «нужна коробка на 10».</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="mac linux">
+          <p class="trace__head"><span>Разбор hostbuf.c по шагам</span><span>macOS и Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Увидеть, как строка лежит в памяти байт за байтом, и что происходит, когда буфер для неё мал. Ядро агента будет класть имя компьютера в буфер, и от этого шага зависит, не прочитает ли оно чужую память.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>буфер</b><small>char host[256]</small></span><span><b>gethostname</b><small>адрес + размер</small></span><span><b>байты</b><small>буквы … 00</small></span><span><b>ядро агента</b><small>поле host[256]</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">dump</span>(<span class="k">const</span> <span class="k">char</span> *buf, <span class="t">size_t</span> n) {
+    <span class="k">for</span> (<span class="t">size_t</span> i = <span class="n">0</span>; i &lt; n; i++)
+        <span class="f">printf</span>(<span class="s">&quot;%02x &quot;</span>, (<span class="k">unsigned</span> <span class="k">char</span>)buf[i]);
+    <span class="f">printf</span>(<span class="s">&quot;\n&quot;</span>);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="k">char</span> host[<span class="n">256</span>];
+    <span class="k">char</span> tiny[<span class="n">4</span>];
+
+    <span class="f">gethostname</span>(host, <span class="k">sizeof</span> host);
+    <span class="f">printf</span>(<span class="s">&quot;host  \&quot;%s\&quot;, length %zu\n&quot;</span>, host, <span class="f">strlen</span>(host));
+    <span class="f">dump</span>(host, <span class="f">strlen</span>(host) + <span class="n">1</span>);
+
+    <span class="f">memset</span>(tiny, <span class="s">&#x27;X&#x27;</span>, <span class="k">sizeof</span> tiny);
+    <span class="k">int</span> rc = <span class="f">gethostname</span>(tiny, <span class="k">sizeof</span> tiny);
+    <span class="f">printf</span>(<span class="s">&quot;tiny  rc=%d errno=%d (%s)\n&quot;</span>, rc, rc ? errno : <span class="n">0</span>, rc ? <span class="f">strerror</span>(errno) : <span class="s">&quot;-&quot;</span>);
+    <span class="f">dump</span>(tiny, <span class="k">sizeof</span> tiny);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="6"><b>Своя функция dump</b><p>Строка объявляет вспомогательную функцию, которая печатает байты в шестнадцатеричном виде.</p><ul class="words"><li><code>static</code> — функция видна только в этом файле;</li><li><code>void</code> — функция ничего не возвращает, только печатает;</li><li><code>const char *buf</code> — адрес первого байта. <code>*</code> означает «адрес», <code>const</code> — функция байты не меняет;</li><li><code>size_t n</code> — сколько байт напечатать. Длину приходится передавать отдельно: по адресу она не видна.</li></ul></li>
+              <li data-lines="7-9"><b>Цикл по байтам</b><p><code>for (size_t i = 0; i &lt; n; i++)</code> повторяет следующую строку для <code>i</code> = 0, 1, 2 … до <code>n − 1</code>.</p><ul class="words"><li><code>buf[i]</code> — байт номер <code>i</code> от начала буфера;</li><li><code>(unsigned char)</code> — читать байт как число от 0 до 255, без знака;</li><li><code>%02x</code> — две шестнадцатеричные цифры, с нулём впереди: <code>4d</code>, <code>00</code>.</li></ul><p class="like">Палец идёт по ряду ячеек камеры хранения и называет номер в каждой.</p></li>
+              <li data-lines="13-14"><b>Два буфера: большой и маленький</b><p><code>char host[256];</code> — <span class="term">массив</span> из 256 байт подряд, место под строку. <code>char tiny[4];</code> — такой же, но на 4 байта. Оба пока заполнены старыми байтами памяти.</p><p class="like">Две коробки для письма: большая и спичечный коробок.</p></li>
+              <li data-lines="16"><b>Получить имя компьютера</b><p><code>gethostname(host, sizeof host)</code> записывает имя компьютера в буфер <code>host</code>.</p><ul class="words"><li>первый параметр — адрес буфера. Имя массива в C и есть адрес его первого байта, поэтому <code>&amp;</code> не нужен;</li><li>второй — размер буфера, 256. Без него функция не знает, где буфер кончается.</li></ul></li>
+              <li data-lines="17-18"><b>Длина строки и её байты</b><p><code>strlen(host)</code> считает байты до первого нуля. <code>dump(host, strlen(host) + 1)</code> печатает их и ещё один байт — сам ноль.</p><div class="bytes "><span class=""><i>l</i><small>6c</small></span><span class=""><i>a</i><small>61</small></span><span class=""><i>b</i><small>62</small></span><span class=""><i>-</i><small>2d</small></span><span class=""><i>l</i><small>6c</small></span><span class=""><i>i</i><small>69</small></span><span class=""><i>n</i><small>6e</small></span><span class=""><i>u</i><small>75</small></span><span class=""><i>x</i><small>78</small></span><span class="z"><i>\0</i><small>00</small></span></div><p>Так имя <code>lab-linux</code> лежит в памяти Linux: 9 букв и завершающий ноль (зелёная ячейка).</p><p class="like">После последней буквы в ряд кладут карточку с нулём — знак «слово кончилось».</p></li>
+              <li data-lines="20"><b>Заполнить маленький буфер буквами X</b><p><code>memset(tiny, 'X', sizeof tiny)</code> записывает букву <code>X</code> во все 4 байта <code>tiny</code>. Теперь видно, какие байты потом перезапишет система.</p><div class="bytes "><span class=""><i>X</i><small>58</small></span><span class=""><i>X</i><small>58</small></span><span class=""><i>X</i><small>58</small></span><span class=""><i>X</i><small>58</small></span></div></li>
+              <li data-lines="21"><b>Попросить имя в буфер на 4 байта</b><p><code>int rc = …</code> — новая переменная <code>rc</code> (сокращение от return code), в неё попадает результат функции: 0 — успех, −1 — ошибка.</p><p>Linux вернул −1 и записал четыре буквы без нуля:</p><div class="bytes "><span class=""><i>l</i><small>6c</small></span><span class=""><i>a</i><small>61</small></span><span class=""><i>b</i><small>62</small></span><span class="x"><i>-</i><small>2d</small></span></div><p>macOS вернула 0 и записала три буквы и ноль: <code>Mac</code>, имя обрезано без сообщения.</p><p class="like">Письмо не влезает в коробок. Одна почта возвращает его с пометкой «не помещается», другая отрезает конец и молчит.</p></li>
+              <li data-lines="22-23"><b>Напечатать код и байты</b><p>Запись <code>rc ? errno : 0</code> — короткое «если»: если <code>rc</code> не ноль, взять <code>errno</code>, иначе 0. Так же выбирается текст: <code>strerror(errno)</code> или прочерк.</p><p>Строку <code>tiny</code> программа печатает только байтами через <code>dump</code>. Через <code>%s</code> её печатать нельзя: на Linux в ней нет нуля, и <code>printf</code> пошёл бы читать память за буфером.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <figure class="code" data-os="win">
           <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
 <pre>cl /nologo /W4 hostbuf.c &amp;&amp; hostbuf.exe</pre>
@@ -498,6 +718,127 @@
     <span class="k">return</span> <span class="n">0</span>;
 }</pre>
         </figure>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор errors.c по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Увидеть, как система сообщает, почему вызов не удался. Агент работает без человека, и по коду ошибки в журнале потом видно, что произошло.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>путь к файлу</b><small>win.ini, SAM …</small></span><span><b>CreateFileW</b><small>HANDLE или ошибка</small></span><span><b>GetLastError</b><small>2 — нет, 5 — нельзя</small></span><span><b>журнал агента</b><small>причина в тревоге</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">try_open</span>(<span class="k">const</span> <span class="t">WCHAR</span> *path) {
+    <span class="t">HANDLE</span> h = <span class="f">CreateFileW</span>(path, GENERIC_READ, FILE_SHARE_READ, NULL,
+                           OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    <span class="k">if</span> (h == INVALID_HANDLE_VALUE) {
+        <span class="t">DWORD</span> code = <span class="f">GetLastError</span>();
+        <span class="f">printf</span>(<span class="s">&quot;%-40ls error %lu\n&quot;</span>, path, code);
+        <span class="k">return</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;%-40ls handle %p\n&quot;</span>, path, (<span class="k">void</span> *)h);
+    <span class="f">CloseHandle</span>(h);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">try_open</span>(L<span class="s">&quot;C:\\Windows\\win.ini&quot;</span>);
+    <span class="f">try_open</span>(L<span class="s">&quot;C:\\Windows\\no-such-file.ini&quot;</span>);
+    <span class="f">try_open</span>(L<span class="s">&quot;C:\\Windows\\System32\\config\\SAM&quot;</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="4"><b>Своя функция try_open</b><p>Функция пробует открыть файл по пути и печатает результат. Её вызывают три раза с разными путями.</p><p><code>const WCHAR *path</code> — адрес строки UTF-16 с путём.</p></li>
+              <li data-lines="5-6"><b>Открыть файл</b><p><code>CreateFileW</code> открывает существующий файл, несмотря на слово Create в названии. Параметры по порядку:</p><ul class="words"><li><code>path</code> — путь;</li><li><code>GENERIC_READ</code> — только читать;</li><li><code>FILE_SHARE_READ</code> — другие программы тоже могут читать файл, пока он открыт;</li><li><code>NULL</code> — настройки защиты по умолчанию;</li><li><code>OPEN_EXISTING</code> — открыть, только если файл есть;</li><li><code>FILE_ATTRIBUTE_NORMAL, NULL</code> — обычный файл, без шаблона.</li></ul><p>Результат — <code>HANDLE</code>, дескриптор объекта ядра, как в ЛР 1.</p><p class="like">Гардероб: сдаёшь пальто — получаешь номерок. Номерок и есть дескриптор.</p></li>
+              <li data-lines="7-8"><b>Сразу сохранить код ошибки</b><p><code>h == INVALID_HANDLE_VALUE</code> — «если файл не открылся». Два знака равенства — сравнение.</p><p><code>DWORD code = GetLastError();</code> копирует код ошибки первой же строкой. Следующий вызов WinAPI может его перезаписать.</p><p class="like">Причину отмены рейса переписывают с табло сразу: следующая отмена её сотрёт.</p></li>
+              <li data-lines="9-10"><b>Напечатать код и выйти из функции</b><p><code>%-40ls</code> — строка UTF-16 (буква <code>l</code>), выровненная влево по ширине 40. <code>return;</code> завершает <code>try_open</code> досрочно.</p></li>
+              <li data-lines="12-13"><b>Файл открылся — закрыть его</b><p><code>%p</code> печатает значение дескриптора. <code>CloseHandle(h)</code> возвращает дескриптор системе: каждый открытый объект нужно закрыть.</p><p class="like">Пальто забрали — номерок вернули в гардероб.</p></li>
+              <li data-lines="17-19"><b>Три попытки</b><p><code>L"…"</code> — строка в UTF-16. Двойная обратная черта <code>\\</code> в кавычках означает одну черту в пути.</p><p><code>win.ini</code> открылся. Второго файла нет — ошибка 2. <code>SAM</code> — база учётных записей, система держит её закрытой — ошибка 5.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="mac">
+          <p class="trace__head"><span>Разбор errors.c по шагам</span><span>macOS</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Увидеть, как система сообщает, почему вызов не удался. Агент работает без человека, и по коду ошибки в журнале потом видно, что произошло.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>путь к файлу</b><small>/etc/hosts …</small></span><span><b>open</b><small>fd или −1</small></span><span><b>errno</b><small>2 — нет, 13 — нельзя</small></span><span><b>журнал агента</b><small>причина в тревоге</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;fcntl.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">try_open</span>(<span class="k">const</span> <span class="k">char</span> *path) {
+    <span class="k">int</span> fd = <span class="f">open</span>(path, O_RDONLY);
+    <span class="k">if</span> (fd == -<span class="n">1</span>) {
+        <span class="k">int</span> code = errno;
+        <span class="f">printf</span>(<span class="s">&quot;%-22s fd=-1 errno=%d %s\n&quot;</span>, path, code, <span class="f">strerror</span>(code));
+        <span class="k">return</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;%-22s fd=%d\n&quot;</span>, path, fd);
+    <span class="f">close</span>(fd);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/hosts&quot;</span>);
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/no-such-file&quot;</span>);
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/sudoers&quot;</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="7"><b>Своя функция try_open</b><p>Функция пробует открыть файл по пути и печатает результат. Её вызывают три раза с разными путями — так не нужно трижды писать одно и то же.</p><p><code>const char *path</code> — адрес строки с путём.</p></li>
+              <li data-lines="8"><b>Открыть файл</b><p><code>open(path, O_RDONLY)</code> просит систему открыть файл только для чтения.</p><ul class="words"><li><code>O_RDONLY</code> — read only, «только читать», константа из <code>fcntl.h</code>;</li><li><code>fd</code> — <span class="term">дескриптор файла</span>: небольшое число, номер открытого файла в таблице процесса. Как в ЛР 1;</li><li>при ошибке <code>open</code> возвращает −1.</li></ul><p class="like">Гардероб: сдаёшь пальто — получаешь номерок. Номерок 3 и есть дескриптор.</p></li>
+              <li data-lines="9-10"><b>Сразу сохранить код ошибки</b><p><code>if (fd == -1)</code> — «если файл не открылся». Два знака равенства — сравнение, один — присваивание.</p><p><code>int code = errno;</code> копирует код ошибки в свою переменную первой же строкой. Следующий вызов, даже <code>printf</code>, может записать в <code>errno</code> другое число.</p><p class="like">Причину отмены рейса переписывают с табло сразу: следующая отмена её сотрёт.</p></li>
+              <li data-lines="11-12"><b>Напечатать причину и выйти из функции</b><p><code>strerror(code)</code> переводит номер в текст: 2 — «No such file or directory», 13 — «Permission denied». <code>%-22s</code> — строка, выровненная влево по ширине 22 символа, чтобы столбцы стояли ровно.</p><p><code>return;</code> завершает <code>try_open</code> досрочно: дальше печатать и закрывать нечего.</p></li>
+              <li data-lines="14-15"><b>Файл открылся — закрыть его</b><p>Сюда программа доходит, только если <code>open</code> вернула номер. <code>close(fd)</code> возвращает номер системе. Каждый открытый файл нужно закрыть: число дескрипторов у процесса ограничено.</p><p class="like">Пальто забрали — номерок вернули в гардероб.</p></li>
+              <li data-lines="18-21"><b>Три попытки</b><p>Первый путь <code>/etc/hosts</code> может читать любой пользователь — дескриптор 3. Второго файла нет — <code>errno</code> 2. Третий, <code>/etc/sudoers</code>, читает только администратор — <code>errno</code> 13.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="linux">
+          <p class="trace__head"><span>Разбор errors.c по шагам</span><span>Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Увидеть, как система сообщает, почему вызов не удался. Агент работает без человека, и по коду ошибки в журнале потом видно, что произошло.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>путь к файлу</b><small>/etc/hosts …</small></span><span><b>open</b><small>fd или −1</small></span><span><b>errno</b><small>2 — нет, 13 — нельзя</small></span><span><b>журнал агента</b><small>причина в тревоге</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;fcntl.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">try_open</span>(<span class="k">const</span> <span class="k">char</span> *path) {
+    <span class="k">int</span> fd = <span class="f">open</span>(path, O_RDONLY);
+    <span class="k">if</span> (fd == -<span class="n">1</span>) {
+        <span class="k">int</span> code = errno;
+        <span class="f">printf</span>(<span class="s">&quot;%-22s fd=-1 errno=%d %s\n&quot;</span>, path, code, <span class="f">strerror</span>(code));
+        <span class="k">return</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;%-22s fd=%d\n&quot;</span>, path, fd);
+    <span class="f">close</span>(fd);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/hosts&quot;</span>);
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/no-such-file&quot;</span>);
+    <span class="f">try_open</span>(<span class="s">&quot;/etc/shadow&quot;</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="7"><b>Своя функция try_open</b><p>Функция пробует открыть файл по пути и печатает результат. Её вызывают три раза с разными путями — так не нужно трижды писать одно и то же.</p><p><code>const char *path</code> — адрес строки с путём.</p></li>
+              <li data-lines="8"><b>Открыть файл</b><p><code>open(path, O_RDONLY)</code> просит систему открыть файл только для чтения.</p><ul class="words"><li><code>O_RDONLY</code> — read only, «только читать», константа из <code>fcntl.h</code>;</li><li><code>fd</code> — <span class="term">дескриптор файла</span>: небольшое число, номер открытого файла в таблице процесса. Как в ЛР 1;</li><li>при ошибке <code>open</code> возвращает −1.</li></ul><p class="like">Гардероб: сдаёшь пальто — получаешь номерок. Номерок 3 и есть дескриптор.</p></li>
+              <li data-lines="9-10"><b>Сразу сохранить код ошибки</b><p><code>if (fd == -1)</code> — «если файл не открылся». Два знака равенства — сравнение, один — присваивание.</p><p><code>int code = errno;</code> копирует код ошибки в свою переменную первой же строкой. Следующий вызов, даже <code>printf</code>, может записать в <code>errno</code> другое число.</p><p class="like">Причину отмены рейса переписывают с табло сразу: следующая отмена её сотрёт.</p></li>
+              <li data-lines="11-12"><b>Напечатать причину и выйти из функции</b><p><code>strerror(code)</code> переводит номер в текст: 2 — «No such file or directory», 13 — «Permission denied». <code>%-22s</code> — строка, выровненная влево по ширине 22 символа, чтобы столбцы стояли ровно.</p><p><code>return;</code> завершает <code>try_open</code> досрочно: дальше печатать и закрывать нечего.</p></li>
+              <li data-lines="14-15"><b>Файл открылся — закрыть его</b><p>Сюда программа доходит, только если <code>open</code> вернула номер. <code>close(fd)</code> возвращает номер системе. Каждый открытый файл нужно закрыть: число дескрипторов у процесса ограничено.</p><p class="like">Пальто забрали — номерок вернули в гардероб.</p></li>
+              <li data-lines="18-21"><b>Три попытки</b><p>Первый путь <code>/etc/hosts</code> может читать любой пользователь — дескриптор 3. Второго файла нет — <code>errno</code> 2. Третий, <code>/etc/shadow</code>, читает только администратор — <code>errno</code> 13.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <figure class="code" data-os="win">
           <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
 <pre>cl /nologo /W4 errors.c &amp;&amp; errors.exe</pre>
@@ -561,6 +902,40 @@
 
 <span class="k">#endif</span></pre>
         </figure>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор core.h по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Описать, что отдаёт ядро агента и как его вызвать. Этот файл подключает программа проверки на C, а мозг агента на Python в главе 1.2 повторяет его поля.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>core.h</b><small>форма бланка, 272 байта</small></span><span><b>core_info.c</b><small>заполняет</small></span><span><b>show_info.c</b><small>проверяет на C</small></span><span><b>brain.py</b><small>читает из Python, глава 1.2</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#ifndef</span> CORE_H
+<span class="k">#define</span> CORE_H
+
+<span class="k">#include</span> <span class="s">&lt;stdint.h&gt;</span>
+
+<span class="k">#define</span> CORE_HOST_MAX <span class="n">256</span>
+
+<span class="k">struct</span> core_info {
+    <span class="t">int64_t</span> pid;
+    <span class="t">int32_t</span> cpus;
+    <span class="t">int32_t</span> page_size;
+    <span class="k">char</span>    host[CORE_HOST_MAX];
+};
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out);
+
+<span class="k">#endif</span></pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-2,17"><b>Защита от двойного подключения</b><p><code>#ifndef CORE_H</code> — «если имя <code>CORE_H</code> ещё не задано». <code>#define CORE_H</code> задаёт его. <code>#endif</code> в конце закрывает условие.</p><p>При втором подключении имя уже задано, и всё между строками пропускается. Без этого компилятор увидел бы структуру дважды и выдал ошибку.</p><p class="like">Табличка «уже прочитано» на первой странице: второй раз книгу пролистывают.</p></li>
+              <li data-lines="4"><b>Типы точного размера</b><p><code>stdint.h</code> даёт <code>int64_t</code> и <code>int32_t</code>. Их размер одинаков на трёх системах — это вывод шага 1.</p></li>
+              <li data-lines="6"><b>Размер буфера одним именем</b><p><code>#define CORE_HOST_MAX 256</code> — везде, где написано <code>CORE_HOST_MAX</code>, компилятор подставит 256. Размер меняется в одном месте.</p></li>
+              <li data-lines="8-13"><b>Структура ядра</b><p><code>struct core_info { … };</code> описывает новый тип из четырёх полей. Точка с запятой после <code>}</code> обязательна.</p><div class="bytes "><span class="w"><i>pid</i><small>0–7 · int64_t</small></span><span class="w"><i>cpus</i><small>8–11</small></span><span class="w"><i>page_size</i><small>12–15</small></span><span class="w"><i>host</i><small>16–271 · char[256]</small></span></div><p>Поля идут подряд без пропусков: 8 + 4 + 4 + 256 = 272 байта. Под каждым полем — номера его байтов от начала структуры.</p><p class="like">Бланк своей формы: четыре графы, у каждой точная ширина в клетках. Его одинаково заполняют и читают в любом отделении.</p></li>
+              <li data-lines="15"><b>Объявление функции</b><p>Строка сообщает компилятору: есть функция <code>core_get_info</code>, она принимает адрес структуры <code>core_info</code> и возвращает <code>int</code> — код ошибки. Точка с запятой вместо фигурных скобок: тела функции здесь нет, оно в <code>core_info.c</code>.</p><p class="like">Строка в оглавлении: название главы и номер страницы. Сама глава — в другом месте.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <p>Поля выбраны по шагам 1–4. Номер процесса и два числа объявлены типами точного размера, поэтому структура занимает одинаково байт на всех системах. Имя компьютера хранится в буфере на 256 байт: <code>CORE_HOST_MAX</code> задан через <code>#define</code>, и размер меняется в одном месте. Последняя строка — <span class="term">объявление функции</span>: её имя, тип результата и параметр — адрес структуры. Сама функция будет в следующем файле.</p>
         <p>Порядок полей подобран так, чтобы между ними не было пропусков. Компилятор выравнивает поля: 8-байтовое число он ставит на адрес, кратный 8. Два поля по 4 байта сразу после <code>pid</code> заполняют следующие 8 байт, и структура занимает 8 + 4 + 4 + 256 = 272 байта без пустых мест:</p>
         <div class="bytes "><span class="w"><i>pid</i><small>байты 0–7 · int64_t</small></span><span class="w"><i>cpus</i><small>8–11 · int32_t</small></span><span class="w"><i>page_size</i><small>12–15 · int32_t</small></span><span class="w"><i>host</i><small>16–271 · char[256]</small></span></div>
@@ -626,16 +1001,91 @@
     <span class="k">return</span> <span class="n">0</span>;
 }</pre>
         </figure>
-        <p>Разбор по строкам.</p>
-        <ul>
-          <li><code>if (out == NULL)</code> — проверка адреса. <code>NULL</code> — нулевой указатель, «адреса нет». Если вызвать функцию с ним и писать в <code>out-&gt;pid</code>, программа упадёт. Функция возвращает код <span data-os="win"><code>ERROR_INVALID_PARAMETER</code> (87)</span><span data-os="mac linux"><code>EINVAL</code> (22)</span> — «неверный параметр».</li>
-          <li><code><span data-os="win">ZeroMemory</span><span data-os="mac linux">memset</span>(out, 0, sizeof *out)</code> — заполняет все 272 байта структуры нулями. После объявления в полях лежит то, что раньше было в этой памяти. Без обнуления при ошибке в поле <code>host</code> остался бы мусор. <code>sizeof *out</code> — размер того, на что указывает <code>out</code>, то есть всей структуры.</li>
-          <li><code>out-&gt;pid</code> — запись в поле структуры по адресу. Стрелка <code>-&gt;</code> используется, когда есть указатель на структуру: <code>out-&gt;pid</code> значит то же, что <code>(*out).pid</code>. Точка — когда есть сама структура, как <code>u.sysname</code> в шаге 2.</li>
-          <li data-os="mac linux"><code>sysconf(_SC_NPROCESSORS_ONLN)</code> и <code>sysconf(_SC_PAGESIZE)</code> — функция POSIX, которая возвращает настройки системы по имени: число работающих процессоров и размер страницы. Она возвращает <code>long</code>, поэтому результат явно приводится к <code>int32_t</code>: запись <code>(int32_t)</code> перед значением показывает, что сужение типа сделано намеренно.</li>
-          <li data-os="win"><code>GetNativeSystemInfo(&amp;si)</code> — структура из шага 2; из неё берутся два поля, <code>dwNumberOfProcessors</code> и <code>dwPageSize</code>. Они типа <code>DWORD</code>, поэтому при записи в поле <code>int32_t</code> стоит явное приведение <code>(int32_t)</code>.</li>
-          <li data-os="mac linux"><code>gethostname(out-&gt;host, sizeof out-&gt;host)</code> — имя в буфер структуры вместе с его размером. При ошибке функция сразу возвращает <code>errno</code>. Следующая строка ставит ноль в последний байт буфера — правило из шага 3 на случай, если система обрезала имя без нуля.</li>
-          <li data-os="win"><code>GetComputerNameW(name, &amp;len)</code> — имя в UTF-16 во временный буфер <code>name</code>; при ошибке функция возвращает <code>GetLastError()</code>. Затем <code>WideCharToMultiByte(CP_UTF8, …)</code> переводит имя в UTF-8 прямо в <code>out-&gt;host</code>. Параметр <code>-1</code> означает «длина — до нуля», и ноль тоже копируется.</li>
-        </ul>
+        <p>Ниже та же функция по шагам: какие строки что делают и что после них лежит в структуре.</p>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор core_info.c по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Собрать в одной функции приёмы шагов 1–4: получить адрес структуры, вызвать системные функции и записать ответы в поля. Это первая функция ядра агента.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>&amp;info</b><small>адрес пустой структуры</small></span><span><b>core_get_info</b><small>GetCurrentProcessId, GetNativeSystemInfo, GetComputerNameW</small></span><span><b>272 байта</b><small>pid, cpus, page_size, host</small></span><span><b>код</b><small>0 или ошибка</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out) {
+    <span class="t">SYSTEM_INFO</span> si;
+    <span class="t">WCHAR</span> name[MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>];
+    <span class="t">DWORD</span> len = MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>;
+
+    <span class="k">if</span> (out == NULL)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="f">ZeroMemory</span>(out, <span class="k">sizeof</span> *out);
+
+    out-&gt;pid = <span class="f">GetCurrentProcessId</span>();
+    <span class="f">GetNativeSystemInfo</span>(&amp;si);
+    out-&gt;cpus = (<span class="t">int32_t</span>)si.dwNumberOfProcessors;
+    out-&gt;page_size = (<span class="t">int32_t</span>)si.dwPageSize;
+
+    <span class="k">if</span> (!<span class="f">GetComputerNameW</span>(name, &amp;len))
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">if</span> (<span class="f">WideCharToMultiByte</span>(CP_UTF8, <span class="n">0</span>, name, -<span class="n">1</span>, out-&gt;host,
+                            <span class="k">sizeof</span> out-&gt;host, NULL, NULL) == <span class="n">0</span>)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="2"><b>Подключить свой заголовок</b><p><code>#include "core.h"</code> — кавычки вместо угловых скобок: файл ищется сначала в папке рядом с исходником. Отсюда функция знает, как устроена <code>struct core_info</code>.</p></li>
+              <li data-lines="4"><b>Заголовок функции</b><p><code>struct core_info *out</code> — параметр <code>out</code> хранит адрес структуры, которую выделила вызывающая программа. Всё, что функция запишет по этому адресу, окажется у вызывающей программы.</p><p class="like">В окошко МФЦ передали бланк. <code>out</code> — бланк, лежащий в лотке.</p></li>
+              <li data-lines="5-7"><b>Свои временные переменные</b><p><code>si</code> — структура из шага 2, <code>name</code> и <code>len</code> — буфер UTF-16 и его размер из шага 3. Они живут, пока работает функция, и в результат не попадают.</p><p class="like">Черновик сотрудника МФЦ: на нём считают, а в бланк переносят готовые ответы.</p></li>
+              <li data-lines="9-10"><b>Проверить, что адрес есть</b><p><code>NULL</code> — нулевой адрес, «бланка нет». Запись по нему роняет программу. Функция возвращает <code>ERROR_INVALID_PARAMETER</code> (87) и дальше не идёт.</p><p>В главе 1.2 эта проверка сработает: Python передаст <code>None</code>, и функция вернёт 87 вместо падения.</p></li>
+              <li data-lines="11"><b>Обнулить всю структуру</b><p><code>ZeroMemory(out, sizeof *out)</code> записывает ноль во все 272 байта. <code>*out</code> — сама структура по адресу, <code>sizeof *out</code> — её размер.</p><div class="bytes "><span class="w"><i>0</i><small>pid</small></span><span class="w"><i>0</i><small>cpus</small></span><span class="w"><i>0</i><small>page_size</small></span><span class="w"><i>0 0 0 …</i><small>host</small></span></div></li>
+              <li data-lines="13-16"><b>Записать три числа</b><p><code>out-&gt;pid</code> — поле <code>pid</code> структуры по адресу <code>out</code>. Стрелка <code>-&gt;</code> ставится, когда в руках адрес структуры, точка — когда сама структура (<code>si.dwPageSize</code>).</p><p><code>(int32_t)</code> перед значением — явное приведение <code>DWORD</code> к полю <code>int32_t</code>.</p><div class="bytes "><span class="w"><i>2820</i><small>pid</small></span><span class="w"><i>4</i><small>cpus</small></span><span class="w"><i>4096</i><small>page_size</small></span><span class="w"><i>0 0 0 …</i><small>host</small></span></div></li>
+              <li data-lines="18-19"><b>Имя в UTF-16 или ошибка</b><p>Если <code>GetComputerNameW</code> вернула <code>FALSE</code>, функция отдаёт <code>GetLastError()</code>. <code>(int)</code> переводит <code>DWORD</code> в тип результата функции.</p></li>
+              <li data-lines="20-22"><b>Перевести имя в UTF-8 прямо в структуру</b><p><code>WideCharToMultiByte</code> пишет имя в <code>out-&gt;host</code>, не больше <code>sizeof out-&gt;host</code> байт. <code>-1</code> — длина «до нуля», поэтому ноль тоже копируется. Результат 0 означает ошибку.</p></li>
+              <li data-lines="23"><b>Вернуть успех</b><p><code>return 0;</code> — код «всё получилось». Функция ничего не печатает: что делать с данными, решает вызывающая программа.</p><div class="bytes "><span class="w"><i>2820</i><small>pid</small></span><span class="w"><i>4</i><small>cpus</small></span><span class="w"><i>4096</i><small>page_size</small></span><span class="w"><i>WIN11-LAB\0</i><small>host</small></span></div></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="mac linux">
+          <p class="trace__head"><span>Разбор core_info.c по шагам</span><span>macOS и Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Собрать в одной функции приёмы шагов 1–4: получить адрес структуры, вызвать системные функции и записать ответы в поля. Это первая функция ядра агента.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>&amp;info</b><small>адрес пустой структуры</small></span><span><b>core_get_info</b><small>getpid, sysconf, gethostname</small></span><span><b>272 байта</b><small>pid, cpus, page_size, host</small></span><span><b>код</b><small>0 или ошибка</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out) {
+    <span class="k">if</span> (out == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="f">memset</span>(out, <span class="n">0</span>, <span class="k">sizeof</span> *out);
+
+    out-&gt;pid = <span class="f">getpid</span>();
+    out-&gt;cpus = (<span class="t">int32_t</span>)<span class="f">sysconf</span>(_SC_NPROCESSORS_ONLN);
+    out-&gt;page_size = (<span class="t">int32_t</span>)<span class="f">sysconf</span>(_SC_PAGESIZE);
+
+    <span class="k">if</span> (<span class="f">gethostname</span>(out-&gt;host, <span class="k">sizeof</span> out-&gt;host) != <span class="n">0</span>)
+        <span class="k">return</span> errno;
+    out-&gt;host[<span class="k">sizeof</span> out-&gt;host - <span class="n">1</span>] = <span class="s">&#x27;\0&#x27;</span>;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="4"><b>Подключить свой заголовок</b><p><code>#include "core.h"</code> — кавычки вместо угловых скобок: файл ищется сначала в папке рядом с исходником. Отсюда функция знает, как устроена <code>struct core_info</code>.</p></li>
+              <li data-lines="6"><b>Заголовок функции</b><p>Строка повторяет объявление из <code>core.h</code>, но после неё идут фигурные скобки с телом.</p><p><code>struct core_info *out</code> — параметр <code>out</code> хранит адрес структуры, которую выделила вызывающая программа. Всё, что функция запишет по этому адресу, окажется у вызывающей программы.</p><p class="like">В окошко МФЦ передали бланк. <code>out</code> — бланк, лежащий в лотке.</p></li>
+              <li data-lines="7-8"><b>Проверить, что адрес есть</b><p><code>NULL</code> — нулевой адрес, «бланка нет». Запись по нему роняет программу. Функция возвращает <code>EINVAL</code> (22) — «неверный параметр» — и дальше не идёт.</p><p>В главе 1.2 эта проверка сработает: Python передаст <code>None</code>, и функция вернёт 22 вместо падения.</p><p class="like">Сотрудник сначала смотрит, лежит ли в лотке бланк, и только потом берёт ручку.</p></li>
+              <li data-lines="9"><b>Обнулить всю структуру</b><p><code>memset(out, 0, sizeof *out)</code> записывает ноль во все 272 байта.</p><ul class="words"><li><code>*out</code> — «то, что лежит по адресу <code>out</code>», сама структура;</li><li><code>sizeof *out</code> — её размер, 272.</li></ul><div class="bytes "><span class="w"><i>0</i><small>pid</small></span><span class="w"><i>0</i><small>cpus</small></span><span class="w"><i>0</i><small>page_size</small></span><span class="w"><i>0 0 0 …</i><small>host</small></span></div><p>Без этого при ошибке в поле <code>host</code> остались бы старые байты памяти.</p></li>
+              <li data-lines="11-13"><b>Записать три числа</b><p><code>out-&gt;pid</code> — поле <code>pid</code> структуры по адресу <code>out</code>. Стрелка <code>-&gt;</code> ставится, когда в руках адрес структуры, точка — когда сама структура.</p><ul class="words"><li><code>getpid()</code> — номер своего процесса;</li><li><code>sysconf(_SC_NPROCESSORS_ONLN)</code> — число работающих процессоров;</li><li><code>sysconf(_SC_PAGESIZE)</code> — размер страницы памяти;</li><li><code>(int32_t)</code> — явное сужение: <code>sysconf</code> возвращает 8-байтовый <code>long</code>, поле — 4 байта.</li></ul><div class="bytes "><span class="w"><i>34535</i><small>pid</small></span><span class="w"><i>10</i><small>cpus</small></span><span class="w"><i>16384</i><small>page_size</small></span><span class="w"><i>0 0 0 …</i><small>host</small></span></div></li>
+              <li data-lines="15-16"><b>Записать имя или вернуть ошибку</b><p><code>gethostname(out-&gt;host, sizeof out-&gt;host)</code> — имя прямо в буфер структуры вместе с его размером, 256. Если функция вернула не 0, <code>return errno;</code> отдаёт код ошибки системы вызывающей программе.</p></li>
+              <li data-lines="17"><b>Поставить ноль в последний байт</b><p><code>out-&gt;host[sizeof out-&gt;host - 1]</code> — байт номер 255, последний в буфере. Ему присваивается <code>'\0'</code>.</p><p>Правило из шага 3: если система обрезала имя без нуля, строка всё равно закончится внутри буфера.</p><p class="like">Последняя клетка ряда всегда занята карточкой с нулём — дальше читать некуда.</p></li>
+              <li data-lines="18"><b>Вернуть успех</b><p><code>return 0;</code> — код «всё получилось». Функция ничего не печатает: что делать с данными, решает вызывающая программа.</p><div class="bytes "><span class="w"><i>34535</i><small>pid</small></span><span class="w"><i>10</i><small>cpus</small></span><span class="w"><i>16384</i><small>page_size</small></span><span class="w"><i>MacBook-Air-Maxim.local\0</i><small>host</small></span></div></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <p>В функции нет <code>printf</code>. Ядро агента ничего не печатает, оно возвращает данные и код. Что с ними делать, определяет вызывающая программа: в этой главе — проверочная программа на C, в агенте — мозг на Python.</p>
         <figure class="shot" data-os="mac">
           <img src="img/mac/06-core-info.png" alt="VS Code с файлом core_info.c: заголовок core_get_info, строки out-&gt;pid, out-&gt;cpus, out-&gt;page_size и return errno в рамках" loading="lazy">
@@ -672,6 +1122,44 @@
     <span class="k">return</span> <span class="n">0</span>;
 }</pre>
         </figure>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор show_info.c по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Вызвать функцию ядра так же, как её будет вызывать мозг агента, и убедиться, что поля заполнены. Это проверка до того, как к ядру подключится Python.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>show_info.c</b><small>вызывает, как будет мозг</small></span><span><b>core_get_info</b><small>заполняет info</small></span><span><b>печать полей</b><small>pid, cpus, page_size, host</small></span><span><b>brain.py</b><small>то же из Python, глава 1.2</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;inttypes.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="k">struct</span> core_info info;
+    <span class="k">int</span> err = <span class="f">core_get_info</span>(&amp;info);
+
+    <span class="k">if</span> (err != <span class="n">0</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;core_get_info: error %d\n&quot;</span>, err);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;pid       %&quot;</span> PRId64 <span class="s">&quot;\n&quot;</span>, info.pid);
+    <span class="f">printf</span>(<span class="s">&quot;cpus      %&quot;</span> PRId32 <span class="s">&quot;\n&quot;</span>, info.cpus);
+    <span class="f">printf</span>(<span class="s">&quot;page_size %&quot;</span> PRId32 <span class="s">&quot;\n&quot;</span>, info.page_size);
+    <span class="f">printf</span>(<span class="s">&quot;host      %s\n&quot;</span>, info.host);
+    <span class="f">printf</span>(<span class="s">&quot;sizeof    %zu\n&quot;</span>, <span class="k">sizeof</span> info);
+    <span class="f">printf</span>(<span class="s">&quot;&amp;info     %p\n&quot;</span>, (<span class="k">void</span> *)&amp;info);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-3"><b>Заголовки</b><p><code>inttypes.h</code> даёт форматы для типов точного размера, <code>stdio.h</code> — <code>printf</code>, <code>"core.h"</code> — структуру и объявление функции ядра.</p></li>
+              <li data-lines="6"><b>Выделить структуру</b><p><code>struct core_info info;</code> — 272 байта в памяти <code>main</code>. Эту память выделяет вызывающая программа, функция ядра её только заполняет.</p><p class="like">Посетитель берёт пустой бланк.</p></li>
+              <li data-lines="7"><b>Вызвать функцию ядра</b><p><code>core_get_info(&amp;info)</code> получает адрес <code>info</code>. Её ответ — код ошибки — сохраняется в <code>err</code>.</p><p class="like">Бланк кладут в окошко и ждут: вернут заполненным или с отказом и номером причины.</p></li>
+              <li data-lines="9-12"><b>Проверить код</b><p>Если <code>err</code> не 0, программа печатает номер ошибки и завершается с кодом 1. Читать поля после ошибки бессмысленно.</p></li>
+              <li data-lines="13-15"><b>Напечатать числа</b><p><code>"pid       %" PRId64 "\n"</code> — три строки подряд, компилятор склеивает их в одну. <code>PRId64</code> раскрывается в формат для <code>int64_t</code> на этой системе: <code>"lld"</code> или <code>"ld"</code>. Так строка верна на всех трёх системах.</p></li>
+              <li data-lines="16-18"><b>Имя, размер и адрес</b><p><code>%s</code> печатает имя до нуля. <code>sizeof info</code> — 272 на всех системах. <code>%p</code> печатает адрес структуры; <code>(void *)</code> переводит его в общий тип адреса, который ждёт формат <code>%p</code>.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <p>Программа собирается из двух файлов: компилятор собирает каждый, а компоновщик соединяет вызов <code>core_get_info</code> в <code>show_info.c</code> с самой функцией из <code>core_info.c</code>.</p>
         <figure class="code" data-os="win">
           <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>

@@ -182,6 +182,65 @@
     caption.appendChild(button);
   });
 
+  /* ---- Пошаговый разбор кода ----------------------------------- */
+  /* У шага атрибут data-lines="3-5,9" — строки кода, которые он объясняет.
+     Код делится на строки с номерами; виден один шаг, остальные — по кнопкам. */
+  document.querySelectorAll('.trace').forEach(trace => {
+    const code = trace.querySelector('.trace__code');
+    const steps = [...trace.querySelectorAll('.trace__steps > li')];
+    const nav = trace.querySelector('.trace__nav');
+    if (!code || !steps.length || !nav) return;
+
+    const lines = code.innerHTML.replace(/\n$/, '').split('\n');
+    code.innerHTML = lines.map((line, i) => `<span class="ln" data-n="${i + 1}">${line || ' '}</span>`).join('');
+    const rows = [...code.querySelectorAll('.ln')];
+
+    const parse = value => (value || '').split(',').flatMap(part => {
+      const [a, b] = part.split('-').map(Number);
+      if (!a) return [];
+      return Array.from({ length: (b || a) - a + 1 }, (_, i) => a + i);
+    });
+
+    steps.forEach((step, i) => step.querySelector(':scope > b')?.setAttribute('data-step', `${i + 1} из ${steps.length}`));
+    nav.innerHTML = '<button type="button" data-go="-1">← Назад</button><span class="trace__dots"></span>'
+      + '<button type="button" data-go="1">Дальше →</button>';
+    const dots = nav.querySelector('.trace__dots');
+    const back = nav.querySelector('[data-go="-1"]');
+    const next = nav.querySelector('[data-go="1"]');
+    steps.forEach((_, i) => {
+      const dot = document.createElement('i');
+      dot.title = `Шаг ${i + 1}`;
+      dot.addEventListener('click', () => show(i));
+      dots.appendChild(dot);
+    });
+
+    let current = 0;
+    const show = index => {
+      current = Math.max(0, Math.min(steps.length - 1, index));
+      steps.forEach((step, i) => step.classList.toggle('is-on', i === current));
+      [...dots.children].forEach((dot, i) => dot.classList.toggle('is-on', i === current));
+      const lit = parse(steps[current].dataset.lines);
+      rows.forEach((row, i) => row.classList.toggle('is-lit', lit.includes(i + 1)));
+      back.disabled = current === 0;
+      next.disabled = current === steps.length - 1;
+      // Подсвеченные строки прокручиваются в видимую часть блока кода, страница стоит на месте.
+      const first = rows[lit[0] - 1];
+      if (first && code.scrollHeight > code.clientHeight) {
+        code.scrollTo({ top: first.offsetTop - code.clientHeight / 3, behavior: 'smooth' });
+      }
+    };
+    back.addEventListener('click', () => show(current - 1));
+    next.addEventListener('click', () => show(current + 1));
+    trace.tabIndex = 0;
+    trace.addEventListener('keydown', event => {
+      if (event.target.closest('button') && event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      if (event.key === 'ArrowRight') { event.preventDefault(); show(current + 1); }
+      if (event.key === 'ArrowLeft') { event.preventDefault(); show(current - 1); }
+    });
+    trace.classList.add('is-live');
+    show(0);
+  });
+
   /* ---- Подсветка шага цикла ------------------------------------ */
   document.querySelectorAll('.cycle').forEach(cycle => {
     const steps = [...cycle.children];
