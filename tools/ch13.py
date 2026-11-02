@@ -360,6 +360,7 @@ S.append('''
         <div class="pager">
           <a href="../07-c-i-python-vmeste/index.html">← 1.2 C и Python вместе</a>
           <a href="../../index.html">Оглавление</a>
+          <a href="../11-zadanie-modulya-1/index.html">Задание модуля 1 →</a>
         </div>
 
         <div class="colophon">

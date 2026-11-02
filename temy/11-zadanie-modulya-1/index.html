@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>Задание модуля 1. Агент и ИИ · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 1 · Задание модуля</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 1 · задание</p>
+          <p class="running__folio">З1</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">З1</span>
+          <h1>Задание модуля 1:<br>агент и ИИ</h1>
+          <p class="lead">Агент из глав 1.1–1.3 сообщает номер процесса, процессоры, страницу памяти и имя компьютера. В задании он учится сообщать ещё одно — сколько времени система работает без перезагрузки. В первой части новое поле проходит весь путь: системная функция → ядро на C → структура → мозг на Python → JSON. Во второй части модель в n8n объясняет это время человеку, и выясняется, какую работу модели поручать нельзя.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Когда</dt><dd>После главы 1.3, до пары 4</dd></div>
+          <div><dt>Время</dt><dd>2–3 часа дома</dd></div>
+          <div><dt>Режим ИИ</dt><dd>Р1: код пишется вручную, от помощника — только объяснения</dd></div>
+          <div><dt>Сдать</dt><dd><code>agent/core</code>, <code>agent/brain/brain.py</code>, <code>agent/n8n</code> в репозитории <code>sysprog-start</code></dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>В этом задании</b>
+          <ol>
+            <li><a href="#s1">Что сдать</a></li>
+            <li><a href="#s2">Часть 1. Агент: время работы системы</a></li>
+            <li><a href="#s3">Часть 2. ИИ: объяснение модели</a></li>
+            <li><a href="#s4">Как сдать и что проверяется</a></li>
+            <li><a href="#s5">Частые ошибки</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Что сдать</h2>
+
+        <div class="trace__flow" aria-label="Путь нового поля" style="border:3px solid var(--ink);margin:18px 0 22px">
+          <span><b>система</b><small><span data-os="win">GetTickCount64</span><span data-os="mac">kern.boottime</span><span data-os="linux">sysinfo</span></small></span>
+          <span><b>core_info.c</b><small>заполняет uptime_s</small></span>
+          <span><b>core.h</b><small>280 байт вместо 272</small></span>
+          <span><b>brain.py</b><small>CoreInfo + словарь</small></span>
+          <span><b>JSON</b><small>"uptime_s": …</small></span>
+          <span><b>n8n + модель</b><small>объяснение человеку</small></span>
+        </div>
+
+        <div class="filetree">
+          <p class="filetree__head">sysprog-start после задания</p>
+          <div class="hot"><span>agent/core/core.h</span><span>в структуре новое поле <code>uptime_s</code>, часть 1</span></div>
+          <div class="hot"><span>agent/core/core_info.c</span><span>функция ядра заполняет <code>uptime_s</code> для своей системы, часть 1</span></div>
+          <div class="hot"><span>agent/brain/brain.py</span><span>поле в <code>CoreInfo</code> и в словаре сообщения, часть 1</span></div>
+          <div class="hot"><span>agent/n8n/agent-uptime.json</span><span>сценарий n8n, выгруженный из n8n, часть 2</span></div>
+          <div class="hot"><span>agent/n8n/ai-log.md</span><span>журнал запросов к модели и проверки ответов, часть 2</span></div>
+        </div>
+
+        <p>Код пишется для своей системы: тот же <code>core_info.c</code>, что в главе 1.1. Помощник ИИ в этом задании работает в режиме Р1 из главы 0.3: объясняет функции и ошибки, а код набирается вручную.</p>
+
+        <h2 id="s2"><span class="sec">§2</span>Часть 1. Агент: время работы системы</h2>
+
+        <div class="why">
+          <p class="why__head">Зачем агенту это поле</p>
+          <ul class="why__list">
+            <li><b>Обновления безопасности.</b> Многие обновления системы начинают действовать только после перезагрузки. Компьютер, который работает месяц без перезагрузки, скорее всего, остался без них.</li>
+            <li><b>Неожиданная перезагрузка.</b> Если время работы вдруг стало маленьким, а никто компьютер не перезагружал, — это сбой питания, падение системы или чужие действия. В модуле 3 агент будет сообщать о таком тревогой.</li>
+          </ul>
+        </div>
+
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Счётчик моточасов у генератора или трактора: он показывает, сколько машина работает с последнего запуска. По нему решают, пора ли на обслуживание.</p>
+          <p class="miss">Моточасы копятся всю жизнь машины. Время работы системы обнуляется при каждой перезагрузке.</p>
+        </div></div>
+
+        <h3>Что сделать</h3>
+        <ol>
+          <li><b>Добавьте поле в структуру.</b> В <code>core.h</code> последним полем <code>struct core_info</code> допишите <code>int64_t uptime_s;</code> — секунды с запуска системы. Поле ставится в конец, чтобы смещения старых полей не изменились: <code>pid</code> — 0, <code>cpus</code> — 8, <code>page_size</code> — 12, <code>host</code> — 16. Новое поле встанет на смещение 272: оно делится на 8, пропуска не будет, и структура займёт 272 + 8 = 280 байт.</li>
+          <li><b>Заполните поле в функции ядра.</b> В <code>core_get_info</code> после имени компьютера получите время работы функцией своей системы из таблицы ниже и запишите в <code>out-&gt;uptime_s</code>. Если функция сообщает об ошибке, верните код ошибки, как в главе 1.1, шаг 4.</li>
+          <li><b>Пересоберите библиотеку</b> той же командой, что в главе 1.2, шаг 2. Старая библиотека ничего не знает о новом поле.</li>
+          <li><b>Опишите поле в Python.</b> В <code>brain.py</code> последней строкой <code>_fields_</code> добавьте <code>("uptime_s", ctypes.c_int64)</code>, а в словарь, который возвращает <code>get_info</code>, — ключ <code>"uptime_s"</code>.</li>
+          <li><b>Сверьте с системой.</b> <code>ctypes.sizeof(CoreInfo)</code> должен вернуть 280. Число <code>uptime_s</code> из JSON переведите в дни и часы и сравните с системной программой: <span data-os="win">Диспетчер задач → <b>Производительность</b> → <b>ЦП</b>, строка «Время работы».</span><span data-os="mac">команда <code>uptime</code> в Терминале: «up 4 days, 20:54».</span><span data-os="linux">команда <code>uptime -p</code>: «up 4 days, 20 hours».</span></li>
+        </ol>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Система</th><th>Функция</th><th>Что возвращает</th><th>Как получить секунды</th></tr></thead>
+            <tbody>
+              <tr><td>Windows</td><td><code>GetTickCount64()</code> из <code>windows.h</code></td><td>миллисекунды с запуска системы, тип <code>ULONGLONG</code></td><td>разделить на 1000</td></tr>
+              <tr><td>macOS</td><td><code>sysctlbyname("kern.boottime", …)</code> из <code>sys/sysctl.h</code></td><td>структуру <code>struct timeval</code> — момент запуска системы</td><td>вычесть <code>tv_sec</code> момента запуска из текущего времени: <code>gettimeofday</code> или <code>time(NULL)</code></td></tr>
+              <tr><td>Linux</td><td><code>sysinfo(&amp;si)</code> из <code>sys/sysinfo.h</code></td><td>заполняет <code>struct sysinfo</code>; 0 — успех, −1 — ошибка и <code>errno</code></td><td>поле <code>si.uptime</code> — уже секунды</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Все три функции устроены как в главе 1.1. <code>sysctlbyname</code> и <code>sysinfo</code> заполняют структуру по адресу, который им передали. <code>sysctlbyname</code> вдобавок получает адрес переменной с размером буфера — как <code>GetComputerNameW</code> в шаге 3. В Windows есть и функция <code>GetTickCount</code> без «64»: она возвращает 32-битное число, которое через 49,7 суток доходит до максимума и начинается с нуля. Для агента она не подходит.</p>
+
+        <p>Готовое сообщение агента выглядит так. Числа у вас будут свои, проверяется только то, что <code>uptime_s</code> совпадает с системой.</p>
+
+        <figure class="code" data-read>
+          <figcaption><span>python3 brain.py · macOS, эталонное решение</span></figcaption>
+<pre>{
+  "event": "agent_started",
+  "os": "darwin",
+  "pid": 38897,
+  "cpus": 10,
+  "page_size": 16384,
+  "host": "MacBook-Air-Maxim.local",
+  "uptime_s": 420834
+}</pre>
+        </figure>
+        <p>Как перевести 420 834 секунды в дни и часы:</p>
+        <ul>
+          <li>в сутках 86 400 секунд: 4 × 86 400 = 345 600, это 4 полных дня, остаток 420 834 − 345 600 = 75 234 секунды;</li>
+          <li>в часе 3600 секунд: 20 × 3600 = 72 000, это 20 полных часов, остаток 3234 секунды — ещё 53 минуты.</li>
+        </ul>
+        <p>Итого 4 дня 20 часов 53 минуты. Команда <code>uptime</code> в ту же минуту показала «up 4 days, 20:54». Запишите такой расчёт для своего числа в журнал: он понадобится во второй части.</p>
+
+        <h2 id="s3"><span class="sec">§3</span>Часть 2. ИИ: объяснение модели</h2>
+
+        <p>Работа идёт в сценарии n8n из главы 1.3: Webhook → Basic LLM Chain с моделью <code>qwen2.5:3b</code> в Ollama → письмо. Новый <code>brain.py</code> отправляет сообщение уже с полем <code>uptime_s</code>. Бланк журнала лежит в репозитории: <code>agent/n8n/ai-log.md</code>.</p>
+
+        <h3>Запрос А: модель считает сама</h3>
+        <p>В узле <b>Basic LLM Chain</b> замените текст запроса на этот и запустите <code>brain.py</code> с адресом вебхука три раза. Ответы смотрите во вкладке <b>Executions</b> или в письмах.</p>
+        <figure class="code">
+          <figcaption><span>запрос А · поле Prompt узла Basic LLM Chain</span></figcaption>
+<pre>Ты помощник администратора. Агент прислал данные компьютера в JSON.
+Объясни простыми словами по-русски в 2–3 предложениях, сколько дней и часов
+работает компьютер без перезагрузки и стоит ли его перезагрузить.
+JSON: {{ JSON.stringify($json.body) }}</pre>
+        </figure>
+        <p>Так этот запрос отработал у нас — <code>qwen2.5:3b</code>, три запуска подряд, <code>uptime_s</code> = 420 911, верный ответ 4 дня 20 часов:</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Запуск</th><th>Что ответила модель</th><th>Верно?</th></tr></thead>
+            <tbody>
+              <tr><td class="num-cell">1</td><td>«…420911 секунд, что составляет примерно 12 дней и 10 часов», дальше фраза на китайском</td><td>нет</td></tr>
+              <tr><td class="num-cell">2</td><td>«…работает без перезагрузки уже 11 дней и 91 час»</td><td>нет</td></tr>
+              <tr><td class="num-cell">3</td><td>«…что составляет примерно 117 дней и 25 часов»</td><td>нет</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Модель предсказывает следующее слово по похожим текстам, а не делит числа, поэтому три запуска дали три разных неверных ответа — и даже «91 час», и «25 часов», которых в сутках не бывает. Сообщение выглядит уверенно, и без проверки администратор поверил бы ему. Запишите в журнал свои три ответа и отметьте, верны ли они.</p>
+
+        <h3>Запрос Б: числа считает n8n</h3>
+        <p>Дни и часы — арифметика, её точно выполняет программа. В n8n выражение в двойных фигурных скобках — это JavaScript, и его можно посчитать прямо в запросе. Замените запрос и снова запустите три раза:</p>
+        <figure class="code">
+          <figcaption><span>запрос Б · поле Prompt узла Basic LLM Chain</span></figcaption>
+<pre>Ты помощник администратора. Агент прислал данные компьютера.
+Объясни простыми словами по-русски в 2–3 предложениях, сколько компьютер
+работает без перезагрузки и стоит ли его перезагрузить.
+Пиши только по-русски. Не пересчитывай числа, бери их как есть.
+Компьютер: {{ $json.body.host }}.
+Работает без перезагрузки: {{ Math.floor($json.body.uptime_s / 86400) }} дн. {{ Math.floor($json.body.uptime_s % 86400 / 3600) }} ч.</pre>
+        </figure>
+        <ul>
+          <li><code>Math.floor(…)</code> — целая часть числа;</li>
+          <li><code>uptime_s / 86400</code> — сколько суток: в сутках 86 400 секунд;</li>
+          <li><code>uptime_s % 86400</code> — остаток после полных суток, <code>/ 3600</code> — сколько в нём часов.</li>
+        </ul>
+        <p>У нас с готовыми числами все три ответа были верными: «Компьютер MacBook-Air-Maxim.local работает без перезагрузки 4 дня 20 часов. Стоит перезагрузить.» Модель сделала то, что умеет: связный текст для человека. Числа посчитала программа.</p>
+
+        <div class="step-done"><b>Правило из задания.</b>Всё, что можно посчитать, считает код агента или выражение n8n. Модели отдают готовые числа и просят объяснить их словами. Так же устроен список проверки ответа ИИ из главы 0.3.</div>
+
+        <h3>Выгрузить сценарий</h3>
+        <p>Оставьте в узле запрос Б и опубликуйте сценарий. Затем в n8n откройте меню сценария <b>⋯</b> вверху справа и выберите <b>Download</b>: браузер сохранит файл <code>.json</code>. Переименуйте его в <code>agent-uptime.json</code> и положите в <code>agent/n8n</code>. Перед коммитом откройте файл и проверьте, что в нём нет паролей: учётные данные SMTP n8n в выгрузку не кладёт, в узлах хранится только их имя.</p>
+
+        <h2 id="s4"><span class="sec">§4</span>Как сдать и что проверяется</h2>
+        <p>Коммиты — <code>agent: uptime_s в ядре и мозге</code> и <code>agent/n8n: сценарий и журнал ИИ</code>. После отправки во вкладке <b>Actions</b> запускаются «Проверки». Для задания модуля в таблице две строки.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Строка проверки</th><th>Что делает сервер</th><th>Когда «пройдено»</th></tr></thead>
+            <tbody>
+              <tr><td>Модуль 1 · <code>agent</code></td><td>собирает <code>core_info.c</code> для своей системы в библиотеку, запускает <code>brain.py</code> без адреса</td><td>в JSON есть все поля, <code>uptime_s</code> отличается от времени работы сервера не больше чем на минуту</td></tr>
+              <tr><td>Модуль 1 · <code>agent/n8n</code></td><td>читает <code>agent-uptime.json</code> и <code>ai-log.md</code></td><td>в сценарии есть вебхук и модель Ollama, в журнале не осталось пропусков <code>___</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Сервер с другой системой ядро пропускает, как в лабораторных. На защите: агент запускается, <code>uptime_s</code> сверяется с системной программой, и нужно объяснить по журналу, почему запрос Б надёжнее запроса А.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>Частые ошибки</h2>
+        <div class="myths">
+          <div class="myth">
+            <div class="myth__no"><b>Что видно</b>JSON печатается, но <code>uptime_s</code> — огромное или отрицательное число.</div>
+            <div class="myth__yes"><b>Причина</b>Поле добавлено в <code>core.h</code> не последним или порядок в <code>_fields_</code> не совпадает с C — опыт с переставленными полями из главы 1.2, шаг 6. Python читает байты не того поля.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Что видно</b>В JSON нет <code>uptime_s</code>, хотя в C всё сделано.</div>
+            <div class="myth__yes"><b>Причина</b>Поле не добавлено в <code>CoreInfo</code> или в словарь <code>get_info</code>. Либо Python загрузил старую библиотеку: пересоберите её из папки <code>agent/core</code>.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Что видно</b><code>uptime_s</code> в тысячу раз больше, чем показывает система.</div>
+            <div class="myth__yes"><b>Причина</b>В Windows не поделили миллисекунды <code>GetTickCount64</code> на 1000.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Что видно</b>Модель в ответе на запрос Б всё равно называет другие дни и часы.</div>
+            <div class="myth__yes"><b>Причина</b>В запросе остался <code>JSON.stringify($json.body)</code> с секундами, и модель пересчитала сама. В запросе должны быть только готовые дни и часы.</div>
+          </div>
+        </div>
+
+        <div class="pager">
+          <a href="../08-n8n-i-ollama/index.html">← 1.3 n8n и Ollama</a>
+          <a href="../../index.html">Оглавление</a>
+          <span></span>
+        </div>
+
+        <div class="colophon">
+          <span>Справочник по системному программированию</span>
+          <span class="author-line">© Макаров Максим Николаевич</span>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+</body>
+</html>
