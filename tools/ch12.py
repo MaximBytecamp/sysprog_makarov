@@ -450,7 +450,7 @@ S.append('''
         </div>
 
         <div class="pager">
-          <a href="../06-c-dlya-sistemnogo-programmista/index.html">← 1.1 C для системного программиста</a>
+          <a href="../10-laboratornaya-3/index.html">← ЛР 3 Библиотеки программы</a>
           <a href="../../index.html">Оглавление</a>
           <a href="../08-n8n-i-ollama/index.html">1.3 n8n и Ollama →</a>
         </div>
