@@ -70,6 +70,8 @@ LAYOUT = cells([('pid', '0 · c_int64', 'w'), ('cpus', '8 · c_int32', 'w'), ('p
 import walk12
 WK = walk12.build(hl_py, cells, V1, BRAIN)
 
+import catchup
+
 S = []
 
 S.append(f'''
@@ -120,6 +122,7 @@ S.append(f'''
           </ul>
         </div>
         <p>Глава продолжает репозиторий <code>sysprog-start</code> из шага 9 главы 1.1: в <code>agent/core</code> лежат <code>core.h</code>, <code>core_info.c</code> и <code>show_info.c</code>, папка <code>agent/brain</code> пуста. Репозиторий открыт в VS Code. <span data-os="win">Команды выполняются в окне <b>x64 Native Tools Command Prompt for VS 2022</b>; Python в нём должен быть 64-битным для x64, как и компилятор.</span><span data-os="mac linux">Команды выполняются во встроенном терминале VS Code из корня репозитория.</span></p>
+{catchup.block('1.2', hl, hl_py)}
         <p class="bridge">Python загружает только динамическую библиотеку, поэтому первая часть — собрать её из того же <code>core_info.c</code>.</p>
 ''')
 

@@ -83,6 +83,165 @@
           <p class="miss">Моточасы копятся всю жизнь машины. Время работы системы обнуляется при каждой перезагрузке.</p>
         </div></div>
 
+<!--catchup-->
+        <details class="catchup">
+          <summary>Если файлов глав 1.1–1.3 нет</summary>
+          <p>Задание начинается с ядра и мозга агента из глав 1.1–1.3. Если главы пропущены или репозиторий создан заново, создайте файлы ниже для своей системы, соберите библиотеку и проверьте запуском <code>brain.py</code>: он должен напечатать JSON <code>agent_started</code>.</p>
+          <figure class="code">
+            <figcaption><span>agent/core/core.h</span><span>из глав 1.1–1.3</span></figcaption>
+<pre><span class="k">#ifndef</span> CORE_H
+<span class="k">#define</span> CORE_H
+
+<span class="k">#include</span> <span class="s">&lt;stdint.h&gt;</span>
+
+#ifdef _WIN32
+<span class="k">#define</span> CORE_API <span class="f">__declspec</span>(dllexport)
+#else
+<span class="k">#define</span> CORE_API
+<span class="k">#endif</span>
+
+<span class="k">#define</span> CORE_HOST_MAX <span class="n">256</span>
+
+<span class="k">struct</span> core_info {
+    <span class="t">int64_t</span> pid;
+    <span class="t">int32_t</span> cpus;
+    <span class="t">int32_t</span> page_size;
+    <span class="k">char</span>    host[CORE_HOST_MAX];
+};
+
+CORE_API <span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out);
+
+<span class="k">#endif</span></pre>
+          </figure>
+          <figure class="code" data-os="win">
+            <figcaption><span>agent/core/core_info.c</span><span>Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out) {
+    <span class="t">SYSTEM_INFO</span> si;
+    <span class="t">WCHAR</span> name[MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>];
+    <span class="t">DWORD</span> len = MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>;
+
+    <span class="k">if</span> (out == NULL)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="f">ZeroMemory</span>(out, <span class="k">sizeof</span> *out);
+
+    out-&gt;pid = <span class="f">GetCurrentProcessId</span>();
+    <span class="f">GetNativeSystemInfo</span>(&amp;si);
+    out-&gt;cpus = (<span class="t">int32_t</span>)si.dwNumberOfProcessors;
+    out-&gt;page_size = (<span class="t">int32_t</span>)si.dwPageSize;
+
+    <span class="k">if</span> (!<span class="f">GetComputerNameW</span>(name, &amp;len))
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">if</span> (<span class="f">WideCharToMultiByte</span>(CP_UTF8, <span class="n">0</span>, name, -<span class="n">1</span>, out-&gt;host,
+                            <span class="k">sizeof</span> out-&gt;host, NULL, NULL) == <span class="n">0</span>)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+          </figure>
+          <figure class="code" data-os="mac linux">
+            <figcaption><span>agent/core/core_info.c</span><span>macOS и Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out) {
+    <span class="k">if</span> (out == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="f">memset</span>(out, <span class="n">0</span>, <span class="k">sizeof</span> *out);
+
+    out-&gt;pid = <span class="f">getpid</span>();
+    out-&gt;cpus = (<span class="t">int32_t</span>)<span class="f">sysconf</span>(_SC_NPROCESSORS_ONLN);
+    out-&gt;page_size = (<span class="t">int32_t</span>)<span class="f">sysconf</span>(_SC_PAGESIZE);
+
+    <span class="k">if</span> (<span class="f">gethostname</span>(out-&gt;host, <span class="k">sizeof</span> out-&gt;host) != <span class="n">0</span>)
+        <span class="k">return</span> errno;
+    out-&gt;host[<span class="k">sizeof</span> out-&gt;host - <span class="n">1</span>] = <span class="s">&#x27;\0&#x27;</span>;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+          </figure>
+          <figure class="code">
+            <figcaption><span>agent/brain/brain.py</span><span>все системы</span></figcaption>
+<pre><span class="s">&quot;&quot;&quot;Мозг агента: загружает ядро на C и получает сведения о системе.&quot;&quot;&quot;</span>
+<span class="k">import</span> ctypes
+<span class="k">import</span> json
+<span class="k">import</span> os
+<span class="k">import</span> sys
+<span class="k">import</span> urllib.request
+<span class="k">from</span> pathlib <span class="k">import</span> Path
+
+CORE_DIR = <span class="f">Path</span>(__file__).<span class="f">resolve</span>().parent.parent / <span class="s">&quot;core&quot;</span>
+LIB_NAME = {<span class="s">&quot;win32&quot;</span>: <span class="s">&quot;sentry_core.dll&quot;</span>, <span class="s">&quot;darwin&quot;</span>: <span class="s">&quot;libsentry_core.dylib&quot;</span>}.<span class="f">get</span>(sys.platform, <span class="s">&quot;libsentry_core.so&quot;</span>)
+
+
+<span class="k">class</span> <span class="f">CoreInfo</span>(ctypes.Structure):
+    _fields_ = [
+        (<span class="s">&quot;pid&quot;</span>, ctypes.c_int64),
+        (<span class="s">&quot;cpus&quot;</span>, ctypes.c_int32),
+        (<span class="s">&quot;page_size&quot;</span>, ctypes.c_int32),
+        (<span class="s">&quot;host&quot;</span>, ctypes.c_char * <span class="n">256</span>),
+    ]
+
+
+core = ctypes.<span class="f">CDLL</span>(<span class="f">str</span>(CORE_DIR / LIB_NAME))
+core.core_get_info.argtypes = [ctypes.<span class="f">POINTER</span>(CoreInfo)]
+core.core_get_info.restype = ctypes.c_int
+
+
+<span class="k">def</span> <span class="f">error_text</span>(code):
+    <span class="k">if</span> sys.platform == <span class="s">&quot;win32&quot;</span>:
+        <span class="k">return</span> ctypes.<span class="f">FormatError</span>(code)
+    <span class="k">return</span> os.<span class="f">strerror</span>(code)
+
+
+<span class="k">def</span> <span class="f">get_info</span>():
+    info = <span class="f">CoreInfo</span>()
+    err = core.<span class="f">core_get_info</span>(ctypes.<span class="f">byref</span>(info))
+    <span class="k">if</span> err != <span class="n">0</span>:
+        <span class="k">raise</span> <span class="f">OSError</span>(err, <span class="f">error_text</span>(err))
+    <span class="k">return</span> {
+        <span class="s">&quot;pid&quot;</span>: info.pid,
+        <span class="s">&quot;cpus&quot;</span>: info.cpus,
+        <span class="s">&quot;page_size&quot;</span>: info.page_size,
+        <span class="s">&quot;host&quot;</span>: info.host.<span class="f">decode</span>(<span class="s">&quot;utf-8&quot;</span>),
+    }
+
+
+<span class="k">def</span> <span class="f">send</span>(message, url):
+    data = json.<span class="f">dumps</span>(message, ensure_ascii=<span class="k">False</span>).<span class="f">encode</span>(<span class="s">&quot;utf-8&quot;</span>)
+    request = urllib.request.<span class="f">Request</span>(url, data=data, method=<span class="s">&quot;POST&quot;</span>,
+                                     headers={<span class="s">&quot;Content-Type&quot;</span>: <span class="s">&quot;application/json&quot;</span>})
+    with urllib.request.<span class="f">urlopen</span>(request, timeout=<span class="n">120</span>) as response:
+        <span class="k">return</span> response.status, response.<span class="f">read</span>().<span class="f">decode</span>(<span class="s">&quot;utf-8&quot;</span>)
+
+
+<span class="k">if</span> __name__ == <span class="s">&quot;__main__&quot;</span>:
+    message = {<span class="s">&quot;event&quot;</span>: <span class="s">&quot;agent_started&quot;</span>, <span class="s">&quot;os&quot;</span>: sys.platform, **<span class="f">get_info</span>()}
+    <span class="f">print</span>(json.<span class="f">dumps</span>(message, ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+    <span class="k">if</span> <span class="f">len</span>(sys.argv) &gt; <span class="n">1</span>:
+        status, body = <span class="f">send</span>(message, sys.argv[<span class="n">1</span>])
+        <span class="f">print</span>(<span class="s">&quot;n8n:&quot;</span>, status, body)</pre>
+          </figure>
+          <figure class="code" data-os="win">
+            <figcaption><span>x64 Native Tools Command Prompt</span><span>сборка библиотеки</span></figcaption>
+<pre>cd agent\core
+cl /nologo /W4 /LD core_info.c /Fe:sentry_core.dll</pre>
+          </figure>
+          <figure class="code" data-os="mac">
+            <figcaption><span>терминал в папке sysprog-start</span><span>сборка библиотеки</span></figcaption>
+<pre>cd agent/core
+clang -Wall -Wextra -shared -fPIC -o libsentry_core.dylib core_info.c</pre>
+          </figure>
+          <figure class="code" data-os="linux">
+            <figcaption><span>терминал в папке sysprog-start</span><span>сборка библиотеки</span></figcaption>
+<pre>cd agent/core
+gcc -Wall -Wextra -shared -fPIC -o libsentry_core.so core_info.c</pre>
+          </figure>
+        </details>
+<!--/catchup-->
+
         <h3>Что сделать</h3>
         <ol>
           <li><b>Добавьте поле в структуру.</b> В <code>core.h</code> последним полем <code>struct core_info</code> допишите <code>int64_t uptime_s;</code> — секунды с запуска системы. Поле ставится в конец, чтобы смещения старых полей не изменились: <code>pid</code> — 0, <code>cpus</code> — 8, <code>page_size</code> — 12, <code>host</code> — 16. Новое поле встанет на смещение 272: оно делится на 8, пропуска не будет, и структура займёт 272 + 8 = 280 байт.</li>

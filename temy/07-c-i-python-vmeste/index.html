@@ -101,6 +101,79 @@
           </ul>
         </div>
         <p>Глава продолжает репозиторий <code>sysprog-start</code> из шага 9 главы 1.1: в <code>agent/core</code> лежат <code>core.h</code>, <code>core_info.c</code> и <code>show_info.c</code>, папка <code>agent/brain</code> пуста. Репозиторий открыт в VS Code. <span data-os="win">Команды выполняются в окне <b>x64 Native Tools Command Prompt for VS 2022</b>; Python в нём должен быть 64-битным для x64, как и компилятор.</span><span data-os="mac linux">Команды выполняются во встроенном терминале VS Code из корня репозитория.</span></p>
+        <details class="catchup">
+          <summary>Если файлов главы 1.1 нет</summary>
+          <p>Глава 1.2 начинается с файлов ядра из главы 1.1. Если глава пропущена или репозиторий создан заново, создайте в <code>agent/core</code> два файла с кодом ниже — для своей системы — и продолжайте с шага 1.</p>
+          <figure class="code">
+            <figcaption><span>agent/core/core.h</span><span>из главы 1.1, шаги 5–6</span></figcaption>
+<pre><span class="k">#ifndef</span> CORE_H
+<span class="k">#define</span> CORE_H
+
+<span class="k">#include</span> <span class="s">&lt;stdint.h&gt;</span>
+
+<span class="k">#define</span> CORE_HOST_MAX <span class="n">256</span>
+
+<span class="k">struct</span> core_info {
+    <span class="t">int64_t</span> pid;
+    <span class="t">int32_t</span> cpus;
+    <span class="t">int32_t</span> page_size;
+    <span class="k">char</span>    host[CORE_HOST_MAX];
+};
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out);
+
+<span class="k">#endif</span></pre>
+          </figure>
+          <figure class="code" data-os="win">
+            <figcaption><span>agent/core/core_info.c</span><span>Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out) {
+    <span class="t">SYSTEM_INFO</span> si;
+    <span class="t">WCHAR</span> name[MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>];
+    <span class="t">DWORD</span> len = MAX_COMPUTERNAME_LENGTH + <span class="n">1</span>;
+
+    <span class="k">if</span> (out == NULL)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="f">ZeroMemory</span>(out, <span class="k">sizeof</span> *out);
+
+    out-&gt;pid = <span class="f">GetCurrentProcessId</span>();
+    <span class="f">GetNativeSystemInfo</span>(&amp;si);
+    out-&gt;cpus = (<span class="t">int32_t</span>)si.dwNumberOfProcessors;
+    out-&gt;page_size = (<span class="t">int32_t</span>)si.dwPageSize;
+
+    <span class="k">if</span> (!<span class="f">GetComputerNameW</span>(name, &amp;len))
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">if</span> (<span class="f">WideCharToMultiByte</span>(CP_UTF8, <span class="n">0</span>, name, -<span class="n">1</span>, out-&gt;host,
+                            <span class="k">sizeof</span> out-&gt;host, NULL, NULL) == <span class="n">0</span>)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+          </figure>
+          <figure class="code" data-os="mac linux">
+            <figcaption><span>agent/core/core_info.c</span><span>macOS и Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out) {
+    <span class="k">if</span> (out == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="f">memset</span>(out, <span class="n">0</span>, <span class="k">sizeof</span> *out);
+
+    out-&gt;pid = <span class="f">getpid</span>();
+    out-&gt;cpus = (<span class="t">int32_t</span>)<span class="f">sysconf</span>(_SC_NPROCESSORS_ONLN);
+    out-&gt;page_size = (<span class="t">int32_t</span>)<span class="f">sysconf</span>(_SC_PAGESIZE);
+
+    <span class="k">if</span> (<span class="f">gethostname</span>(out-&gt;host, <span class="k">sizeof</span> out-&gt;host) != <span class="n">0</span>)
+        <span class="k">return</span> errno;
+    out-&gt;host[<span class="k">sizeof</span> out-&gt;host - <span class="n">1</span>] = <span class="s">&#x27;\0&#x27;</span>;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+          </figure>
+        </details>
         <p class="bridge">Python загружает только динамическую библиотеку, поэтому первая часть — собрать её из того же <code>core_info.c</code>.</p>
 
         <div class="part" role="separator"><span><b>1</b>Библиотека ядра</span></div>

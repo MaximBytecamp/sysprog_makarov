@@ -9,8 +9,9 @@ Ollama на стенде не проходила из-за подмены адр
 import html
 from pathlib import Path
 
-from ch11 import M, per
+from ch11 import M, hl, per
 from ch12 import cmd, hl_py
+import catchup
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = Path(__file__).resolve().parent / 'src13'
@@ -93,6 +94,7 @@ S.append(f'''
           </ul>
         </div>
         <p>Глава продолжает репозиторий <code>sysprog-start</code> из главы 1.2: в <code>agent/core</code> собрана библиотека ядра, в <code>agent/brain</code> лежит <code>brain.py</code>. Кадры n8n и почты одинаковы для трёх систем: n8n работает в браузере. По системам различаются установка программ и команда запуска <code>brain.py</code>.</p>
+{catchup.block('1.3', hl, hl_py)}
         <p class="bridge">Сценарий вызывает модель, поэтому первая часть — установить Ollama и n8n и проверить, что оба отвечают.</p>
 ''')
 
