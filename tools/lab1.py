@@ -311,7 +311,7 @@ HTML = f'''<!doctype html>
         <div class="pager">
           <a href="../04-kak-ustroena-disciplina/index.html">← 0.4 Как устроена дисциплина</a>
           <a href="../../index.html">Оглавление</a>
-          <a href="../09-laboratornaya-2/index.html">ЛР 2 Программа в отладчике →</a>
+          <a href="../12-modul-1-obzor/index.html">1.0 Как пройти модуль 1 →</a>
         </div>
 
         <div class="colophon">

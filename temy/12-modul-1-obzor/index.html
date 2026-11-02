@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>1.0 Как пройти модуль 1 · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    .route { list-style: none; margin: 22px 0; padding: 0; counter-reset: route; }
+    .route > li { counter-increment: route; display: grid; grid-template-columns: 64px minmax(0, 1fr); margin: 0 0 14px; border: 3px solid var(--ink); background: var(--page); box-shadow: 5px 5px 0 var(--ink); }
+    .route > li::before { content: counter(route); display: grid; place-items: start center; padding-top: 14px; background: var(--ink); color: var(--acc-bright); font: 700 24px/1 var(--mono); }
+    .route > li.is-home::before { background: var(--ng); color: #fff; }
+    .route__body { padding: 12px 16px 14px; }
+    .route__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 14px; margin-bottom: 6px; }
+    .route__head a { font-weight: 700; font-size: 17px; }
+    .route__when { font: 600 10.5px/1.4 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--ink-faint); }
+    .route__body p { margin: 0 0 8px; font-size: 15px; line-height: 1.55; }
+    .route__body dl { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 12px; margin: 8px 0 0; font-size: 14.5px; line-height: 1.5; }
+    .route__body dt { font: 600 10.5px/1.6 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--acc); }
+    .route__body dd { margin: 0; }
+    @media (max-width: 640px) { .route__body dl { grid-template-columns: minmax(0, 1fr); } .route > li { grid-template-columns: 44px minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 1 · Рабочее место: C, Python и ИИ</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 1 · рабочее место</p>
+          <p class="running__folio">1.0</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">1.0</span>
+          <h1>Как пройти<br>модуль 1</h1>
+          <p class="lead">В модуле 1 собирается рабочее место системного программиста и первая версия агента-сторожа. После модуля агент умеет спросить у системы сведения о компьютере кодом на C, передать их в Python и отправить сообщение в n8n, где модель объясняет его человеку. На этой странице — зачем модуль нужен, в каком порядке идут работы и главы, что понадобится установить и как всё сдаётся.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Пары</dt><dd>2 и 3, задание модуля — дома до пары 4</dd></div>
+          <div><dt>Работ и глав</dt><dd>2 лабораторные, 3 главы, 1 задание</dd></div>
+          <div><dt>Языки</dt><dd>C и Python, немного JavaScript в выражениях n8n</dd></div>
+          <div><dt>Итог</dt><dd>Агент v1 в папке <code>agent</code> репозитория <code>sysprog-start</code></dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>На этой странице</b>
+          <ol>
+            <li><a href="#s1">Суть модуля</a></li>
+            <li><a href="#s2">Порядок прохождения</a></li>
+            <li><a href="#s3">Что подготовить заранее</a></li>
+            <li><a href="#s4">Что сдаётся и как проверяется</a></li>
+            <li><a href="#s5">Новые слова модуля</a></li>
+            <li><a href="#s6">Если что-то не получается</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Суть модуля</h2>
+
+        <p>Агент-сторож из главы 0.4 состоит из двух частей. <b>Ядро</b> на C разговаривает с системой: вызывает функции WinAPI или POSIX и получает ответы. <b>Мозг</b> на Python решает, что делать с ответами, и отправляет сообщения. В модуле 1 обе части появляются впервые и соединяются между собой, а сообщение агента впервые доходит до человека.</p>
+
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Модуль похож на прокладку первой линии связи в новом доме. Сначала датчик на стене (ядро на C) учится измерять. Затем провод (библиотека и <code>ctypes</code>) доводит показания до пульта (мозг на Python). В конце пульт отправляет сообщение на телефон хозяина (n8n и письмо), а помощник поясняет его простыми словами (модель).</p>
+          <p class="miss">Провод в доме прокладывают один раз. Связь ядра и мозга через структуру ломается от любой мелочи: переставленное поле или другой размер типа — и мозг читает не те байты. Поэтому в модуле так много проверок размеров.</p>
+        </div></div>
+
+        <div class="trace__flow" aria-label="Путь сообщения агента в модуле 1" style="border:3px solid var(--ink);margin:18px 0 10px">
+          <span><b>система</b><small>WinAPI или POSIX</small></span>
+          <span><b>ядро на C</b><small>core_get_info, глава 1.1</small></span>
+          <span><b>библиотека</b><small>.dll / .dylib / .so, глава 1.2</small></span>
+          <span><b>мозг на Python</b><small>brain.py, глава 1.2</small></span>
+          <span><b>n8n + модель</b><small>письмо с пояснением, глава 1.3</small></span>
+        </div>
+        <p style="font-size:14.5px;color:var(--ink-soft)">Путь одного сообщения агента. Каждая глава модуля добавляет одно звено, лабораторные учат смотреть на эти звенья программами системы.</p>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th></th><th>До модуля 1</th><th>После модуля 1</th></tr></thead>
+            <tbody>
+              <tr><td>Ядро на C</td><td><code>hello.c</code> печатает номер процесса</td><td>функция <code>core_get_info</code> заполняет структуру: процесс, процессоры, страница памяти, имя компьютера, время работы системы</td></tr>
+              <tr><td>Мозг на Python</td><td>нет</td><td><code>brain.py</code> загружает ядро, читает структуру и собирает сообщение в JSON</td></tr>
+              <tr><td>Связь с человеком</td><td>нет</td><td>сообщение уходит в n8n, модель объясняет его, приходит письмо</td></tr>
+              <tr><td>Инструменты</td><td>монитор процессов</td><td>отладчик VS Code, просмотр библиотек файла и процесса, n8n, Ollama</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="s2"><span class="sec">§2</span>Порядок прохождения</h2>
+
+        <p>Каждая пара начинается с лабораторной работы: в ней новое явление видно в программах системы. Потом глава объясняет его и добавляет код в агента. Порядок важен: каждая следующая страница опирается на файлы и понятия предыдущей.</p>
+
+        <ol class="route">
+          <li><div class="route__body">
+            <div class="route__head"><a href="../09-laboratornaya-2/index.html">ЛР 2. Программа в отладчике</a><span class="route__when">Пара 2 · 35–40 минут</span></div>
+            <p>Маленькая программа на C проходится по шагам в отладчике VS Code. Это первая встреча со структурой, массивом-строкой и вызовом функции — пока без объяснений, только наблюдение.</p>
+            <dl>
+              <dt>Что увидите</dt><dd>жёлтую стрелку на текущей строке, переменные со случайными значениями до присваивания, буквы слова по байтам, стек вызовов, машинный код одной строки</dd>
+              <dt>В репозитории</dt><dd><code>labs/02-debugger</code>: <code>debug.c</code>, <code>.vscode</code>, <code>report.md</code></dd>
+            </dl>
+          </div></li>
+          <li><div class="route__body">
+            <div class="route__head"><a href="../06-c-dlya-sistemnogo-programmista/index.html">1.1 C для системного программиста</a><span class="route__when">Пара 2 · около 50 минут</span></div>
+            <p>То, что было видно в отладчике, теперь объясняется: размеры типов, структура по адресу, строка в буфере, код ошибки. Из этих четырёх приёмов собирается первая функция ядра агента.</p>
+            <dl>
+              <dt>Что увидите</dt><dd>разные размеры <code>long</code> на трёх системах, структуру, которую заполняет система, байты строки и нулевой байт в конце, коды ошибок 2 и 13 (в Windows — 2 и 5)</dd>
+              <dt>В репозитории</dt><dd><code>agent/core</code>: <code>core.h</code>, <code>core_info.c</code>, <code>show_info.c</code></dd>
+            </dl>
+          </div></li>
+          <li><div class="route__body">
+            <div class="route__head"><a href="../10-laboratornaya-3/index.html">ЛР 3. Библиотеки программы</a><span class="route__when">Пара 3 · 30–35 минут</span></div>
+            <p>Какие библиотеки нужны программе и какие загружены в работающий процесс. Python на глазах загружает системную библиотеку и вызывает её функцию — то же самое глава 1.2 сделает с ядром агента.</p>
+            <dl>
+              <dt>Что увидите</dt><dd>список библиотек файла (<span data-os="win"><code>dumpbin</code></span><span data-os="mac"><code>otool -L</code></span><span data-os="linux"><code>ldd</code></span>), число библиотек процесса до и после загрузки, ответ функции из чужой библиотеки</dd>
+              <dt>В репозитории</dt><dd><code>labs/03-libraries</code>: <code>libs.c</code>, <code>report.md</code></dd>
+            </dl>
+          </div></li>
+          <li><div class="route__body">
+            <div class="route__head"><a href="../07-c-i-python-vmeste/index.html">1.2 C и Python вместе</a><span class="route__when">Пара 3 · около 45 минут</span></div>
+            <p>Ядро собирается в динамическую библиотеку, <code>brain.py</code> загружает её через <code>ctypes</code>, описывает структуру на Python и вызывает функцию ядра. Опыты показывают, что бывает, если поля стоят не в том порядке.</p>
+            <dl>
+              <dt>Что увидите</dt><dd>файл библиотеки и её таблицу экспорта, смещения полей структуры в Python, первое сообщение агента <code>agent_started</code> в JSON</dd>
+              <dt>В репозитории</dt><dd><code>agent/core</code>: <code>CORE_API</code> в <code>core.h</code>; <code>agent/brain/brain.py</code></dd>
+            </dl>
+          </div></li>
+          <li><div class="route__body">
+            <div class="route__head"><a href="../08-n8n-i-ollama/index.html">1.3 n8n и Ollama: первая автоматизация</a><span class="route__when">Пара 3 · около 50 минут, доделать дома</span></div>
+            <p>Сообщение агента уходит в n8n. Модель на своём компьютере объясняет его простыми словами, и приходит письмо. На паре 3 вместе с ЛР 3 и главой 1.2 это около двух часов работы — глава начинается на паре и при нехватке времени доделывается дома.</p>
+            <dl>
+              <dt>Что увидите</dt><dd>сценарий n8n на холсте: вебхук, цепочка с моделью, письмо, сообщение агента внутри n8n, письмо с пояснением модели, журнал запусков</dd>
+              <dt>В репозитории</dt><dd><code>agent/brain/brain.py</code> с функцией <code>send</code></dd>
+            </dl>
+          </div></li>
+          <li class="is-home"><div class="route__body">
+            <div class="route__head"><a href="../11-zadanie-modulya-1/index.html">Задание модуля 1. Агент и ИИ</a><span class="route__when">Дома · 2–3 часа, до пары 4</span></div>
+            <p>Самостоятельная работа по всему модулю: агент учится сообщать, сколько система работает без перезагрузки, а модель объясняет это время. Нужно пройти весь путь сообщения самому и проверить, где модели можно доверять.</p>
+            <dl>
+              <dt>Что увидите</dt><dd>новое поле в JSON, совпадение с системной программой, неверную арифметику модели и способ её исправить</dd>
+              <dt>В репозитории</dt><dd><code>agent/core</code>, <code>agent/brain</code>, <code>agent/n8n</code>: сценарий и журнал ИИ</dd>
+            </dl>
+          </div></li>
+        </ol>
+
+        <h2 id="s3"><span class="sec">§3</span>Что подготовить заранее</h2>
+
+        <p>Часть программ уже стоит после ЛР 1. Остальное лучше поставить до пары: скачивание модели на медленном интернете занимает больше пары.</p>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Что</th><th>Где нужно</th><th>Как поставить</th></tr></thead>
+            <tbody>
+              <tr><td>Компилятор C и Python 3</td><td>всё</td><td>уже стоят после ЛР 1: <span data-os="win">Build Tools (MSVC) и Python с python.org</span><span data-os="mac">Command Line Tools: <code>xcode-select --install</code></span><span data-os="linux"><code>sudo apt install build-essential python3</code></span></td></tr>
+              <tr><td>VS Code и расширение <b>C/C++</b></td><td>ЛР 2, ЛР 3, главы</td><td>VS Code с <a href="https://code.visualstudio.com">code.visualstudio.com</a>, расширение — вкладка Extensions, поиск <code>C/C++</code></td></tr>
+              <tr><td>Отладчик</td><td>ЛР 2</td><td><span data-os="win">входит в расширение C/C++</span><span data-os="mac">LLDB входит в Command Line Tools</span><span data-os="linux"><code>sudo apt install gdb</code></span></td></tr>
+              <tr><td>Ollama и модель <code>qwen2.5:3b</code></td><td>1.3, задание</td><td>Ollama с <a href="https://ollama.com">ollama.com</a>, затем <code>ollama pull qwen2.5:3b</code> — около 2 ГБ, скачать до пары 3</td></tr>
+              <tr><td>Node.js 20.19–24.x</td><td>1.3, задание</td><td>с <a href="https://nodejs.org">nodejs.org</a>; n8n запускается командой <code>npx n8n</code></td></tr>
+              <tr><td>Почта с паролем приложения</td><td>1.3, задание</td><td>для отправки писем из n8n по SMTP, например Яндекс Почта: пароль приложения создаётся в настройках аккаунта</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="s4"><span class="sec">§4</span>Что сдаётся и как проверяется</h2>
+
+        <p>Всё сдаётся в репозиторий <code>sysprog-start</code>. После каждой отправки GitHub Actions собирает код на сервере с вашей системой и показывает таблицу «Проверки». Код для другой системы сервер пропускает, это не ошибка.</p>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Работа</th><th>Папка</th><th>Что проверяет сервер</th></tr></thead>
+            <tbody>
+              <tr><td>ЛР 2</td><td><code>labs/02-debugger</code></td><td><code>debug.c</code> собирается с отладочными сведениями и печатает <code>agent: total=6 area=12</code></td></tr>
+              <tr><td>ЛР 3</td><td><code>labs/03-libraries</code></td><td><code>libs.c</code> собирается и печатает <code>sqrt(2) = 1.414214</code></td></tr>
+              <tr><td>Главы 1.1–1.3</td><td><code>agent/core</code>, <code>agent/brain</code></td><td>отдельной проверки нет: код глав — основа задания модуля</td></tr>
+              <tr><td>Задание модуля</td><td><code>agent</code>, <code>agent/n8n</code></td><td>ядро собирается в библиотеку, <code>brain.py</code> печатает JSON с верным <code>uptime_s</code>; сценарий n8n и журнал ИИ на месте</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Отчёты лабораторных (<code>report.md</code>) и журнал ИИ сервер не оценивает: числа в них сверяются на защите, когда программа запускается при преподавателе. Помощник ИИ в модуле работает в режиме Р1 из главы 0.3: объясняет и подсказывает, код набирается вручную.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>Новые слова модуля</h2>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Слово</th><th>Простыми словами</th><th>Где впервые</th></tr></thead>
+            <tbody>
+              <tr><td>Отладчик, точка останова</td><td>программа, которая останавливает другую программу на нужной строке и показывает её память</td><td>ЛР 2</td></tr>
+              <tr><td>Структура</td><td>несколько переменных разных типов под одним именем, подряд в памяти — бланк с графами</td><td>ЛР 2, 1.1</td></tr>
+              <tr><td>Адрес, указатель</td><td>номер ячейки памяти; переменная, где лежит такой номер</td><td>1.1</td></tr>
+              <tr><td>Буфер, завершающий ноль</td><td>место в памяти под строку; байт 0, которым строка заканчивается</td><td>1.1</td></tr>
+              <tr><td>Код ошибки</td><td>число, которым система сообщает причину неудачи: <span data-os="win"><code>GetLastError</code></span><span data-os="mac linux"><code>errno</code></span></td><td>1.1</td></tr>
+              <tr><td>Динамическая библиотека</td><td>файл с функциями, который программа загружает при запуске или во время работы</td><td>ЛР 3, 1.2</td></tr>
+              <tr><td><code>ctypes</code></td><td>модуль Python, который загружает библиотеки на C и вызывает их функции</td><td>ЛР 3, 1.2</td></tr>
+              <tr><td>Вебхук</td><td>адрес, на который программа отправляет сообщение, чтобы запустить сценарий n8n</td><td>1.3</td></tr>
+              <tr><td>Модель, запрос</td><td>нейросеть, которая продолжает текст; запрос — текст-задание для неё</td><td>1.3, задание</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="s6"><span class="sec">§6</span>Если что-то не получается</h2>
+        <ul>
+          <li>В конце каждой главы есть раздел «Частые вопросы» — там собраны типичные ошибки и их причины.</li>
+          <li>Сообщение компилятора или Python копируется целиком и читается с первой строки: в ней файл и номер строки.</li>
+          <li>В таблице «Проверки» во вкладке Actions справа от «ошибка» написана причина — с неё и начинается исправление.</li>
+          <li>Помощнику ИИ можно показать ошибку и попросить объяснить её, как в главе 0.3. Объяснение сверяется с главой, исправление вносится вручную.</li>
+          <li>Если глава 1.3 не уложилась в пару 3, её стоит закончить дома до задания модуля: задание продолжает сценарий n8n из главы.</li>
+        </ul>
+
+        <div class="pager">
+          <a href="../05-laboratornaya-1/index.html">← ЛР 1 Процесс изнутри</a>
+          <a href="../../index.html">Оглавление</a>
+          <a href="../09-laboratornaya-2/index.html">ЛР 2 Программа в отладчике →</a>
+        </div>
+
+        <div class="colophon">
+          <span>Справочник по системному программированию</span>
+          <span class="author-line">© Макаров Максим Николаевич</span>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+</body>
+</html>
