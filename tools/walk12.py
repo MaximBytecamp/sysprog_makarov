@@ -2,6 +2,7 @@
 
 Номера строк — по файлам tools/src12/py. Оформление блока — trace_html из walk11."""
 from walk11 import like, trace_html
+import viz as V
 
 
 def build(hl_py, cells, V1, BRAIN):
@@ -30,6 +31,9 @@ def build(hl_py, cells, V1, BRAIN):
           + like('Таблица на двери: «Windows — кабинет 1, macOS — кабинет 2, остальные — кабинет 3».')),
          ('8', 'Загрузить библиотеку',
           '<p><code>ctypes.CDLL(путь)</code> загружает библиотеку в память процесса Python и возвращает объект <code>core</code>. Через него доступны функции библиотеки. <code>str(…)</code> переводит <code>Path</code> в обычную строку, которую ждёт <code>CDLL</code>.</p>'
+          + V.steps(V.card('файл на диске', 'библиотека ядра', '<small>.dll / .dylib / .so в agent/core</small>', 'sys'), V.arrow('CDLL'),
+                    V.card('память процесса Python', 'тот же код', '<small>рядом с интерпретатором</small>', 'c'), V.arrow('объект'),
+                    V.card('Python', 'core', '<small>через него зовут функции</small>', 'py'))
           + like('Переходник для розетки: вилка C входит в гнездо Python.')),
          ('9-10', 'Проверить, что функция нашлась',
           '<p><code>print(core)</code> печатает объект библиотеки с путём к файлу. <code>core.core_get_info</code> ищет функцию в таблице экспорта библиотеки — той, что показали <span data-os="win"><code>dumpbin /exports</code></span><span data-os="mac linux"><code>nm</code></span> в шаге 2. Если имени там нет, Python сообщит <code>AttributeError</code>.</p>')],
@@ -67,9 +71,15 @@ def build(hl_py, cells, V1, BRAIN):
           '<ul class="words"><li><code>info = CoreInfo()</code> — пустая структура, 272 байта нулей. Память выделяет Python;</li>'
           '<li><code>ctypes.byref(info)</code> — адрес этой структуры, то же, что <code>&amp;info</code> в C;</li>'
           '<li><code>err</code> — код, который вернула <code>core_get_info</code>: 0 или код ошибки.</li></ul>'
+          + ''.join(f'<div data-os="{o}">' + V.mem([('CoreInfo()', '', cells([('0', 'pid', 'w'), ('0', 'cpus', 'w'), ('0', 'page_size', 'w'), ('0 0 …', 'host', 'w')])),
+                   ('после вызова', '', cells([(pid, 'pid', 'w'), (cpus, 'cpus', 'w'), (page, 'page_size', 'w'), (host, 'host', 'w')]))]) + '</div>'
+                    for o, pid, cpus, page, host in (('win', '4656', '4', '4096', 'WIN11-LAB'), ('mac', 'PID', '10', '16384', 'MacBook-Air…'), ('linux', 'PID', '10', '4096', 'lab-linux')))
           + like('Тот же бланк в окошке МФЦ, только посетитель теперь Python.')),
          ('35-36', 'Код ошибки → исключение',
           '<p>Если ядро вернуло не 0, <code>raise OSError(err, error_text(err))</code> поднимает <span class="term">исключение</span>: выполнение функции прерывается, и Python сообщает код и текст. Тот, кто вызвал <code>get_info</code>, может перехватить его через <code>try</code>/<code>except OSError</code>.</p>'
+          + V.steps(V.card('ядро', '<span data-os="win">err = 87</span><span data-os="mac linux">err = 22</span>', '', 'c'), V.arrow('err != 0'),
+                    V.card('get_info', '<span data-os="win">raise OSError(87, "Параметр задан неверно.")</span><span data-os="mac linux">raise OSError(22, "Invalid argument")</span>', '', 'bad'), V.arrow('исключение'),
+                    V.card('вызывающий код', 'try / except OSError', '<small>или остановка с сообщением</small>', 'sys'))
           + like('Пожарная сигнализация: при сбое работа сразу останавливается, и сигнал идёт тому, кто отвечает за здание.')),
          ('37-42', 'Собрать словарь',
           '<p>Фигурные скобки с парами «ключ: значение» — словарь Python. Числа берутся из полей структуры как есть.</p>'

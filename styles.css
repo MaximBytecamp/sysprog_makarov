@@ -893,3 +893,77 @@ figure.code--out .cmd::before { content: '$ '; color: rgba(220, 230, 245, .45); 
 details.catchup { margin: 18px 0 24px; border: 3px dashed var(--ng); background: var(--ng-pale); }
 details.catchup summary::before { content: "Догнать · "; font: 600 10.5px/1 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--ng); }
 details.catchup figure.code { margin: 12px 0; }
+
+/* ===== Часть 11. Картинки данных ===========================================
+   Собираются внутри .scheme или прямо в шаге разбора (tools/viz.py).
+   .vsteps — этапы слева направо со стрелками и подписью на стрелке; в узкой колонке — сверху вниз.
+   .vcard — этап: метка, заголовок, содержимое (код, полоса байтов, таблица). Цвет по месту: is-py Python,
+   is-c ядро на C, is-sys система, is-bad ошибка, is-ok верный результат.
+   .vmem — полосы памяти строками с подписью слева. .vstack — стопка вызовов. .vkv — бланк «поле — значение».
+   .vproc — модули в памяти процесса, is-new — только что загруженный. .vtab — маленькая таблица значений. */
+.vsteps { display: flex; align-items: stretch; margin: 0; }
+.vsteps + .vsteps, .vsteps + .vmem, .vmem + .vsteps, .vmem + .vmem { margin-top: 18px; }
+.vcard { flex: 1 1 0; min-width: 0; padding: 10px 12px 12px; border: 2px solid var(--ink); background: #fff; }
+.vcard > h5 { margin: 0 0 4px; font: 600 10px/1.3 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--ink-faint); }
+.vcard > b { display: block; font: 700 13px/1.35 var(--mono); overflow-wrap: anywhere; }
+.vcard > small { display: block; margin-top: 4px; font-size: 13px; line-height: 1.4; color: var(--ink-soft); }
+.vcard > pre { margin: 8px 0 0; padding: 8px 10px; background: var(--ink); color: #E8E6F2; font: 400 12px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.vcard > .bytes { margin: 8px 0 2px; }
+.vcard.is-py { background: var(--acc-pale); }
+.vcard.is-c { background: var(--ng-pale); }
+.vcard.is-sys { background: var(--paper); }
+.vcard.is-bad { background: var(--clay-pale); border-color: var(--clay); }
+.vcard.is-ok { background: var(--good-pale); border-color: var(--good); }
+.varr { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; width: 92px; padding: 0 6px; font: 500 11px/1.3 var(--mono); color: var(--ink-soft); text-align: center; overflow-wrap: anywhere; }
+.varr::before { content: "→"; font: 700 20px/1 var(--mono); color: var(--ink); }
+.varr.is-back::before { content: "←"; }
+.vmem { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 12px; align-items: center; }
+.vmem > b { font: 600 12px/1.35 var(--mono); text-align: right; }
+.vmem > b small { display: block; font: 400 11.5px/1.3 var(--body); color: var(--ink-faint); }
+.vmem > .bytes { margin: 0; }
+.vstack { display: grid; max-width: 460px; }
+.vframe { border: 2px solid var(--ink); background: #fff; }
+.vframe + .vframe { margin-top: -2px; }
+.vframe > b { display: flex; justify-content: space-between; gap: 10px; padding: 5px 10px; background: var(--ink-soft); color: #fff; font: 600 12px/1.4 var(--mono); }
+.vframe.is-top > b { background: var(--acc); }
+.vframe > b small { font: 500 11px/1.4 var(--body); opacity: .85; }
+.vframe > .bytes { margin: 8px 10px 10px; }
+.vframe > p { margin: 6px 10px 8px; font-size: 13px; line-height: 1.4; color: var(--ink-soft); }
+.vkv { border: 2px solid var(--ink); background: #fff; font: 400 12.5px/1.45 var(--mono); }
+.vkv > div { display: grid; grid-template-columns: 96px minmax(0, 1fr); }
+.vkv > div + div { border-top: 1px solid var(--rule); }
+.vkv > div > span:first-child { padding: 5px 8px; background: var(--paper); font: 600 10px/1.5 var(--pixel); letter-spacing: .8px; text-transform: uppercase; color: var(--ink-soft); }
+.vkv > div > span:last-child { padding: 5px 8px; overflow-wrap: anywhere; }
+.vproc { display: grid; gap: 4px; margin-top: 8px; }
+.vproc > span { padding: 4px 8px; border: 2px solid var(--rule); background: #fff; font: 500 12px/1.35 var(--mono); }
+.vproc > span small { display: block; font: 400 11.5px/1.3 var(--body); color: var(--ink-faint); }
+.vproc > span.is-new { border-color: var(--ng); background: var(--ng-pale); font-weight: 700; }
+.vtab { width: 100%; margin: 8px 0 4px; border-collapse: collapse; font: 400 12.5px/1.4 var(--mono); background: #fff; }
+.vtab th, .vtab td { padding: 4px 8px; border: 1.5px solid var(--ink); text-align: left; vertical-align: top; }
+.vtab th { background: var(--paper); font: 600 10px/1.4 var(--pixel); letter-spacing: .8px; text-transform: uppercase; color: var(--ink-soft); }
+.vtab td.is-bad { background: var(--clay-pale); }
+.vtab td.is-ok { background: var(--good-pale); }
+.vtab tr.is-on td { background: var(--acc-pale); }
+.vsplit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.vsplit > div > h6 { margin: 0 0 8px; font: 600 10.5px/1.3 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--ink-soft); }
+.trace__steps .vsteps, .trace__steps .vmem, .trace__steps .vstack, .trace__steps .vkv, .trace__steps .vsplit { margin: 8px 0 10px; }
+/* В колонке разбора и на узком экране этапы идут сверху вниз. */
+.trace__steps .vsteps { flex-direction: column; }
+.trace__steps .varr { flex-direction: row; width: auto; padding: 4px 0; gap: 8px; }
+.trace__steps .varr::before { content: "↓"; }
+.trace__steps .vsplit { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (max-width: 760px) {
+  .vsteps { flex-direction: column; }
+  .varr { flex-direction: row; width: auto; padding: 4px 0; gap: 8px; }
+  .varr::before { content: "↓"; }
+  .varr.is-back::before { content: "↑"; }
+  .vsplit { grid-template-columns: minmax(0, 1fr); }
+  .vmem { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .vmem > b { text-align: left; }
+}
+/* Части картинки в рамке идут с отступом, даже если обёрнуты в блок по системе; ячейки полос в строках .vmem одной ширины, чтобы байты стояли столбцами. */
+.scheme__body > * + * { margin-top: 18px; }
+.vmem .bytes > span.w { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+.vtab td, .vtab th { overflow-wrap: anywhere; }
+.vmem .bytes > span.w > small { overflow-wrap: anywhere; }
+.vsplit.is-rows { grid-template-columns: minmax(0, 1fr); }

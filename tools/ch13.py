@@ -155,7 +155,16 @@ S.append(f'''
 
 SEND = between(BRAIN, 'def send(message, url)')
 import walk13
+import viz as V
+from ch11 import cells
 WK = walk13.build(hl_py, SEND)
+PIC_SEND = V.scheme('Что уходит из brain.py и что возвращается',
+    V.steps(V.card('get_info + словарь', '{"event": "agent_started", "cpus": 10, …}', '<small>данные ядра из главы 1.2</small>', 'py'), V.arrow('json.dumps<br>encode'),
+            V.card('байты UTF-8', '7b 22 65 76 65 6e 74 22 …', '<small>{ " e v e n t " …</small>', 'c'), V.arrow('urlopen'),
+            V.card('запрос HTTP', 'POST /webhook/agent', '<small>заголовок Content-Type: application/json, тело — эти байты</small>', 'sys'))
+    + V.steps(V.card('n8n · Webhook', '$json.body', '<small>тело снова стало объектом: body.cpus = 10</small>', 'ok'), V.arrow('ответ'),
+              V.card('brain.py', 'status = 200', '<small>body = {"message":"Workflow was started"}</small>', 'py')),
+    'По сети идут только байты. Объект на одной стороне и объект на другой связывает формат JSON: brain.py превращает словарь в текст, n8n — текст обратно в объект <code>body</code>.')
 S.append(f'''
         <h2 id="s5"><span class="sec">§5</span>Шаг 4. Отправить сообщение из brain.py</h2>
         <p>Отправка делается модулем <code>urllib.request</code> из стандартной библиотеки Python: ставить ничего не нужно. В <code>brain.py</code> добавляются строка <code>import urllib.request</code> в начале и функция <code>send</code>, а блок запуска получает адрес из командной строки:</p>
@@ -164,6 +173,7 @@ S.append(f'''
 <pre>{hl_py(SEND)}</pre>
         </figure>
 {WK['send']}
+{PIC_SEND}
         <p>В окне узла Webhook нажимаем <b>Listen for test event</b> — узел переходит в режим приёма. Сразу после этого в терминале из папки <code>agent/brain</code> запускаем:</p>
 {cmd('python brain.py http://localhost:5678/webhook-test/agent', 'python3 brain.py http://localhost:5678/webhook-test/agent', 'python3 brain.py http://localhost:5678/webhook-test/agent', 'терминал в папке agent/brain')}
 {out('терминал на macOS', OUT_TEST, 'python3 brain.py http://localhost:5678/webhook-test/agent')}

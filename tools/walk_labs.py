@@ -4,6 +4,7 @@
 ~/sysprog-shots/lab2/src и tools/src_lab3/src. Числа в памяти — с кадров лабораторных."""
 from walk11 import like, trace_html
 from ch11 import cells, ascii_cells
+import viz as V
 
 
 def debug_c(code_html):
@@ -58,11 +59,18 @@ def debug_c(code_html):
           '<li><code>i &lt;= 3</code> — условие: пока <code>i</code> не больше 3, повторять;</li>'
           '<li><code>i++</code> — после каждого прохода прибавить к <code>i</code> единицу;</li>'
           '<li><code>total += i;</code> — то же, что <code>total = total + i;</code>.</li></ul>'
-          '<p>Проходы: <code>total</code> 0 → 1 → 3 → 6. В шаге 7 вы увидите это в окне Watch.</p>'
+          '<p>Проходы по порядку. В шаге 7 вы увидите их в окне Watch:</p>'
+          + V.tab(['проход', 'i', 'i &lt;= 3?', 'total после строки 21'],
+                  [['1', '1', ('да', 'is-ok'), '0 + 1 = 1'], ['2', '2', ('да', 'is-ok'), '1 + 2 = 3'], ['3', '3', ('да', 'is-ok'), '3 + 3 = 6'],
+                   ['—', '4', ('нет — выход', 'is-bad'), '6']])
           + like('Пересчитать монеты, перекладывая по одной: «одна, ещё две — три, ещё три — шесть».')),
          ('22', 'Вызвать функцию',
           '<p><code>int a = area(p);</code> — программа уходит в функцию <code>area</code> со структурой <code>p</code>, ждёт её ответа и кладёт его в новую переменную <code>a</code>: 3 × 4 = 12.</p>'
-          '<p>На этой строке в шаге 8 отладчик «зайдёт» в функцию клавишей F11, а в стеке вызовов появится вторая строка.</p>'),
+          '<p>На этой строке в шаге 8 отладчик «зайдёт» в функцию клавишей F11, а в стеке вызовов появится вторая строка:</p>'
+          + V.stack(V.frame('area', 'работает сейчас', cells([('3', 'p.x — копия', 'w'), ('4', 'p.y — копия', 'w'), ('?', 's', 'w')]), top=True),
+                    V.frame('main', 'ждёт на строке 22', cells([('3', 'p.x', 'w'), ('4', 'p.y', 'w'), ('6', 'total', 'w'), ('?', 'a', 'w')])))
+          + '<p>У <code>area</code> своя <code>p</code> — копия. Когда функция вернёт 12, её строка исчезнет из стопки, а 12 попадёт в <code>a</code> у <code>main</code>.</p>'
+          + like('Стопка папок на столе: сверху та, с которой работают сейчас; под ней та, из-за которой её открыли.')),
          ('23', 'Напечатать результат',
           '<p><code>printf</code> печатает шаблон, подставляя значения вместо знаков <code>%</code> по порядку:</p>'
           '<ul class="words"><li><code>%s</code> — строка: <code>name</code>, то есть <code>agent</code>;</li>'
@@ -173,13 +181,19 @@ def libs_c(code_html):
           '<p>У <code>main</code> здесь два параметра — так программа узнаёт, с какими словами её запустили:</p>'
           '<ul class="words"><li><code>argc</code> — сколько слов в команде запуска вместе с именем программы. <code>./libs</code> — одно слово, <code>argc = 1</code>;</li>'
           '<li><code>argv</code> — сами слова, список строк. <code>argv[0]</code> — имя программы.</li></ul>'
+          + V.split(('команда ./libs', V.mem([('argv', 'argc = 1', cells([('"./libs"', 'argv[0]', 'w')]))])),
+                    ('команда ./libs a b', V.mem([('argv', 'argc = 3', cells([('"./libs"', 'argv[0]', 'w'), ('"a"', 'argv[1]', 'w'), ('"b"', 'argv[2]', 'w')]))])))
           + like('Заказ по телефону: сначала называют себя, потом перечисляют блюда. <code>argc</code> — сколько всего прозвучало, <code>argv</code> — что именно.')),
          ('5', 'Число из argc',
           '<p><code>double x = argc + 1;</code> — дробное число <code>x</code>. Без аргументов это 1 + 1 = 2.</p>'
-          '<p>Число берётся из <code>argc</code>, а не пишется <code>sqrt(2)</code>: тогда компилятор посчитал бы корень сам ещё при сборке, и программе не понадобилась бы библиотека. Запустите <code>./libs a b</code> — получится корень из 4.</p>'),
+          + V.steps(V.card('', 'argc = 1'), V.arrow('+ 1'), V.card('', 'x = 2.0', '<small>double, 8 байт</small>'))
+          + '<p>Число берётся из <code>argc</code>, а не пишется <code>sqrt(2)</code>: тогда компилятор посчитал бы корень сам ещё при сборке, и программе не понадобилась бы библиотека. Запустите <code>./libs a b</code> — получится корень из 4.</p>'),
          ('6', 'Вызвать sqrt и напечатать',
           '<p><code>sqrt(x)</code> — вызов функции из библиотеки, результат сразу уходит в <code>printf</code>.</p>'
-          '<ul class="words"><li><code>%s</code> — строка: <code>argv[0]</code>, имя программы;</li>'
+          + V.steps(V.card('libs', 'sqrt(2.0)', '<small>своего кода sqrt нет</small>', 'py'), V.arrow('вызов'),
+                    V.card('библиотека C', 'sqrt', '<small data-os="win">скопирована в libs.exe при сборке</small><small data-os="mac">в libSystem.B.dylib</small><small data-os="linux">в libm.so.6</small>', 'c'), V.arrow('1.414214'),
+                    V.card('libs', 'printf(…)', '', 'ok'))
+          + '<ul class="words"><li><code>%s</code> — строка: <code>argv[0]</code>, имя программы;</li>'
           '<li><code>%.0f</code> — дробное число без знаков после запятой: <code>2</code>;</li>'
           '<li><code>%f</code> — дробное число с шестью знаками: <code>1.414214</code>.</li></ul>'
           '<p>Вывод: <code>./libs: sqrt(2) = 1.414214</code>, в Windows вместо <code>./libs</code> — <code>libs.exe</code>. Строку <code>sqrt(2) = 1.414214</code> проверяет GitHub Actions после сдачи.</p>'),

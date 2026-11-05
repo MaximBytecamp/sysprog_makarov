@@ -251,6 +251,16 @@ gcc -Wall -Wextra -shared -fPIC -o libsentry_core.so core_info.c</pre>
           <li><b>Сверьте с системой.</b> <code>ctypes.sizeof(CoreInfo)</code> должен вернуть 280. Число <code>uptime_s</code> из JSON переведите в дни и часы и сравните с системной программой: <span data-os="win">Диспетчер задач → <b>Производительность</b> → <b>ЦП</b>, строка «Время работы».</span><span data-os="mac">команда <code>uptime</code> в Терминале: «up 4 days, 20:54».</span><span data-os="linux">команда <code>uptime -p</code>: «up 4 days, 20 hours».</span></li>
         </ol>
 
+        <!-- pic:struct -->
+        <figure class="scheme">
+          <p class="scheme__head">Структура ядра: было 272 байта, стало 280</p>
+          <div class="scheme__body">
+<div class="vmem"><b>смещение</b><div class="bytes "><span class="w"><i>0–7</i><small></small></span><span class="w"><i>8–11</i><small></small></span><span class="w"><i>12–15</i><small></small></span><span class="w"><i>16–271</i><small></small></span><span class="w"><i>272–279</i><small></small></span></div><b>глава 1.1<small>272 байта</small></b><div class="bytes "><span class="w"><i>pid</i><small></small></span><span class="w"><i>cpus</i><small></small></span><span class="w"><i>page_size</i><small></small></span><span class="w"><i>host[256]</i><small></small></span><span class="gap w"><i>—</i><small></small></span></div><b>задание<small>280 байт</small></b><div class="bytes "><span class="w"><i>pid</i><small></small></span><span class="w"><i>cpus</i><small></small></span><span class="w"><i>page_size</i><small></small></span><span class="w"><i>host[256]</i><small></small></span><span class="z w"><i>uptime_s</i><small>int64_t</small></span></div></div><div class="vsteps"><div class="vcard is-sys"><h5>система</h5><b><span data-os="win">GetTickCount64()</span><span data-os="mac">kern.boottime</span><span data-os="linux">sysinfo()</span></b><small>время с запуска</small></div><div class="varr">секунды</div><div class="vcard is-c"><h5>core_info.c</h5><b>out-&gt;uptime_s</b><small>байты 272–279</small></div><div class="varr">_fields_</div><div class="vcard is-py"><h5>brain.py</h5><b>"uptime_s": 420834</b><small>в JSON агента</small></div></div>
+          </div>
+          <p class="scheme__note">Новое поле стоит последним, поэтому pid, cpus, page_size и host остаются на прежних байтах. 272 делится на 8, и 8-байтовое поле встаёт сразу за host без пропуска — отсюда ровно 280.</p>
+        </figure>
+        <!-- /pic:struct -->
+
         <div class="table-scroll">
           <table>
             <thead><tr><th>Система</th><th>Функция</th><th>Что возвращает</th><th>Как получить секунды</th></tr></thead>
@@ -327,6 +337,16 @@ JSON: {{ JSON.stringify($json.body) }}</pre>
           <li><code>uptime_s / 86400</code> — сколько суток: в сутках 86 400 секунд;</li>
           <li><code>uptime_s % 86400</code> — остаток после полных суток, <code>/ 3600</code> — сколько в нём часов.</li>
         </ul>
+        <!-- pic:ab -->
+        <figure class="scheme">
+          <p class="scheme__head">Кто считает дни и часы</p>
+          <div class="scheme__body">
+<div class="vsplit is-rows"><div><h6>Запрос А · модель считает сама</h6><div class="vsteps"><div class="vcard is-sys"><h5>JSON</h5><b>uptime_s = 420911</b></div><div class="varr">модель</div><div class="vcard is-bad"><h5>ответ</h5><b>«12 дней и 10 часов»</b><small>в трёх запусках три разных ответа</small></div></div></div><div><h6>Запрос Б · считает выражение n8n</h6><div class="vsteps"><div class="vcard is-sys"><h5>JSON</h5><b>uptime_s = 420911</b></div><div class="varr">Math.floor</div><div class="vcard is-ok"><h5>n8n</h5><b>4 дн. 20 ч.</b><small>точно, каждый раз</small></div><div class="varr">модель</div><div class="vcard is-ok"><h5>ответ</h5><b>«…работает без перезагрузки 4 дня 20 часов»</b><small>модель только пишет текст</small></div></div></div></div>
+          </div>
+          <p class="scheme__note">Модель подбирает правдоподобные слова, а не делит числа. Деление делает код — выражение n8n или агент, — а модели остаётся объяснить готовый результат человеку.</p>
+        </figure>
+        <!-- /pic:ab -->
+
         <p>У нас с готовыми числами все три ответа были верными: «Компьютер MacBook-Air-Maxim.local работает без перезагрузки 4 дня 20 часов. Стоит перезагрузить.» Модель сделала то, что умеет: связный текст для человека. Числа посчитала программа.</p>
 
         <div class="step-done"><b>Правило из задания.</b>Всё, что можно посчитать, считает код агента или выражение n8n. Модели отдают готовые числа и просят объяснить их словами. Так же устроен список проверки ответа ИИ из главы 0.3.</div>

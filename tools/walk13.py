@@ -1,5 +1,6 @@
 """Пошаговый разбор главы 1.3: функция send и блок запуска brain.py. Строки — по фрагменту SEND."""
 from walk11 import like, trace_html
+import viz as V
 
 
 def build(hl_py, SEND):
@@ -13,20 +14,25 @@ def build(hl_py, SEND):
           '<p>Строка делает два превращения подряд:</p>'
           '<ul class="words"><li><code>json.dumps(message, ensure_ascii=False)</code> — словарь в текст JSON, русские буквы остаются буквами;</li>'
           '<li><code>.encode("utf-8")</code> — текст в байты UTF-8. По сети передаются байты.</li></ul>'
-          '<p><code>{"event": "agent_started", …}</code> → <code>b\'{"event": "agent_started", …}\'</code></p>'
+          + V.steps(V.card('словарь Python', '{"event": "agent_started", …}', '', 'py'), V.arrow('json.dumps'),
+                    V.card('текст JSON', "'{\"event\": \"agent_started\", …}'", '', 'sys'), V.arrow('encode'),
+                    V.card('байты', "b'{\"event\"…'", '<small>7b 22 65 76 65 6e 74 22 …</small>', 'c'))
           + like('Письмо сначала пишут, потом запечатывают в конверт. Почта возит конверты.')),
          ('3-4', 'Описать запрос',
           '<p><code>urllib.request.Request(…)</code> собирает запрос, но ещё не отправляет его:</p>'
           '<ul class="words"><li><code>url</code> — куда;</li><li><code>data=data</code> — тело запроса, те самые байты;</li>'
           '<li><code>method="POST"</code> — метод «принять данные». Вебхук в n8n настроен на POST;</li>'
           '<li><code>headers={"Content-Type": "application/json"}</code> — заголовок: «в теле JSON». По нему n8n разбирает тело в поле <code>body</code>.</li></ul>'
+          '<p>Так выглядит запрос, собранный этой строкой:</p>'
+          + V.kv([('метод', 'POST'), ('адрес', 'localhost:5678 /webhook/agent'), ('заголовок', 'Content-Type: application/json'), ('тело', '{"event": "agent_started", "os": "darwin", …}')])
           + like('Бланк заказного письма: адрес, вложение и пометка «внутри документы».')),
          ('5', 'Отправить и дождаться ответа',
           '<p><code>urllib.request.urlopen(request, timeout=120)</code> отправляет запрос. Если n8n не ответит за 120 секунд, Python поднимет исключение.</p>'
           '<p><code>with … as response:</code> — ответ доступен под именем <code>response</code> внутри блока. После блока соединение закрывается само.</p>'),
          ('6', 'Вернуть код и текст ответа',
           '<p><code>response.status</code> — код ответа HTTP: 200 значит «принято». <code>response.read().decode("utf-8")</code> — тело ответа из байтов в строку, у n8n это <code>Workflow was started</code>.</p>'
-          '<p>Функция возвращает сразу два значения через запятую.</p>'
+          + V.kv([('код', '200'), ('тело', '{"message":"Workflow was started"}')])
+          + '<p>Функция возвращает сразу два значения через запятую: <code>(200, \'{"message":"Workflow was started"}\')</code>.</p>'
           + like('Квитанция о вручении: отметка «вручено» и подпись получателя.')),
          ('9-11', 'Собрать и напечатать сообщение',
           '<p>Блок запуска из главы 1.2 без изменений: словарь <code>agent_started</code> со сведениями от ядра и его печать в JSON.</p>'),

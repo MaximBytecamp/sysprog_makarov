@@ -68,6 +68,7 @@ PYRUN = '<span data-os="win"><code>python brain.py</code></span><span data-os="m
 LAYOUT = cells([('pid', '0 · c_int64', 'w'), ('cpus', '8 · c_int32', 'w'), ('page_size', '12 · c_int32', 'w'), ('host', '16 · c_char × 256', 'w')])
 
 import walk12
+import viz as V
 WK = walk12.build(hl_py, cells, V1, BRAIN)
 
 import catchup
@@ -204,6 +205,52 @@ S.append(f'''
         <p class="step-done"><b>Что получилось.</b>Функция <code>core_get_info</code> есть в таблице экспорта. Библиотеку можно загружать из Python.</p>
 ''')
 
+# ─────────── Картинки шагов 3, 5, 6, 7 ───────────
+LIBN = '<span data-os="win">sentry_core.dll</span><span data-os="mac">libsentry_core.dylib</span><span data-os="linux">libsentry_core.so</span>'
+PIC_LOAD = V.scheme('Что меняется в процессе Python после ctypes.CDLL',
+    V.split(('до строки CDLL', V.proc([('python', 'интерпретатор: читает и выполняет brain.py', False),
+                                        ('библиотеки системы', 'функции C и вызовы ядра ОС', False),
+                                        ('_ctypes', 'модуль Python на C, загружен строкой import ctypes', False)])),
+            ('после строки CDLL', V.proc([('python', 'интерпретатор: читает и выполняет brain.py', False),
+                                           ('библиотеки системы', 'функции C и вызовы ядра ОС', False),
+                                           ('_ctypes', 'модуль Python на C, загружен строкой import ctypes', False),
+                                           (LIBN, 'ядро агента: машинный код core_get_info', True)])))
+    + V.steps(V.card('объект core', 'handle = адрес', '<small>где в памяти процесса начинается библиотека</small>', 'py'), V.arrow('имя из таблицы экспорта'),
+              V.card('core.core_get_info', '_FuncPtr = адрес', '<small>где внутри библиотеки начинается функция</small>', 'c')),
+    'Библиотека не запускается отдельной программой: её код кладётся в память того же процесса, что и Python. Полный список библиотек процесса — десятки строк, его вы смотрели в ЛР 3.')
+
+def _after(pid, cpus, page, host):
+    return V.mem([('CoreInfo()', 'до вызова', cells([('0', 'pid', 'w'), ('0', 'cpus', 'w'), ('0', 'page_size', 'w'), ('0 0 0 …', 'host', 'w')])),
+                  ('после вызова', 'те же 272 байта', cells([(pid, 'pid', 'w'), (cpus, 'cpus', 'w'), (page, 'page_size', 'w'), (host, 'host', 'w')]))])
+
+PIC_CALL = V.scheme('Один кусок памяти на два языка',
+    V.steps(V.card('Python', 'info = CoreInfo()', '<small>выделяет 272 байта нулей</small>', 'py'), V.arrow('byref(info): адрес'),
+            V.card('C, ядро', 'core_get_info(out)', '<small>пишет поля по адресу out</small>', 'c'), V.arrow('return 0'),
+            V.card('Python', 'info.pid, info.host', '<small>читает те же байты по смещениям</small>', 'py'))
+    + '<div data-os="win">' + _after('4656', '4', '4096', 'WIN11-LAB\\0') + '</div>'
+    + '<div data-os="mac">' + _after('= os.getpid()', '10', '16384', 'MacBook-Air-Maxim.local\\0') + '</div>'
+    + '<div data-os="linux">' + _after('= os.getpid()', '10', '4096', 'lab-linux\\0') + '</div>',
+    'Python ничего не копирует в C и обратно: он отдаёт адрес своей структуры, ядро пишет прямо в неё. Поэтому описание полей в Python должно совпадать с <code>core.h</code> байт в байт.')
+
+def _swap(cpus, page):
+    return V.mem([('смещение', '', cells([('0–7', '', 'w'), ('8–11', '', 'w'), ('12–15', '', 'w'), ('16–271', '', 'w')])),
+                  ('C пишет', 'по core.h', cells([('pid', '', 'w'), (cpus, 'cpus', 'w'), (page, 'page_size', 'w'), ('host', '', 'w')])),
+                  ('Python читает', 'по _fields_', cells([('pid', '', 'w'), (cpus, 'page_size', 'x w'), (page, 'cpus', 'x w'), ('host', '', 'w')]))])
+
+PIC_SWAP = V.scheme('Одни байты — два описания',
+    '<div data-os="win">' + _swap('4', '4096') + '</div>'
+    + '<div data-os="mac">' + _swap('10', '16384') + '</div>'
+    + '<div data-os="linux">' + _swap('10', '4096') + '</div>',
+    'Байты 8–11 и 12–15 одни и те же, меняется только подпись под ними. Числа на месте, а имена у них чужие (красные ячейки), — поэтому ошибки нет, а данные неверные.')
+
+PIC_NULL = V.scheme('Пустой адрес и проверка в ядре',
+    V.steps(V.card('Python', 'core_get_info(None)', '<small>None — это NULL, адрес 0</small>', 'py'), V.arrow('адрес 0'),
+            V.card('C, ядро', 'if (out == NULL)', '<small>бланка нет — писать некуда</small>', 'c'), V.arrow('return'),
+            V.card('Python', '<span data-os="win">err = 87</span><span data-os="mac linux">err = 22</span>', '<small>код ошибки, процесс работает дальше</small>', 'ok'))
+    + V.steps(V.card('без проверки', 'запись по адресу 0', '<small>память с адресом 0 процессу не принадлежит</small>', 'bad'), V.arrow('система'),
+              V.card('', '<span data-os="win">OSError: access violation</span><span data-os="mac linux">процесс завершён, код 139</span>', '', 'bad')),
+    '')
+
 S.append(f'''
         <div class="part" role="separator"><span><b>2</b>Вызов из Python</span></div>
         <h2 id="s4"><span class="sec">§4</span>Шаг 3. Загрузить библиотеку</h2>
@@ -220,6 +267,7 @@ S.append(f'''
          mac='VS Code с brain.py: строка ctypes.CDLL в рамке, вывод CDLL libsentry_core.dylib handle и _FuncPtr object',
          linux='VS Code с brain.py: строка ctypes.CDLL в рамке, вывод CDLL libsentry_core.so handle и _FuncPtr object'))}
         <p>Число после слова <code>handle</code> — адрес, по которому библиотека загружена в память процесса Python. Объект функции <code>_FuncPtr</code> хранит адрес функции внутри библиотеки. Сколько у функции параметров и какого они типа, в объекте функции пока не записано.</p>
+{PIC_LOAD}
         <div class="margin-note margin-note--warn" data-os="win">
           <b>Python и библиотека одной архитектуры</b>
           <p>Процесс выполняет код одной архитектуры, поэтому 64-битный Python для x64 загружает только DLL для x64. Кадры главы сняты на компьютере с процессором ARM, где установлен и Python для ARM64. Если запустить <code>brain.py</code> им, загрузка падает:</p>
@@ -277,6 +325,7 @@ S.append(f'''
          mac='VS Code с brain.py: argtypes и restype, вызов с byref в рамках; вывод err 0, pid равен os.getpid, host b MacBook-Air-Maxim.local',
          linux='VS Code с brain.py: argtypes и restype, вызов с byref в рамках; вывод err 0, pid равен os.getpid, host b lab-linux'))}
         <p>Функция вернула 0, поля заполнены. Номер процесса из ядра совпал с номером процесса Python: <code>getpid</code> внутри библиотеки вернул номер того процесса, в который библиотека загружена. Это то, что показывает схема в §1, — ядро и мозг работают в одном процессе.</p>
+{PIC_CALL}
         <p>Поле <code>host</code> ctypes вернул как <code>bytes</code> — последовательность байтов до первого нуля, на что указывает буква <code>b</code> перед кавычками. Строкой Python оно станет после <code>.decode("utf-8")</code>: ядро в главе 1.1 отдаёт имя в UTF-8 на всех трёх системах.</p>
         <p class="step-done"><b>Что получилось.</b>Python вызвал функцию ядра на C и прочитал все четыре поля. Следующая часть — что происходит, когда описание на стыке языков неверное.</p>
 ''')
@@ -302,6 +351,7 @@ S.append(f'''
     dict(win='python brain.py после перестановки: cpus 4096, page_size 4', mac='VS Code: переставленные поля в _fields_, вывод cpus 16384 и page_size 10',
          linux='VS Code: переставленные поля в _fields_, вывод cpus 4096 и page_size 10'))}
         <p>Числа поменялись местами, а сообщений об ошибке не было. Функция на C записала число процессоров в байты 8–11, а размер страницы — в байты 12–15, как задано в <code>core.h</code>. Python прочитал байты 8–11 под именем <code>page_size</code>, потому что так написано в его описании. ctypes читает поля по смещениям из <code>_fields_</code>. Что записал C, он не проверяет.</p>
+{PIC_SWAP}
         <p>Здесь ошибку видно сразу: тысяч процессоров на компьютере не бывает. Если бы поменялись два поля одного смысла, например два счётчика, неверные числа ушли бы дальше в тревоги агента. Поэтому описание в Python сверяют с <code>core.h</code> по таблице шага 4 при каждой правке структуры. Возвращаем порядок полей.</p>
         <p class="step-done"><b>Что получилось.</b>Несовпадение описания полей не даёт ошибки: значения читаются из чужих байтов. Вторая ошибка на стыке — неверный адрес.</p>
 ''')
@@ -320,6 +370,7 @@ S.append(f'''
         <p>Функция вернула код ошибки, и процесс продолжил работу. Без проверки в ядре функция стала бы записывать нули по нулевому адресу.</p>
 {per(win='<p>В Windows ctypes перехватывает такое обращение к памяти и поднимает в Python исключение <code>OSError</code> с текстом «access violation». Процесс продолжает работу, но что успела испортить функция до сбоя, неизвестно.</p>',
      maclinux='<p>Если убрать из <code>core_info.c</code> строки с <code>NULL</code> и пересобрать библиотеку, <code>python3 brain.py</code> завершается без вывода с кодом 139. Это 128 плюс 11 — номер сигнала <code>SIGSEGV</code>. Python не успевает поднять исключение: система завершает весь процесс, потому что ядро и мозг работают в одном процессе.</p>')}
+{PIC_NULL}
         <p>Поэтому ядро проверяет всё, что ему передают, и отвечает кодом ошибки.</p>
         <p class="step-done"><b>Что получилось.</b>Ядро возвращает код на неверный адрес, и Python получает его текст. Осталось собрать окончательный <code>brain.py</code>, который превращает код ошибки в исключение.</p>
 ''')
