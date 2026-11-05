@@ -5,6 +5,7 @@ macOS 26 (Apple clang 17, Python 3.9.6 из Command Line Tools), Linux — VS Co
 (Debian, gcc 14, Python 3.13.5), Windows — ВМ Win11-lab (MSVC 19.44 x64, Python 3.14.0 ARM64). Числа в тексте — с этих кадров."""
 from pathlib import Path
 from lab_build import steps
+import snaps
 from ch11 import hl
 import walk_labs
 
@@ -107,7 +108,7 @@ S.append(dict(
                      '<p>Библиотек стало на три больше: <code>libsqlite3</code>, модуль Python <code>_ctypes</code> из <code>import ctypes</code> и библиотека <code>libffi</code>, через которую <code>ctypes</code> вызывает функции C. Имя файла длиннее, чем в команде: <code>libsqlite3.so.0</code> — короткое имя, которое ведёт к файлу с полной версией. Перезапускать программу не понадобилось. Так в главе 1.2 мозг агента загрузит библиотеку ядра <code>libsentry_core.so</code>.</p>')},
     q='сколько библиотек стало и какой файл библиотеки нашёлся.'))
 
-LAB = steps(S)
+LAB = steps(S, '03-libraries')
 
 HTML = f'''<!doctype html>
 <html lang="ru">
@@ -142,7 +143,7 @@ HTML = f'''<!doctype html>
           <div><dt>Пара</dt><dd>3, первая половина; перед главой 1.2</dd></div>
           <div><dt>Время</dt><dd>30–35 минут</dd></div>
           <div><dt>Программы</dt><dd>VS Code, <span data-os="win">dumpbin, PowerShell, tasklist</span><span data-os="mac">otool, vmmap</span><span data-os="linux">ldd, карта памяти /proc</span>, Python</dd></div>
-          <div><dt>Сдать</dt><dd><code>libs.c</code> и <code>report.md</code> в папке <code>labs/03-libraries</code> репозитория <code>sysprog-start</code></dd></div>
+          <div><dt>Сдать</dt><dd><code>libs.c</code>, <code>report.md</code> и 7 снимков в <code>screenshots/</code> в папке <code>labs/03-libraries</code> репозитория <code>sysprog-start</code></dd></div>
         </dl>
 
         <nav class="contents">
@@ -236,11 +237,11 @@ PID Python: <span class="blank">___</span>
 Загруженная библиотека и её полный путь: <span class="blank">___</span>
 Функция вернула: <span class="blank">___</span>
 
-## Помощник ИИ (Р1)
-Запрос: «Чем статическая компоновка отличается от динамической?». Совпал ли ответ с таблицей §2: <span class="blank">___</span>.
-
 Не получилось: <span class="blank">___</span>
-ИИ: не использовал / использовал для <span class="blank">___</span></pre>
+
+{snaps.report_pre('03-libraries')}</pre>
+
+{snaps.page_block('03-libraries')}
 
         <h2 id="s7"><span class="sec">§7</span>Проверьте себя</h2>
 

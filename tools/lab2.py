@@ -6,6 +6,7 @@
 Кадры Windows — ВМ Win11-lab (Windows 11 ARM64, VS Code 1.144, MSVC x64 через эмулятор, cppvsdbg); VS Code в ВМ снимается по CDP через проброс порта (~/sysprog-shots/winsrv/start.cmd)."""
 from pathlib import Path
 from lab_build import steps
+import snaps
 from ch11 import hl
 import walk_labs
 
@@ -130,7 +131,7 @@ S.append(dict(
                      '<p>Программа отработала без остановок до <code>return 0</code>. Разделы Variables и Call Stack опустели: процесса больше нет. В Linux программа под отладчиком пишет в отдельный терминал, а сообщение о коде завершения — «exited normally» — появляется во вкладке <b>Debug Console</b>. Вывод тот же, что в шаге 1: отладчик не меняет работу программы.</p>')},
     q='что напечатала программа под отладчиком и с каким кодом завершилась.'))
 
-LAB = steps(S)
+LAB = steps(S, '02-debugger')
 
 LAUNCH = {
     'win': '''{
@@ -222,7 +223,7 @@ HTML = f'''<!doctype html>
           <div><dt>Пара</dt><dd>2, первая половина; перед главой 1.1</dd></div>
           <div><dt>Время</dt><dd>35–40 минут</dd></div>
           <div><dt>Программы</dt><dd>VS Code с расширением C/C++, <span data-os="win">компилятор MSVC и отладчик Visual Studio</span><span data-os="mac">clang и отладчик LLDB</span><span data-os="linux">gcc и отладчик GDB</span></dd></div>
-          <div><dt>Сдать</dt><dd><code>debug.c</code>, папку <code>.vscode</code> и <code>report.md</code> в папке <code>labs/02-debugger</code> репозитория <code>sysprog-start</code></dd></div>
+          <div><dt>Сдать</dt><dd><code>debug.c</code>, папку <code>.vscode</code>, <code>report.md</code> и 8 снимков в <code>screenshots/</code> в папке <code>labs/02-debugger</code> репозитория <code>sysprog-start</code></dd></div>
         </dl>
 
         <nav class="contents">
@@ -320,11 +321,11 @@ name[0] = <span class="blank">___</span> (код буквы), завершающ
 Перед printf: a = <span class="blank">___</span>, total = <span class="blank">___</span>.
 Код завершения программы: <span class="blank">___</span>.
 
-## Помощник ИИ (Р1)
-Запрос: «Почему до выполнения строки 15 в p.x лежит случайное число?». Совпал ли ответ с шагом 4: <span class="blank">___</span>.
-
 Не получилось: <span class="blank">___</span>
-ИИ: не использовал / использовал для <span class="blank">___</span></pre>
+
+{snaps.report_pre('02-debugger')}</pre>
+
+{snaps.page_block('02-debugger')}
 
         <p>На защите программа запускается под отладчиком, и те же значения показываются на экране. Случайные числа шага 4 при каждом запуске могут быть другими — это ожидаемо.</p>
 

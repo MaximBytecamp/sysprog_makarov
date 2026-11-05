@@ -2,6 +2,7 @@
 Шаг: заголовок, действие и пояснения — общие или по системам (dict win/mac/linux).
 Кадр: имя файла в img/<система>/ или текст места под кадр (todo)."""
 import html
+import snaps
 
 OS = ('win', 'mac', 'linux')
 
@@ -33,7 +34,7 @@ def attr(o):
     return f' data-os="{o}"' if o else ''
 
 
-def step(st):
+def step(st, note=''):
     out = ['        <li>']
     out.append(block(st['do'], lambda v, o: f'<div class="lab__do"{attr(o)}><b>{v[0]}</b><span>{v[1]}</span></div>'))
     shots = per_os(st['shot'])
@@ -42,9 +43,12 @@ def step(st):
     out.append(block(st['notes'], lambda v, o: f'<div class="lab__notes"{attr(o)}><div><b>Что на кадре</b>{v[0]}</div><div><b>Что изменилось</b>{v[1]}</div></div>'))
     if st.get('q'):
         out.append(block(st['q'], lambda v, o: f'<p class="lab-q"{attr(o)}><b>В отчёт.</b> {v}</p>'))
+    if note:
+        out.append(note)
     out.append('</li>')
     return '\n'.join(out)
 
 
-def steps(lst):
-    return '        <ol class="lab">\n' + '\n'.join(step(s) for s in lst) + '\n        </ol>'
+def steps(lst, lab=None):
+    """lab — папка работы в шаблоне студента: шаги со снимком для отчёта получают пометку из snaps.py."""
+    return '        <ol class="lab">\n' + '\n'.join(step(s, snaps.step_note(lab, i) if lab else '') for i, s in enumerate(lst, 1)) + '\n        </ol>'

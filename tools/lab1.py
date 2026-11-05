@@ -3,6 +3,7 @@
 Числа в тексте Linux (PID 4765 и 6157, 86 кБ, 5,8 МБ, 16 и 59 строк карты) — с этих кадров."""
 from pathlib import Path
 from lab_build import steps
+import snaps
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'temy/05-laboratornaya-1/index.html'
@@ -139,7 +140,7 @@ S.append(dict(
            'linux': ('<p><span class="mk">1</span> — программа вывела свою строку и после Enter завершилась. <span class="mk">2</span> — <code>exit code: 0</code>. Список в мониторе пуст.</p>', '<p>Программа дошла до конца сама, и код завершения — 0, «без ошибок». На шаге 8 процесс остановили снаружи, и bash написал Terminated. Код завершения — первый признак, по которому агент на паре 5 будет отличать нормальное завершение от аварийного.</p>')},
     q='код завершения при обычном выходе; чем он отличается от кода на шаге 8.'))
 
-LAB = steps(S)
+LAB = steps(S, '01-process-inside')
 PREP = (Path(__file__).parent / 'lab1_prep.html').read_text()
 
 HTML = f'''<!doctype html>
@@ -175,7 +176,7 @@ HTML = f'''<!doctype html>
           <div><dt>Пара</dt><dd>1, вторая половина; задание к модулю 0</dd></div>
           <div><dt>Время</dt><dd>35–40 минут</dd></div>
           <div><dt>Программы</dt><dd><span data-os="win">Диспетчер задач, Process Explorer</span><span data-os="mac">Мониторинг системы, Терминал</span><span data-os="linux">Системный монитор GNOME, терминал</span></dd></div>
-          <div><dt>Сдать</dt><dd><code>hello.c</code>, <code>hello.py</code>, <code>report.md</code> в папку <code>labs/01-process-inside</code> репозитория <code>sysprog-start</code></dd></div>
+          <div><dt>Сдать</dt><dd><code>hello.c</code>, <code>hello.py</code>, <code>report.md</code> и 8 снимков в <code>screenshots/</code> в папку <code>labs/01-process-inside</code> репозитория <code>sysprog-start</code></dd></div>
         </dl>
 
         <nav class="contents">
@@ -281,13 +282,13 @@ HTML = f'''<!doctype html>
 Общая библиотека у программ на C и Python: <span class="blank">___</span>.
 Код завершения при обычном выходе: <span class="blank">___</span>.
 
-## Помощник ИИ (Р1)
-Запрос: «Объясни программу hello.c по строкам». Одно место, где ответ точнее или менее точен, чем глава 0.1: <span class="blank">___</span>.
-
 Не получилось: <span class="blank">___</span>
-ИИ: не использовал / использовал для <span class="blank">___</span></pre>
 
-        <p>Кадры экрана к отчёту не прикладываются: числа в нём проверяются на защите: программа запускается, и те же числа показываются в мониторе.</p>
+{snaps.report_pre('01-process-inside')}</pre>
+
+{snaps.page_block('01-process-inside')}
+
+        <p>Числа в отчёте проверяются и на защите: программа запускается, и те же числа показываются в мониторе.</p>
 
         <h2 id="s6"><span class="sec">§6</span>Проверьте себя</h2>
 

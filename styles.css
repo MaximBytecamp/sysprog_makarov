@@ -967,3 +967,6 @@ details.catchup figure.code { margin: 12px 0; }
 .vtab td, .vtab th { overflow-wrap: anywhere; }
 .vmem .bytes > span.w > small { overflow-wrap: anywhere; }
 .vsplit.is-rows { grid-template-columns: minmax(0, 1fr); }
+/* Пометка в шаге лабораторной: снимок этого окна кладётся в отчёт (список — tools/snaps.py). */
+.lab-snap { margin: 0 16px 16px; padding: 9px 12px; border-left: 5px solid var(--clay); background: var(--clay-pale); font-size: 14.5px; }
+.lab-snap b { color: var(--clay); margin-right: 6px; }
