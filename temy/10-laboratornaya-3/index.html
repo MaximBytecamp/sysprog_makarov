@@ -60,6 +60,32 @@
     <span class="k">return</span> <span class="n">0</span>;
 }</pre></figure>
 
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор libs.c по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Вызвать функцию, которой нет в самой программе, — квадратный корень <code>sqrt</code>. Её код лежит в библиотеке C. В работе вы найдёте, в какой именно библиотеке, и увидите, как она попадает в память процесса.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>libs.c</b><small>вызов sqrt</small></span><span><b>компоновщик</b><small>запись «нужна библиотека C»</small></span><span><b>запуск</b><small>система загружает библиотеку</small></span><span><b>ЛР 3</b><small>ищем её в файле и в процессе</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;math.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">int</span> argc, <span class="k">char</span> *argv[]) {
+    double x = argc + <span class="n">1</span>;
+    <span class="f">printf</span>(<span class="s">&quot;%s: sqrt(%.0f) = %f\n&quot;</span>, argv[<span class="n">0</span>], x, <span class="f">sqrt</span>(x));
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-2"><b>Подключить заголовочные файлы</b><ul class="words"><li><code>math.h</code> — объявления математических функций, здесь <code>sqrt</code>;</li><li><code>stdio.h</code> — ввод и вывод, здесь <code>printf</code>.</li></ul><p>Заголовок говорит компилятору только «такая функция есть, принимает <code>double</code>, возвращает <code>double</code>». Её кода в заголовке нет.</p><p data-os="linux">В Linux математические функции вынесены в отдельную библиотеку <code>libm</code>. Поэтому в команде сборки есть ключ <code>-lm</code>: «подключить библиотеку m». Без него компоновщик напишет «undefined reference to sqrt».</p><p class="like">Меню ресторана: в нём написано, что блюдо есть и из чего оно. Готовят его на кухне — в библиотеке.</p></li>
+              <li data-lines="4"><b>Главная функция с аргументами</b><p>У <code>main</code> здесь два параметра — так программа узнаёт, с какими словами её запустили:</p><ul class="words"><li><code>argc</code> — сколько слов в команде запуска вместе с именем программы. <code>./libs</code> — одно слово, <code>argc = 1</code>;</li><li><code>argv</code> — сами слова, список строк. <code>argv[0]</code> — имя программы.</li></ul><p class="like">Заказ по телефону: сначала называют себя, потом перечисляют блюда. <code>argc</code> — сколько всего прозвучало, <code>argv</code> — что именно.</p></li>
+              <li data-lines="5"><b>Число из argc</b><p><code>double x = argc + 1;</code> — дробное число <code>x</code>. Без аргументов это 1 + 1 = 2.</p><p>Число берётся из <code>argc</code>, а не пишется <code>sqrt(2)</code>: тогда компилятор посчитал бы корень сам ещё при сборке, и программе не понадобилась бы библиотека. Запустите <code>./libs a b</code> — получится корень из 4.</p></li>
+              <li data-lines="6"><b>Вызвать sqrt и напечатать</b><p><code>sqrt(x)</code> — вызов функции из библиотеки, результат сразу уходит в <code>printf</code>.</p><ul class="words"><li><code>%s</code> — строка: <code>argv[0]</code>, имя программы;</li><li><code>%.0f</code> — дробное число без знаков после запятой: <code>2</code>;</li><li><code>%f</code> — дробное число с шестью знаками: <code>1.414214</code>.</li></ul><p>Вывод: <code>./libs: sqrt(2) = 1.414214</code>, в Windows вместо <code>./libs</code> — <code>libs.exe</code>. Строку <code>sqrt(2) = 1.414214</code> проверяет GitHub Actions после сдачи.</p></li>
+              <li data-lines="7-8"><b>Завершить программу</b><p><code>return 0;</code> — код завершения 0, «без ошибок».</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+
         <p data-os="win">Компилятор <code>cl</code> и <code>dumpbin</code> находятся, только если VS Code запущен из <b>x64 Native Tools Command Prompt</b> командой <code>code .</code>. Встроенный терминал переключите на <b>Command Prompt</b>: команды работы написаны для него.</p>
 
         <div class="margin-note">

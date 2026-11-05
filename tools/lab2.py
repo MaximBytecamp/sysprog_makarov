@@ -7,6 +7,7 @@
 from pathlib import Path
 from lab_build import steps
 from ch11 import hl
+import walk_labs
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'temy/09-laboratornaya-2/index.html'
@@ -170,7 +171,9 @@ def esc(s):
 
 def files(o):
     return (f'<figure class="code" data-os="{o}"><figcaption><span>.vscode/launch.json</span></figcaption><pre>{esc(LAUNCH[o])}</pre></figure>\n'
-            f'        <figure class="code" data-os="{o}"><figcaption><span>.vscode/tasks.json</span></figcaption><pre>{esc(TASKS[o])}</pre></figure>')
+            + walk_labs.launch(o, esc(LAUNCH[o])) + '\n'
+            f'        <figure class="code" data-os="{o}"><figcaption><span>.vscode/tasks.json</span></figcaption><pre>{esc(TASKS[o])}</pre></figure>\n'
+            + walk_labs.tasks(o, esc(TASKS[o])))
 
 
 WORDS = [
@@ -239,11 +242,13 @@ HTML = f'''<!doctype html>
 
         <p>Нужны VS Code, расширение <b>C/C++</b> от Microsoft и компилятор из ЛР 1. Расширение ставится во вкладке <b>Extensions</b> на левой полосе VS Code (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>, на Mac — <kbd>⌘</kbd>+<kbd>⇧</kbd>+<kbd>X</kbd>): поиск <code>C/C++</code>, кнопка <b>Install</b>. Вместе с ним ставится программа-посредник между VS Code и отладчиком системы. <span data-os="win">Отладчик для программ MSVC входит в само расширение.</span><span data-os="mac">Отладчик LLDB входит в Command Line Tools, которые ставились в ЛР 1.</span><span data-os="linux">Отладчик GDB ставится командой <code>sudo apt install gdb</code>.</span></p>
 
-        <p>Работа лежит в репозитории <code>sysprog-start</code>, в папке <code>labs/02-debugger</code>. Создайте в ней файл <code>debug.c</code> и папку <code>.vscode</code> с двумя файлами настроек. Программа короткая: структура из двух чисел, массив под слово, цикл и функция. Всё это разбирается в главе 1.1; здесь программа нужна, чтобы было что рассматривать.</p>
+        <p>Работа лежит в репозитории <code>sysprog-start</code>, в папке <code>labs/02-debugger</code>. Создайте в ней файл <code>debug.c</code> и папку <code>.vscode</code> с двумя файлами настроек. Программа короткая: структура из двух чисел, массив под слово, цикл и функция. Под кодом — его разбор по строкам: кнопками «Дальше» и «Назад» листаются шаги, слева подсвечиваются строки шага.</p>
 
         <figure class="code"><figcaption><span>labs/02-debugger/debug.c</span></figcaption><pre>{hl(CODE)}</pre></figure>
 
-        <p><code>launch.json</code> описывает, какую программу и каким отладчиком запускать. <code>tasks.json</code> — как собрать программу перед запуском. В имени папки <code>.vscode</code> точка в начале обязательна.</p>
+{walk_labs.debug_c(hl(CODE))}
+
+        <p><code>launch.json</code> описывает, какую программу и каким отладчиком запускать. <code>tasks.json</code> — как собрать программу перед запуском. В имени папки <code>.vscode</code> точка в начале обязательна. Под каждым файлом — разбор его строк.</p>
 
         {files('win')}
         {files('mac')}

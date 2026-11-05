@@ -430,7 +430,7 @@ S['s9'] = f'''
 <pre><mark>    <span class="f">printf</span>(<span class="s">"pid       %d\\n"</span>, info.pid);</mark></pre>
           </figure>
         </div>
-        <p>Собираем снова, без запуска:</p>
+        <p>Собираем снова, без запуска. Здесь работают ключи из шага 1: <span data-os="win"><code>/W4</code></span><span data-os="mac linux"><code>-Wall -Wextra</code></span> просят компилятор сообщать о подозрительных местах, хотя программа и так соберётся. Ошибку формата некоторые компиляторы показывают и без них, но gcc без <code>-Wall</code> о ней молчит.</p>
 {cmd('cl /nologo /W4 show_info.c core_info.c', 'clang -Wall -Wextra -o show_info show_info.c core_info.c', 'gcc -Wall -Wextra -o show_info show_info.c core_info.c')}
 {shot('08-warning', dict(
     win=f'{M(1)} Предупреждение C4477 для строки 13: формат <code>%d</code> требует <code>int</code>, а аргумент имеет тип <code>int64_t</code>. {M(2)} Первая из трёх подсказок: использовать <code>%lld</code>.',

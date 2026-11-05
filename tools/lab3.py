@@ -6,6 +6,7 @@ macOS 26 (Apple clang 17, Python 3.9.6 из Command Line Tools), Linux — VS Co
 from pathlib import Path
 from lab_build import steps
 from ch11 import hl
+import walk_labs
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'temy/10-laboratornaya-3/index.html'
@@ -162,6 +163,8 @@ HTML = f'''<!doctype html>
         <p>Нужны VS Code, компилятор и Python из ЛР 1. Создайте в репозитории <code>sysprog-start</code> папку <code>labs/03-libraries</code> и в ней файл <code>libs.c</code>. Программа печатает квадратный корень из числа: <code>argc</code> — сколько слов в команде запуска, без аргументов это 1, значит корень из 2. Число берётся из <code>argc</code>, а не пишется прямо в коде, чтобы компилятор не посчитал корень заранее и программе действительно понадобилась функция <code>sqrt</code>.</p>
 
         <figure class="code"><figcaption><span>labs/03-libraries/libs.c</span></figcaption><pre>{hl(CODE)}</pre></figure>
+
+{walk_labs.libs_c(hl(CODE))}
 
         <p data-os="win">Компилятор <code>cl</code> и <code>dumpbin</code> находятся, только если VS Code запущен из <b>x64 Native Tools Command Prompt</b> командой <code>code .</code>. Встроенный терминал переключите на <b>Command Prompt</b>: команды работы написаны для него.</p>
 

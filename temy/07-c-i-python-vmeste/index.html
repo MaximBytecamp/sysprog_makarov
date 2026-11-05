@@ -204,7 +204,20 @@
 <mark>CORE_API</mark> <span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out);</pre>
           </figure>
         </div>
-        <p>Макрос <code>_WIN32</code> компилятор MSVC задаёт сам, поэтому <code>#ifdef _WIN32</code> выбирает ветку Windows без настройки. Файл <code>core_info.c</code> не меняется. Из папки <code>agent/core</code> собираем библиотеку:</p>
+        <p>Что делают новые строки, по порядку:</p>
+        <ul class="words">
+          <li><code>#ifdef _WIN32</code> — «если собираем для Windows». Слово <code>_WIN32</code> компилятор MSVC задаёт сам, на macOS и Linux его нет;</li>
+          <li><code>#define CORE_API __declspec(dllexport)</code> — в Windows слово <code>CORE_API</code> всюду заменяется на отметку «отдать функцию наружу»;</li>
+          <li><code>#else</code> и следующий <code>#define CORE_API</code> — на других системах <code>CORE_API</code> заменяется на пустое место, как будто его нет;</li>
+          <li><code>#endif</code> — конец условия;</li>
+          <li><code>CORE_API int core_get_info(…)</code> — перед функцией стоит слово, а во что оно превратится, решает система сборки.</li>
+        </ul>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>В шаблоне письма стоит поле «[обращение]». При отправке в одну страну его заменяют на «Уважаемый», в другую — оставляют пустым. Текст письма один, а получается два разных. <code>#define</code> — такая же замена слова до сборки, <code>#ifdef</code> выбирает, какую замену взять.</p>
+          <p class="miss">Письмо заполняет человек и видит результат. Замену макроса делает компилятор, в файле <code>core.h</code> остаётся слово <code>CORE_API</code>.</p>
+        </div></div>
+        <p>Файл <code>core_info.c</code> не меняется. Из папки <code>agent/core</code> собираем библиотеку:</p>
         <figure class="code" data-os="win">
           <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
 <pre>cd agent\core

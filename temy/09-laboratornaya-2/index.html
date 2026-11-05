@@ -51,7 +51,7 @@
 
         <p>Нужны VS Code, расширение <b>C/C++</b> от Microsoft и компилятор из ЛР 1. Расширение ставится во вкладке <b>Extensions</b> на левой полосе VS Code (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>, на Mac — <kbd>⌘</kbd>+<kbd>⇧</kbd>+<kbd>X</kbd>): поиск <code>C/C++</code>, кнопка <b>Install</b>. Вместе с ним ставится программа-посредник между VS Code и отладчиком системы. <span data-os="win">Отладчик для программ MSVC входит в само расширение.</span><span data-os="mac">Отладчик LLDB входит в Command Line Tools, которые ставились в ЛР 1.</span><span data-os="linux">Отладчик GDB ставится командой <code>sudo apt install gdb</code>.</span></p>
 
-        <p>Работа лежит в репозитории <code>sysprog-start</code>, в папке <code>labs/02-debugger</code>. Создайте в ней файл <code>debug.c</code> и папку <code>.vscode</code> с двумя файлами настроек. Программа короткая: структура из двух чисел, массив под слово, цикл и функция. Всё это разбирается в главе 1.1; здесь программа нужна, чтобы было что рассматривать.</p>
+        <p>Работа лежит в репозитории <code>sysprog-start</code>, в папке <code>labs/02-debugger</code>. Создайте в ней файл <code>debug.c</code> и папку <code>.vscode</code> с двумя файлами настроек. Программа короткая: структура из двух чисел, массив под слово, цикл и функция. Под кодом — его разбор по строкам: кнопками «Дальше» и «Назад» листаются шаги, слева подсвечиваются строки шага.</p>
 
         <figure class="code"><figcaption><span>labs/02-debugger/debug.c</span></figcaption><pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
 <span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
@@ -79,7 +79,55 @@
     <span class="k">return</span> <span class="n">0</span>;
 }</pre></figure>
 
-        <p><code>launch.json</code> описывает, какую программу и каким отладчиком запускать. <code>tasks.json</code> — как собрать программу перед запуском. В имени папки <code>.vscode</code> точка в начале обязательна.</p>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор debug.c по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Дать отладчику маленькую программу, в которой есть всё, что потом встретится в ядре агента: структура, массив под строку, цикл и вызов функции. Сама программа считает пустяки — сумму 1 + 2 + 3 и площадь прямоугольника 3 × 4; важно не что она считает, а что видно внутри неё под отладчиком.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>debug.c</b><small>структура, массив, цикл, функция</small></span><span><b>отладчик</b><small>остановка на строке</small></span><span><b>память</b><small>переменные по шагам</small></span><span><b>ядро агента</b><small>те же структура и буфер в 1.1</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+
+<span class="k">struct</span> point {
+    <span class="k">int</span> x;
+    <span class="k">int</span> y;
+};
+
+<span class="k">int</span> <span class="f">area</span>(<span class="k">struct</span> point p) {
+    <span class="k">int</span> s = p.x * p.y;
+    <span class="k">return</span> s;
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="k">struct</span> point p = {<span class="n">3</span>, <span class="n">4</span>};
+    <span class="k">char</span> name[<span class="n">8</span>];
+    <span class="k">int</span> total = <span class="n">0</span>;
+
+    <span class="f">strcpy</span>(name, <span class="s">&quot;agent&quot;</span>);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">1</span>; i &lt;= <span class="n">3</span>; i++)
+        total += i;
+    <span class="k">int</span> a = <span class="f">area</span>(p);
+    <span class="f">printf</span>(<span class="s">&quot;%s: total=%d area=%d\n&quot;</span>, name, total, a);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-2"><b>Подключить заголовочные файлы</b><p>Строка <code>#include &lt;…&gt;</code> вставляет в программу объявления из готового файла. Без них компилятор не знает чужих функций.</p><ul class="words"><li><code>stdio.h</code> — ввод и вывод, здесь ради <code>printf</code>;</li><li><code>string.h</code> — работа со строками, здесь ради <code>strcpy</code>.</li></ul><p class="like">Оглавление справочника: в нём записано, какие функции есть и как их вызывать. Сами функции лежат в библиотеке системы — об этом ЛР 3.</p></li>
+              <li data-lines="4-7"><b>Описать свой тип — структуру</b><p><code>struct point { … };</code> описывает новый тип данных из двух полей. Памяти под него пока нет: это только чертёж.</p><ul class="words"><li><code>struct</code> — «составной тип»;</li><li><code>point</code> — имя типа, его выбирает программист;</li><li><code>int x;</code> и <code>int y;</code> — два поля, целые числа по 4 байта;</li><li><code>;</code> после <code>}</code> обязательна: так заканчивается описание типа.</li></ul><p>Как такая структура лежит в памяти — два числа подряд:</p><div class="bytes "><span class=""><i>x</i><small>4 байта</small></span><span class=""><i>y</i><small>4 байта</small></span></div><p class="like">Бланк с двумя графами «ширина» и «высота». Пока это образец бланка, а не заполненный лист.</p></li>
+              <li data-lines="9-12"><b>Написать функцию area</b><p>Функция получает структуру и возвращает её площадь.</p><ul class="words"><li><code>int area(…)</code> — функция с именем <code>area</code>, вернёт целое число;</li><li><code>struct point p</code> — параметр: на вход приходит структура, внутри функции она зовётся <code>p</code>;</li><li><code>int s = p.x * p.y;</code> — новая переменная <code>s</code>, в неё записывается произведение полей. Точка достаёт поле из структуры;</li><li><code>return s;</code> — отдать <code>s</code> тому, кто вызвал функцию.</li></ul><p>Функция получает <b>копию</b> структуры: в шаге 8 отладчик покажет, что у <code>area</code> своя переменная <code>p</code>.</p><p class="like">Калькулятор площади: в него вписывают ширину и высоту с листка, листок остаётся у вас.</p></li>
+              <li data-lines="14"><b>Начать главную функцию</b><p><code>int main(void) {</code> — функция, с которой система запускает программу на C.</p><ul class="words"><li><code>int</code> — вернёт код завершения: 0 — без ошибок;</li><li><code>(void)</code> — ничего не принимает;</li><li><code>{</code> — начало тела, конец — <code>}</code> в строке 25.</li></ul><p class="like">Первая страница инструкции: с неё начинают читать, остальные функции — приложения, на которые она ссылается.</p></li>
+              <li data-lines="15-17"><b>Объявить переменные main</b><ul class="words"><li><code>struct point p = {3, 4};</code> — переменная типа <code>point</code>, в <code>x</code> записывается 3, в <code>y</code> — 4, по порядку полей;</li><li><code>char name[8];</code> — массив из 8 ячеек по одному байту под буквы. Значения не заданы;</li><li><code>int total = 0;</code> — целое число, сразу 0.</li></ul><p>Место под все переменные <code>main</code> выделяется при входе в функцию, ещё до строки 15. Поэтому в шаге 4 отладчик покажет в них случайные числа, а в шаге 5 — уже 3 и 4:</p><div class="bytes "><span class="w"><i>3</i><small>p.x</small></span><span class="w"><i>4</i><small>p.y</small></span><span class=""><i>?</i><small>name[0…7]</small></span><span class="w"><i>0</i><small>total</small></span></div><p class="like">Ящики стола выдали вместе со столом. В одни сразу положили бумаги, в других лежит то, что оставил прошлый хозяин.</p></li>
+              <li data-lines="19"><b>Записать слово в массив</b><p><code>strcpy(name, "agent");</code> копирует строку <code>"agent"</code> в массив <code>name</code> по одной букве и ставит в конце нулевой байт — знак «строка закончилась».</p><ul class="words"><li><code>strcpy</code> — «string copy», копировать строку;</li><li>первый аргумент — куда, второй — откуда;</li><li>в кавычках 5 букв, в массив записывается 6 байт: буквы и ноль.</li></ul><div class="bytes "><span class=""><i>a</i><small>61</small></span><span class=""><i>g</i><small>67</small></span><span class=""><i>e</i><small>65</small></span><span class=""><i>n</i><small>6e</small></span><span class=""><i>t</i><small>74</small></span><span class="z"><i>\0</i><small>00</small></span></div><p><code>strcpy</code> не проверяет, хватит ли места: строку из 20 букв она тоже запишет и испортит память за массивом. Поэтому MSVC выдаёт на неё предупреждение C4996, а в главе 1.1 системные функции получают вместе с буфером его размер — <code>sizeof</code>.</p><p class="like">Вписать слово в клеточки бланка по одной букве и поставить точку. Сколько клеточек на бланке, ручка не знает.</p></li>
+              <li data-lines="20-21"><b>Цикл: сложить 1, 2 и 3</b><p><code>for (…)</code> повторяет строку 21 несколько раз. В скобках три части через точку с запятой:</p><ul class="words"><li><code>int i = 1</code> — счётчик, перед первым проходом 1;</li><li><code>i &lt;= 3</code> — условие: пока <code>i</code> не больше 3, повторять;</li><li><code>i++</code> — после каждого прохода прибавить к <code>i</code> единицу;</li><li><code>total += i;</code> — то же, что <code>total = total + i;</code>.</li></ul><p>Проходы: <code>total</code> 0 → 1 → 3 → 6. В шаге 7 вы увидите это в окне Watch.</p><p class="like">Пересчитать монеты, перекладывая по одной: «одна, ещё две — три, ещё три — шесть».</p></li>
+              <li data-lines="22"><b>Вызвать функцию</b><p><code>int a = area(p);</code> — программа уходит в функцию <code>area</code> со структурой <code>p</code>, ждёт её ответа и кладёт его в новую переменную <code>a</code>: 3 × 4 = 12.</p><p>На этой строке в шаге 8 отладчик «зайдёт» в функцию клавишей F11, а в стеке вызовов появится вторая строка.</p></li>
+              <li data-lines="23"><b>Напечатать результат</b><p><code>printf</code> печатает шаблон, подставляя значения вместо знаков <code>%</code> по порядку:</p><ul class="words"><li><code>%s</code> — строка: <code>name</code>, то есть <code>agent</code>;</li><li>первый <code>%d</code> — целое: <code>total</code>, 6;</li><li>второй <code>%d</code> — целое: <code>a</code>, 12;</li><li><code>\n</code> — перевод строки.</li></ul><p>Вывод: <code>agent: total=6 area=12</code>.</p></li>
+              <li data-lines="24-25"><b>Завершить программу</b><p><code>return 0;</code> отдаёт системе код завершения 0 — «без ошибок». Его покажет отладчик в шаге 11: «exited with code 0».</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+
+        <p><code>launch.json</code> описывает, какую программу и каким отладчиком запускать. <code>tasks.json</code> — как собрать программу перед запуском. В имени папки <code>.vscode</code> точка в начале обязательна. Под каждым файлом — разбор его строк.</p>
 
         <figure class="code" data-os="win"><figcaption><span>.vscode/launch.json</span></figcaption><pre>{
   "version": "0.2.0",
@@ -95,6 +143,39 @@
     }
   ]
 }</pre></figure>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор launch.json по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Сказать VS Code, какую программу и каким отладчиком запускать по клавише F5. Без этого файла VS Code не знает, где лежит собранная программа и какой отладчик к ней подходит.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>F5</b><small>кнопка запуска</small></span><span><b>launch.json</b><small>что и чем запускать</small></span><span><b>tasks.json</b><small>сначала собрать</small></span><span><b>отладчик</b><small>программа стоит на строке 15</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code">{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "debug",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/debug.exe",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "preLaunchTask": "build"
+    }
+  ]
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Обёртка файла</b><p>Файл записан в формате <span class="term">JSON</span>: фигурные скобки — набор пар <code>"имя": значение</code>, квадратные — список.</p><ul class="words"><li><code>"version": "0.2.0"</code> — версия формата файла, её читает VS Code;</li><li><code>"configurations": [ … ]</code> — список способов запуска. У нас один, но их может быть несколько: тогда в панели Run and Debug появится выбор.</li></ul><p class="like">Папка с карточками. Каждая карточка — один способ запустить программу.</p></li>
+              <li data-lines="5-7"><b>Имя и отладчик</b><ul class="words"><li><code>"name": "debug"</code> — подпись у зелёного треугольника в панели Run and Debug;</li><li><code>"type"</code> — какой отладчик позвать, о нём ниже;</li><li><code>"request": "launch"</code> — запустить программу заново. Есть ещё <code>attach</code> — подключиться к уже работающей, это понадобится позже, со службой агента.</li></ul></li>
+              <li data-lines="6"><b>Отладчик cppvsdbg</b><p><code>cppvsdbg</code> — отладчик Visual Studio, он понимает программы, собранные MSVC, и файл <code>debug.pdb</code> со сведениями о строках и переменных.</p></li>
+              <li data-lines="8-9"><b>Какую программу запускать</b><ul class="words"><li><code>"program"</code> — путь к собранной программе;</li><li><code>${workspaceFolder}</code> — VS Code подставит сюда путь к открытой папке, например <code>…/labs/02-debugger</code>;</li><li><code>"cwd"</code> — текущая папка программы: от неё считаются пути к файлам, которые она откроет.</li></ul></li>
+              <li data-lines="10"><b>Куда печатает программа</b><p><code>"console": "integratedTerminal"</code> — вывод <code>printf</code> пойдёт во встроенный терминал VS Code, а не в отдельное чёрное окно.</p></li>
+              <li data-lines="11"><b>Сначала собрать</b><p><code>"preLaunchTask": "build"</code> — перед каждым запуском выполнить задачу с меткой <code>build</code> из <code>tasks.json</code>. Поменяли код, нажали F5 — отладчик запускает уже новую версию.</p><p class="like">Перед поездкой — заправка. Водитель не думает о ней каждый раз: она стоит первым пунктом маршрута.</p></li>
+              <li data-lines="12-14"><b>Закрыть скобки</b><p>Скобки закрываются в обратном порядке: карточка, список, весь файл. Лишняя или пропущенная запятая — частая ошибка: VS Code подчеркнёт её красным.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <figure class="code" data-os="win"><figcaption><span>.vscode/tasks.json</span></figcaption><pre>{
   "version": "2.0.0",
   "tasks": [
@@ -106,6 +187,34 @@
     }
   ]
 }</pre></figure>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор tasks.json по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Описать, как собрать <code>debug.c</code> с ключами для отладчика. <code>launch.json</code> вызывает эту задачу перед каждым запуском.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>debug.c</b><small>исходник</small></span><span><b>tasks.json</b><small>команда сборки</small></span><span><b>программа</b><small>со сведениями для отладчика</small></span><span><b>launch.json</b><small>запускает её</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code">{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "cl /nologo /Zi /Od /W4 debug.c",
+      "group": "build"
+    }
+  ]
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Обёртка файла</b><p>Тот же формат JSON, что у <code>launch.json</code>. <code>"tasks": [ … ]</code> — список задач: команд, которые VS Code умеет выполнять сам.</p></li>
+              <li data-lines="5"><b>Метка задачи</b><p><code>"label": "build"</code> — имя задачи. По нему <code>launch.json</code> находит её в строке <code>preLaunchTask</code>: слова должны совпадать буква в букву.</p><p class="like">Ярлык на папке. Коллега просит «дай папку build» — и вы находите её по ярлыку.</p></li>
+              <li data-lines="6"><b>Выполнить в терминале</b><p><code>"type": "shell"</code> — выполнить строку <code>command</code> так, как будто вы набрали её в терминале. Вывод компилятора появится во вкладке Terminal.</p></li>
+              <li data-lines="7"><b>Команда сборки</b><ul class="words"><li><code>cl</code> — компилятор MSVC;</li><li><code>/nologo</code> — без строки с версией компилятора;</li><li><code>/Zi</code> — записать сведения для отладчика в <code>debug.pdb</code>: какая машинная команда относится к какой строке и где лежит каждая переменная;</li><li><code>/Od</code> — без оптимизации: команды идут в порядке строк, переменные лежат в памяти;</li><li><code>/W4</code> — подробные предупреждения;</li><li><code>debug.c</code> — исходник. Имя программы MSVC берёт от него: <code>debug.exe</code>, то самое, что указано в <code>"program"</code> файла <code>launch.json</code>.</li></ul><p>Ключи отладки и выключенная оптимизация — главное в этой строке. Без них отладчик остановится не там или покажет «optimized out» вместо значения.</p></li>
+              <li data-lines="8"><b>Задача сборки по умолчанию</b><p><code>"group": "build"</code> — эту же задачу VS Code запустит по команде <b>Terminal → Run Build Task</b>, без отладчика.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <figure class="code" data-os="mac"><figcaption><span>.vscode/launch.json</span></figcaption><pre>{
   "version": "0.2.0",
   "configurations": [
@@ -124,6 +233,44 @@
     }
   ]
 }</pre></figure>
+        <div class="trace" data-os="mac">
+          <p class="trace__head"><span>Разбор launch.json по шагам</span><span>macOS</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Сказать VS Code, какую программу и каким отладчиком запускать по клавише F5. Без этого файла VS Code не знает, где лежит собранная программа и какой отладчик к ней подходит.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>F5</b><small>кнопка запуска</small></span><span><b>launch.json</b><small>что и чем запускать</small></span><span><b>tasks.json</b><small>сначала собрать</small></span><span><b>отладчик</b><small>программа стоит на строке 15</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code">{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "debug",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/debug",
+      "cwd": "${workspaceFolder}",
+      "MIMode": "lldb",
+      "preLaunchTask": "build",
+      "targetArchitecture": "arm64",
+      "logging": {
+        "moduleLoad": false
+      }
+    }
+  ]
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Обёртка файла</b><p>Файл записан в формате <span class="term">JSON</span>: фигурные скобки — набор пар <code>"имя": значение</code>, квадратные — список.</p><ul class="words"><li><code>"version": "0.2.0"</code> — версия формата файла, её читает VS Code;</li><li><code>"configurations": [ … ]</code> — список способов запуска. У нас один, но их может быть несколько: тогда в панели Run and Debug появится выбор.</li></ul><p class="like">Папка с карточками. Каждая карточка — один способ запустить программу.</p></li>
+              <li data-lines="5-7"><b>Имя и отладчик</b><ul class="words"><li><code>"name": "debug"</code> — подпись у зелёного треугольника в панели Run and Debug;</li><li><code>"type"</code> — какой отладчик позвать, о нём ниже;</li><li><code>"request": "launch"</code> — запустить программу заново. Есть ещё <code>attach</code> — подключиться к уже работающей, это понадобится позже, со службой агента.</li></ul></li>
+              <li data-lines="6"><b>Отладчик cppdbg</b><p><code>cppdbg</code> — посредник из расширения C/C++. Сам он программу не останавливает, а передаёт команды настоящему отладчику системы. Какому — сказано в строке <code>MIMode</code>.</p></li>
+              <li data-lines="8-9"><b>Какую программу запускать</b><ul class="words"><li><code>"program"</code> — путь к собранной программе;</li><li><code>${workspaceFolder}</code> — VS Code подставит сюда путь к открытой папке, например <code>…/labs/02-debugger</code>;</li><li><code>"cwd"</code> — текущая папка программы: от неё считаются пути к файлам, которые она откроет.</li></ul></li>
+              <li data-lines="10"><b>Какой отладчик системы</b><p><code>"MIMode": "lldb"</code> — LLDB — отладчик из Command Line Tools.</p><p class="like">Переводчик на переговорах: VS Code говорит «стоп на строке 15», посредник переводит это на язык отладчика.</p></li>
+              <li data-lines="11"><b>Сначала собрать</b><p><code>"preLaunchTask": "build"</code> — перед каждым запуском выполнить задачу с меткой <code>build</code> из <code>tasks.json</code>. Поменяли код, нажали F5 — отладчик запускает уже новую версию.</p><p class="like">Перед поездкой — заправка. Водитель не думает о ней каждый раз: она стоит первым пунктом маршрута.</p></li>
+              <li data-lines="12"><b>Тип процессора</b><p><code>"targetArchitecture": "arm64"</code> — программа собрана для процессора Apple (M1 и новее). Без этой строки отладчик считает её программой для Intel и не останавливается на точках. На Mac с Intel здесь пишут <code>x86_64</code>.</p></li>
+              <li data-lines="13-15"><b>Меньше служебных строк</b><p><code>"logging": {"moduleLoad": false}</code> — не печатать в Debug Console строку про каждую загруженную библиотеку. Без неё вывод программы теряется среди десятков строк «Loaded …».</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <figure class="code" data-os="mac"><figcaption><span>.vscode/tasks.json</span></figcaption><pre>{
   "version": "2.0.0",
   "tasks": [
@@ -135,6 +282,34 @@
     }
   ]
 }</pre></figure>
+        <div class="trace" data-os="mac">
+          <p class="trace__head"><span>Разбор tasks.json по шагам</span><span>macOS</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Описать, как собрать <code>debug.c</code> с ключами для отладчика. <code>launch.json</code> вызывает эту задачу перед каждым запуском.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>debug.c</b><small>исходник</small></span><span><b>tasks.json</b><small>команда сборки</small></span><span><b>программа</b><small>со сведениями для отладчика</small></span><span><b>launch.json</b><small>запускает её</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code">{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "clang -g -O0 -Wall -Wextra -o debug \"${workspaceFolder}/debug.c\"",
+      "group": "build"
+    }
+  ]
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Обёртка файла</b><p>Тот же формат JSON, что у <code>launch.json</code>. <code>"tasks": [ … ]</code> — список задач: команд, которые VS Code умеет выполнять сам.</p></li>
+              <li data-lines="5"><b>Метка задачи</b><p><code>"label": "build"</code> — имя задачи. По нему <code>launch.json</code> находит её в строке <code>preLaunchTask</code>: слова должны совпадать буква в букву.</p><p class="like">Ярлык на папке. Коллега просит «дай папку build» — и вы находите её по ярлыку.</p></li>
+              <li data-lines="6"><b>Выполнить в терминале</b><p><code>"type": "shell"</code> — выполнить строку <code>command</code> так, как будто вы набрали её в терминале. Вывод компилятора появится во вкладке Terminal.</p></li>
+              <li data-lines="7"><b>Команда сборки</b><ul class="words"><li><code>clang</code> — компилятор;</li><li><code>-g</code> — добавить сведения для отладчика: какая машинная команда относится к какой строке и где лежит каждая переменная;</li><li><code>-O0</code> — без оптимизации: команды идут в порядке строк, переменные лежат в памяти;</li><li><code>-Wall -Wextra</code> — подробные предупреждения;</li><li><code>-o debug</code> — имя готовой программы, то самое, что указано в <code>"program"</code> файла <code>launch.json</code>;</li><li><code>\"${workspaceFolder}/debug.c\"</code> — путь к исходнику. Обратная косая черта перед кавычкой нужна, чтобы кавычка попала в команду, а не закончила строку JSON: так путь с пробелами не разорвётся.</li></ul><p>Ключи отладки и выключенная оптимизация — главное в этой строке. Без них отладчик остановится не там или покажет «optimized out» вместо значения.</p></li>
+              <li data-lines="8"><b>Задача сборки по умолчанию</b><p><code>"group": "build"</code> — эту же задачу VS Code запустит по команде <b>Terminal → Run Build Task</b>, без отладчика.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <figure class="code" data-os="linux"><figcaption><span>.vscode/launch.json</span></figcaption><pre>{
   "version": "0.2.0",
   "configurations": [
@@ -152,6 +327,42 @@
     }
   ]
 }</pre></figure>
+        <div class="trace" data-os="linux">
+          <p class="trace__head"><span>Разбор launch.json по шагам</span><span>Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Сказать VS Code, какую программу и каким отладчиком запускать по клавише F5. Без этого файла VS Code не знает, где лежит собранная программа и какой отладчик к ней подходит.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>F5</b><small>кнопка запуска</small></span><span><b>launch.json</b><small>что и чем запускать</small></span><span><b>tasks.json</b><small>сначала собрать</small></span><span><b>отладчик</b><small>программа стоит на строке 15</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code">{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "debug",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/debug",
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "preLaunchTask": "build",
+      "logging": {
+        "moduleLoad": false
+      }
+    }
+  ]
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Обёртка файла</b><p>Файл записан в формате <span class="term">JSON</span>: фигурные скобки — набор пар <code>"имя": значение</code>, квадратные — список.</p><ul class="words"><li><code>"version": "0.2.0"</code> — версия формата файла, её читает VS Code;</li><li><code>"configurations": [ … ]</code> — список способов запуска. У нас один, но их может быть несколько: тогда в панели Run and Debug появится выбор.</li></ul><p class="like">Папка с карточками. Каждая карточка — один способ запустить программу.</p></li>
+              <li data-lines="5-7"><b>Имя и отладчик</b><ul class="words"><li><code>"name": "debug"</code> — подпись у зелёного треугольника в панели Run and Debug;</li><li><code>"type"</code> — какой отладчик позвать, о нём ниже;</li><li><code>"request": "launch"</code> — запустить программу заново. Есть ещё <code>attach</code> — подключиться к уже работающей, это понадобится позже, со службой агента.</li></ul></li>
+              <li data-lines="6"><b>Отладчик cppdbg</b><p><code>cppdbg</code> — посредник из расширения C/C++. Сам он программу не останавливает, а передаёт команды настоящему отладчику системы. Какому — сказано в строке <code>MIMode</code>.</p></li>
+              <li data-lines="8-9"><b>Какую программу запускать</b><ul class="words"><li><code>"program"</code> — путь к собранной программе;</li><li><code>${workspaceFolder}</code> — VS Code подставит сюда путь к открытой папке, например <code>…/labs/02-debugger</code>;</li><li><code>"cwd"</code> — текущая папка программы: от неё считаются пути к файлам, которые она откроет.</li></ul></li>
+              <li data-lines="10"><b>Какой отладчик системы</b><p><code>"MIMode": "gdb"</code> — GDB — отладчик, который ставится командой <code>sudo apt install gdb</code>.</p><p class="like">Переводчик на переговорах: VS Code говорит «стоп на строке 15», посредник переводит это на язык отладчика.</p></li>
+              <li data-lines="11"><b>Сначала собрать</b><p><code>"preLaunchTask": "build"</code> — перед каждым запуском выполнить задачу с меткой <code>build</code> из <code>tasks.json</code>. Поменяли код, нажали F5 — отладчик запускает уже новую версию.</p><p class="like">Перед поездкой — заправка. Водитель не думает о ней каждый раз: она стоит первым пунктом маршрута.</p></li>
+              <li data-lines="12-14"><b>Меньше служебных строк</b><p><code>"logging": {"moduleLoad": false}</code> — не печатать в Debug Console строку про каждую загруженную библиотеку. Без неё вывод программы теряется среди десятков строк «Loaded …».</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
         <figure class="code" data-os="linux"><figcaption><span>.vscode/tasks.json</span></figcaption><pre>{
   "version": "2.0.0",
   "tasks": [
@@ -163,6 +374,34 @@
     }
   ]
 }</pre></figure>
+        <div class="trace" data-os="linux">
+          <p class="trace__head"><span>Разбор tasks.json по шагам</span><span>Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Описать, как собрать <code>debug.c</code> с ключами для отладчика. <code>launch.json</code> вызывает эту задачу перед каждым запуском.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>debug.c</b><small>исходник</small></span><span><b>tasks.json</b><small>команда сборки</small></span><span><b>программа</b><small>со сведениями для отладчика</small></span><span><b>launch.json</b><small>запускает её</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code">{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "gcc -g -O0 -Wall -Wextra -o debug \"${workspaceFolder}/debug.c\"",
+      "group": "build"
+    }
+  ]
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Обёртка файла</b><p>Тот же формат JSON, что у <code>launch.json</code>. <code>"tasks": [ … ]</code> — список задач: команд, которые VS Code умеет выполнять сам.</p></li>
+              <li data-lines="5"><b>Метка задачи</b><p><code>"label": "build"</code> — имя задачи. По нему <code>launch.json</code> находит её в строке <code>preLaunchTask</code>: слова должны совпадать буква в букву.</p><p class="like">Ярлык на папке. Коллега просит «дай папку build» — и вы находите её по ярлыку.</p></li>
+              <li data-lines="6"><b>Выполнить в терминале</b><p><code>"type": "shell"</code> — выполнить строку <code>command</code> так, как будто вы набрали её в терминале. Вывод компилятора появится во вкладке Terminal.</p></li>
+              <li data-lines="7"><b>Команда сборки</b><ul class="words"><li><code>gcc</code> — компилятор;</li><li><code>-g</code> — добавить сведения для отладчика: какая машинная команда относится к какой строке и где лежит каждая переменная;</li><li><code>-O0</code> — без оптимизации: команды идут в порядке строк, переменные лежат в памяти;</li><li><code>-Wall -Wextra</code> — подробные предупреждения;</li><li><code>-o debug</code> — имя готовой программы, то самое, что указано в <code>"program"</code> файла <code>launch.json</code>;</li><li><code>\"${workspaceFolder}/debug.c\"</code> — путь к исходнику. Обратная косая черта перед кавычкой нужна, чтобы кавычка попала в команду, а не закончила строку JSON: так путь с пробелами не разорвётся.</li></ul><p>Ключи отладки и выключенная оптимизация — главное в этой строке. Без них отладчик остановится не там или покажет «optimized out» вместо значения.</p></li>
+              <li data-lines="8"><b>Задача сборки по умолчанию</b><p><code>"group": "build"</code> — эту же задачу VS Code запустит по команде <b>Terminal → Run Build Task</b>, без отладчика.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
 
         <p data-os="win">Компилятор <code>cl</code> находится, только если VS Code запущен из <b>x64 Native Tools Command Prompt</b>: перейдите в папку работы и выполните <code>code .</code>. Из меню «Пуск» VS Code не знает, где лежит компилятор, и задача <code>build</code> завершится ошибкой «cl не является внутренней или внешней командой».</p>
 

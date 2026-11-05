@@ -158,7 +158,20 @@ S.append(f'''
 <pre>{CORE_NOW}</pre>
           </figure>
         </div>
-        <p>Макрос <code>_WIN32</code> компилятор MSVC задаёт сам, поэтому <code>#ifdef _WIN32</code> выбирает ветку Windows без настройки. Файл <code>core_info.c</code> не меняется. Из папки <code>agent/core</code> собираем библиотеку:</p>
+        <p>Что делают новые строки, по порядку:</p>
+        <ul class="words">
+          <li><code>#ifdef _WIN32</code> — «если собираем для Windows». Слово <code>_WIN32</code> компилятор MSVC задаёт сам, на macOS и Linux его нет;</li>
+          <li><code>#define CORE_API __declspec(dllexport)</code> — в Windows слово <code>CORE_API</code> всюду заменяется на отметку «отдать функцию наружу»;</li>
+          <li><code>#else</code> и следующий <code>#define CORE_API</code> — на других системах <code>CORE_API</code> заменяется на пустое место, как будто его нет;</li>
+          <li><code>#endif</code> — конец условия;</li>
+          <li><code>CORE_API int core_get_info(…)</code> — перед функцией стоит слово, а во что оно превратится, решает система сборки.</li>
+        </ul>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>В шаблоне письма стоит поле «[обращение]». При отправке в одну страну его заменяют на «Уважаемый», в другую — оставляют пустым. Текст письма один, а получается два разных. <code>#define</code> — такая же замена слова до сборки, <code>#ifdef</code> выбирает, какую замену взять.</p>
+          <p class="miss">Письмо заполняет человек и видит результат. Замену макроса делает компилятор, в файле <code>core.h</code> остаётся слово <code>CORE_API</code>.</p>
+        </div></div>
+        <p>Файл <code>core_info.c</code> не меняется. Из папки <code>agent/core</code> собираем библиотеку:</p>
 {cmd('cd agent\\core\ncl /nologo /W4 /LD core_info.c /Fe:sentry_core.dll\ndir /b sentry_core.*', 'cd agent/core\nclang -Wall -Wextra -shared -fPIC -o libsentry_core.dylib core_info.c\nls libsentry_core.dylib', 'cd agent/core\ngcc -Wall -Wextra -shared -fPIC -o libsentry_core.so core_info.c\nls libsentry_core.so')}
 {per(win='<p>Ключ <code>/LD</code> собирает DLL вместо <code>.exe</code>, <code>/Fe:</code> задаёт имя файла.</p>',
      maclinux='<p>Ключ <code>-shared</code> собирает динамическую библиотеку вместо исполняемого файла. Ключ <code>-fPIC</code> делает код независимым от адреса: библиотека может загрузиться в любое место памяти процесса. Имя по соглашению начинается с <code>lib</code>.</p>')}

@@ -1203,7 +1203,7 @@
 <pre><mark>    <span class="f">printf</span>(<span class="s">"pid       %d\n"</span>, info.pid);</mark></pre>
           </figure>
         </div>
-        <p>Собираем снова, без запуска:</p>
+        <p>Собираем снова, без запуска. Здесь работают ключи из шага 1: <span data-os="win"><code>/W4</code></span><span data-os="mac linux"><code>-Wall -Wextra</code></span> просят компилятор сообщать о подозрительных местах, хотя программа и так соберётся. Ошибку формата некоторые компиляторы показывают и без них, но gcc без <code>-Wall</code> о ней молчит.</p>
         <figure class="code" data-os="win">
           <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
 <pre>cl /nologo /W4 show_info.c core_info.c</pre>
