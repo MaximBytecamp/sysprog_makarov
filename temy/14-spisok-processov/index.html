@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>2.1 Список процессов · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 2 · Процессы, потоки и память</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 2 · процессы</p>
+          <p class="running__folio">2.1</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">2.1</span>
+          <h1>Список процессов</h1>
+          <p class="lead">В главе ядро агента получает функцию <code>core_list_procs</code>: она отдаёт список всех процессов системы — номер, номер родителя и имя. Разобрано, как список берётся в Windows, macOS и Linux, как функция работает с массивом неизвестного заранее размера и как проверить её числами системной программы. В конце мозг агента находит цепочку своих родителей.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Категория</dt><dd>Процессы</dd></div>
+          <div><dt>Уровень</dt><dd>Начальный</dd></div>
+          <div><dt>Что получится</dt><dd><code>agent/core/core_procs.c</code>, <code>list_procs.c</code>, новый <code>brain.py</code></dd></div>
+          <div><dt>Сколько занимает</dt><dd>Пара 4, около сорока пяти минут за компьютером</dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>Порядок действий</b>
+          <ol>
+            <li><a href="#s1">Задача главы</a></li>
+            <li><a href="#s2">Шаг 1. Описать процесс в core.h</a></li>
+            <li><a href="#s3">Шаг 2. Написать core_procs.c</a></li>
+            <li><a href="#s4">Шаг 3. Проверить ядро программой на C</a></li>
+            <li><a href="#s5">Шаг 4. Сверить с программой системы</a></li>
+            <li><a href="#s6">Шаг 5. Дать ядру мало места</a></li>
+            <li><a href="#s7">Шаг 6. Вызвать список из Python</a></li>
+            <li><a href="#s8">Шаг 7. Отправить в репозиторий</a></li>
+            <li><a href="#s9">Запрос к помощнику ИИ</a></li>
+            <li><a href="#s10">Справка: функции и команды</a></li>
+            <li><a href="#s11">Частые вопросы</a></li>
+            <li><a href="#s12">Проверьте себя</a></li>
+            <li><a href="#s13">Шпаргалка по главе</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Задача главы</h2>
+        <p>В ЛР 4 вы смотрели дерево процессов в программе системы: у каждого процесса есть родитель, тот процесс, который его запустил. Агенту нужен тот же список в своём коде: с него начинаются проверки модуля 2. Агент ищет процесс, который загружает процессор, растёт в памяти или запущен не тем родителем. В главе ядро агента получает функцию <code>core_list_procs</code>, которая отдаёт список процессов системы, а мозг агента по этому списку находит цепочку своих родителей.</p>
+        <p><span class="term">PID</span> (process identifier) — номер процесса, который система выдаёт при запуске. Пока процесс работает, номер не меняется; после завершения номер может достаться новому процессу. <span class="term">PPID</span> (parent PID) — номер родителя. Родитель записан в каждом процессе, а список детей — нет: детей находят, просматривая весь список.</p>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>В анкете сотрудника есть строка «руководитель: табельный номер такой-то». Чтобы нарисовать структуру отдела, берут все анкеты и раскладывают их по номерам руководителей. Анкеты руководителя для этого не нужны: в ней нет списка подчинённых.</p>
+          <p class="miss">Табельный номер уволенного не дают новому сотруднику. Номер завершённого процесса система может отдать новому, поэтому записанный родитель иногда оказывается чужим процессом.</p>
+        </div></div>
+        <figure class="scheme">
+          <p class="scheme__head">Родители и дети: часть дерева с кадра macOS</p>
+          <div class="scheme__body">
+<div class="vsteps"><div class="vcard is-sys"><h5>pid 0</h5><b>kernel_task</b><small>ядро macOS</small></div><div class="varr">ppid</div><div class="vcard is-sys"><h5>pid 1</h5><b>launchd</b><small>запускает программы входа</small></div><div class="varr">ppid</div><div class="vcard is-c"><b>Code</b><small>VS Code</small></div><div class="varr">ppid</div><div class="vcard is-c"><b>Code Helper</b><small>процесс терминала VS Code</small></div><div class="varr">ppid</div><div class="vcard is-c"><b>zsh</b><small>оболочка</small></div><div class="varr">ppid</div><div class="vcard is-py"><b>Python</b><small>brain.py</small></div></div>
+          </div>
+          <p class="scheme__note">Стрелка идёт от родителя к ребёнку, а в записи ребёнка хранится номер родителя — <code>ppid</code>. Список детей в записи процесса не хранится: чтобы найти детей, просматривают весь список и ищут свой номер в чужих <code>ppid</code>.</p>
+        </figure>
+        <div class="why">
+          <p class="why__head">Зачем это нужно в работе</p>
+          <ul class="why__list">
+            <li><b>Видеть, что запущено.</b> Список процессов — основа диспетчера задач, антивируса и системы наблюдения. Каждая из них начинает со списка, а потом спрашивает о каждом процессе подробности.</li>
+            <li><b>Находить, кто что запустил.</b> Командная оболочка, которую запустил текстовый редактор или браузер, — частый признак заражения: человек запускает её из меню или из терминала. Такой вывод делают по цепочке родителей.</li>
+            <li><b>Работать с буфером неизвестного размера.</b> Число процессов заранее неизвестно. Договор «дай место — получи число, сколько нужно» встречается в WinAPI и POSIX постоянно.</li>
+          </ul>
+        </div>
+        <p>Глава продолжает репозиторий <code>sysprog-start</code> после задания модуля 1: в <code>agent/core</code> лежат <code>core.h</code> с полем <code>uptime_s</code> и <code>core_info.c</code>, в <code>agent/brain</code> — <code>brain.py</code>. <span data-os="win">Команды выполняются во встроенном терминале VS Code. VS Code запускается из окна <b>x64 Native Tools Command Prompt for VS 2022</b>, как в главе 1.2. Тогда в его терминале доступен <code>cl</code>, а Python — 64-битный для x64.</span><span data-os="mac linux">Команды выполняются во встроенном терминале VS Code, начиная с корня репозитория.</span></p>
+        <div class="margin-note margin-note--warn">
+          <b>Если задание модуля 1 не сделано</b>
+          <p>Структура <code>core_info</code> в этой главе — 280 байт, с полем <code>uptime_s</code> из задания. Если задание не сделано, начните с него: <a href="../11-zadanie-modulya-1/index.html">задание модуля 1</a>, в его начале есть код глав 1.1–1.3 для своей системы. Новые файлы этой главы от <code>uptime_s</code> не зависят, их можно делать и с ядром из главы 1.2, если убрать <code>uptime_s</code> из <code>core.h</code> и <code>brain.py</code>.</p>
+        </div>
+        <p class="bridge">Ядро отдаёт список массивом структур, поэтому первая часть начинается с описания одной строки списка в <code>core.h</code>.</p>
+
+        <div class="part" role="separator"><span><b>1</b>Ядро: список процессов</span></div>
+        <h2 id="s2"><span class="sec">§2</span>Шаг 1. Описать процесс в core.h</h2>
+        <p>Одна строка списка — три поля: номер процесса, номер родителя и имя. Номера хранятся в <code>int64_t</code>. В Windows номер процесса — 32-битное <code>DWORD</code>, в macOS и Linux — <code>pid_t</code> (тоже 32 бита). Поле на 8 байт вмещает номер любой из трёх систем, и между полями не появляются пропуски для выравнивания. Имя — массив из 64 байт в UTF-8. В <code>core.h</code> добавляются размер имени, структура и объявление функции:</p>
+        <div class="code-pair">
+          <figure class="code code--was" data-read>
+            <figcaption><span>agent/core/core.h</span><span>было</span></figcaption>
+<pre><span class="k">struct</span> core_info {
+    <span class="c">…</span>
+    <span class="t">int64_t</span> uptime_s;
+};
+
+CORE_API <span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out);</pre>
+          </figure>
+          <figure class="code code--now" data-read>
+            <figcaption><span>agent/core/core.h</span><span>стало</span></figcaption>
+<pre><mark><span class="k">#define</span> CORE_NAME_MAX <span class="n">64</span></mark>
+<span class="c">…</span>
+<span class="k">struct</span> core_info {
+    <span class="c">…</span>
+    <span class="t">int64_t</span> uptime_s;
+};
+<mark>
+<span class="k">struct</span> core_proc {
+    <span class="t">int64_t</span> pid;
+    <span class="t">int64_t</span> ppid;
+    <span class="k">char</span>    name[CORE_NAME_MAX];
+};</mark>
+
+CORE_API <span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out);
+<mark>CORE_API <span class="k">int</span> <span class="f">core_list_procs</span>(<span class="k">struct</span> core_proc *out, <span class="t">int32_t</span> max, <span class="t">int32_t</span> *count);</mark></pre>
+          </figure>
+        </div>
+        <p>Строка <code>#define CORE_NAME_MAX 64</code> ставится рядом с <code>CORE_HOST_MAX</code>. Поля идут подряд без пропусков, размер структуры — 8 + 8 + 64 = 80 байт:</p>
+        <div class="bytes "><span class="w"><i>pid</i><small>0 · int64_t</small></span><span class="w"><i>ppid</i><small>8 · int64_t</small></span><span class="w"><i>name</i><small>16 · char × 64</small></span></div>
+        <p>Функция принимает три параметра:</p>
+        <ul class="words">
+          <li><code>out</code> — адрес массива, куда ядро пишет строки списка;</li>
+          <li><code>max</code> — сколько мест в массиве: ядро не пишет за его конец;</li>
+          <li><code>count</code> — адрес числа, куда ядро запишет, сколько процессов нашло. Если мест не хватило, это число говорит, сколько их нужно.</li>
+        </ul>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Секретарю дают бланк на 10 строк и просят переписать всех посетителей за день. Посетителей было 14: секретарь заполняет 10 строк, а внизу пишет «всего 14, нужен бланк побольше».</p>
+          <p class="miss">Секретарь может дописать строку на полях. Функция на C за край массива писать не должна: там чужая память.</p>
+        </div></div>
+        <figure class="scheme">
+          <p class="scheme__head">Договор функции: места, ответ, код</p>
+          <div class="scheme__body">
+<div class="vsteps"><div class="vcard is-py"><h5>вызывающий</h5><b>out[max]</b><small>массив на max мест по 80 байт</small></div><div class="varr">out, max, &amp;count</div><div class="vcard is-c"><h5>ядро</h5><b>core_list_procs</b><small>пишет не больше max строк</small></div><div class="varr">код</div><div class="vcard is-sys"><h5>ответ</h5><b>count</b><small>сколько процессов найдено</small></div></div><table class="vtab"><thead><tr><th>Случай</th><th>В out</th><th>Код</th></tr></thead><tbody><tr><td>мест хватило</td><td>весь список</td><td class="ok">0</td></tr><tr><td>max = 10</td><td>10 строк</td><td class="bad"><span data-os="win">122</span><span data-os="mac linux">34</span></td></tr><tr><td>ошибка в параметрах</td><td>ничего</td><td class="bad"><span data-os="win">87</span><span data-os="mac linux">22</span></td></tr></tbody></table>
+          </div>
+          <p class="scheme__note">Число процессов заранее неизвестно. Поэтому функция сообщает, сколько мест нужно, и вызывающий повторяет вызов с бо́льшим массивом.</p>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/01-core-h.png" alt="VS Code с core.h: struct core_proc и объявление core_list_procs в рамках" loading="lazy">
+          <figcaption><span class="mk">1</span> Структура процесса — три поля. <span class="mk">2</span> Объявление функции ядра.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/01-core-h.png" alt="VS Code с core.h: struct core_proc и объявление core_list_procs в рамках" loading="lazy">
+          <figcaption><span class="mk">1</span> Структура процесса — три поля. <span class="mk">2</span> Объявление функции ядра.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/01-core-h.png" alt="VS Code с core.h: struct core_proc и объявление core_list_procs в рамках" loading="lazy">
+          <figcaption><span class="mk">1</span> Структура процесса — три поля. <span class="mk">2</span> Объявление функции ядра.</figcaption>
+        </figure>
+        <p class="step-done"><b>Что получилось.</b>В <code>core.h</code> описана строка списка на 80 байт и договор функции. Теперь её нужно написать для своей системы.</p>
+
+        <h2 id="s3"><span class="sec">§3</span>Шаг 2. Написать core_procs.c</h2>
+        <p>Функция списка — в новом файле <code>agent/core/core_procs.c</code>: у каждой части ядра свой файл, и <code>core_info.c</code> не меняется. Каждая система отдаёт список своим способом:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Откуда ядро берёт список</p>
+          <div class="scheme__body">
+<div class="vsplit is-rows"><div><h6>Windows</h6><div class="vsteps"><div class="vcard is-sys"><b>CreateToolhelp32Snapshot</b><small>снимок всех процессов</small></div><div class="varr"></div><div class="vcard is-c"><b>Process32FirstW / NextW</b><small>запись за записью</small></div></div></div><div><h6>macOS</h6><div class="vsteps"><div class="vcard is-sys"><b>proc_listallpids</b><small>номера всех процессов</small></div><div class="varr"></div><div class="vcard is-c"><b>proc_pidinfo</b><small>родитель и имя по номеру</small></div></div></div><div><h6>Linux</h6><div class="vsteps"><div class="vcard is-sys"><b>opendir("/proc")</b><small>папка на каждый процесс</small></div><div class="varr"></div><div class="vcard is-c"><b>/proc/N/stat</b><small>строка со сведениями</small></div></div></div></div>
+          </div>
+          <p class="scheme__note">Три системы отдают список по-разному, а наружу функция ядра отдаёт одно и то же: массив <code>struct core_proc</code> и <code>count</code>.</p>
+        </figure>
+        <figure class="code" data-os="win">
+          <figcaption><span>agent/core/core_procs.c · Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> &lt;tlhelp32.h&gt;
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_list_procs</span>(<span class="k">struct</span> core_proc *out, <span class="t">int32_t</span> max, <span class="t">int32_t</span> *count) {
+    PROCESSENTRY32W pe;
+    <span class="t">int32_t</span> found = <span class="n">0</span>;
+
+    <span class="k">if</span> (count == NULL || max &lt; <span class="n">0</span> || (out == NULL &amp;&amp; max &gt; <span class="n">0</span>))
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="t">HANDLE</span> snap = <span class="f">CreateToolhelp32Snapshot</span>(TH32CS_SNAPPROCESS, <span class="n">0</span>);
+    <span class="k">if</span> (snap == INVALID_HANDLE_VALUE)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+
+    pe.dwSize = <span class="k">sizeof</span> pe;
+    <span class="k">if</span> (!<span class="f">Process32FirstW</span>(snap, &amp;pe)) {
+        <span class="t">DWORD</span> err = <span class="f">GetLastError</span>();
+        <span class="f">CloseHandle</span>(snap);
+        <span class="k">return</span> (<span class="k">int</span>)err;
+    }
+    do {
+        <span class="k">if</span> (found &lt; max) {
+            out[found].pid = pe.th32ProcessID;
+            out[found].ppid = pe.th32ParentProcessID;
+            <span class="k">if</span> (<span class="f">WideCharToMultiByte</span>(CP_UTF8, <span class="n">0</span>, pe.szExeFile, -<span class="n">1</span>, out[found].name,
+                                    <span class="k">sizeof</span> out[found].name, NULL, NULL) == <span class="n">0</span>)
+                out[found].name[<span class="k">sizeof</span> out[found].name - <span class="n">1</span>] = <span class="s">&#x27;\0&#x27;</span>;
+        }
+        found++;
+    } while (<span class="f">Process32NextW</span>(snap, &amp;pe));
+
+    <span class="f">CloseHandle</span>(snap);
+    *count = found;
+    <span class="k">return</span> found &gt; max ? ERROR_INSUFFICIENT_BUFFER : <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>agent/core/core_procs.c · macOS</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;libproc.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_list_procs</span>(<span class="k">struct</span> core_proc *out, <span class="t">int32_t</span> max, <span class="t">int32_t</span> *count) {
+    <span class="k">static</span> <span class="t">pid_t</span> pids[<span class="n">8192</span>];
+    <span class="k">struct</span> proc_bsdshortinfo si;
+    <span class="t">int32_t</span> found = <span class="n">0</span>;
+
+    <span class="k">if</span> (count == NULL || max &lt; <span class="n">0</span> || (out == NULL &amp;&amp; max &gt; <span class="n">0</span>))
+        <span class="k">return</span> EINVAL;
+    <span class="k">int</span> n = <span class="f">proc_listallpids</span>(pids, <span class="k">sizeof</span> pids);
+    <span class="k">if</span> (n &lt; <span class="n">0</span>)
+        <span class="k">return</span> errno;
+
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; n; i++) {
+        <span class="k">if</span> (<span class="f">proc_pidinfo</span>(pids[i], PROC_PIDT_SHORTBSDINFO, <span class="n">0</span>, &amp;si, <span class="k">sizeof</span> si) != <span class="k">sizeof</span> si)
+            continue;
+        <span class="k">if</span> (found &lt; max) {
+            out[found].pid = pids[i];
+            out[found].ppid = si.pbsi_ppid;
+            <span class="f">snprintf</span>(out[found].name, <span class="k">sizeof</span> out[found].name, <span class="s">&quot;%s&quot;</span>, si.pbsi_comm);
+        }
+        found++;
+    }
+    *count = found;
+    <span class="k">return</span> found &gt; max ? ERANGE : <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>agent/core/core_procs.c · Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;ctype.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;dirent.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">static</span> <span class="k">int</span> <span class="f">read_stat</span>(<span class="k">const</span> <span class="k">char</span> *pid, <span class="k">struct</span> core_proc *p) {
+    <span class="k">char</span> path[<span class="n">64</span>], line[<span class="n">512</span>];
+    <span class="f">snprintf</span>(path, <span class="k">sizeof</span> path, <span class="s">&quot;/proc/%s/stat&quot;</span>, pid);
+    FILE *f = <span class="f">fopen</span>(path, <span class="s">&quot;r&quot;</span>);
+    <span class="k">if</span> (f == NULL)
+        <span class="k">return</span> -<span class="n">1</span>;
+    <span class="t">size_t</span> len = <span class="f">fread</span>(line, <span class="n">1</span>, <span class="k">sizeof</span> line - <span class="n">1</span>, f);
+    <span class="f">fclose</span>(f);
+    line[len] = <span class="s">&#x27;\0&#x27;</span>;
+
+    <span class="k">char</span> *open = <span class="f">strchr</span>(line, <span class="s">&#x27;(&#x27;</span>);
+    <span class="k">char</span> *close = <span class="f">strrchr</span>(line, <span class="s">&#x27;)&#x27;</span>);
+    <span class="k">if</span> (open == NULL || close == NULL)
+        <span class="k">return</span> -<span class="n">1</span>;
+    <span class="k">long</span> <span class="k">long</span> pid_num = <span class="n">0</span>, ppid = <span class="n">0</span>;
+    <span class="k">if</span> (<span class="f">sscanf</span>(line, <span class="s">&quot;%lld&quot;</span>, &amp;pid_num) != <span class="n">1</span> || <span class="f">sscanf</span>(close + <span class="n">2</span>, <span class="s">&quot;%*c %lld&quot;</span>, &amp;ppid) != <span class="n">1</span>)
+        <span class="k">return</span> -<span class="n">1</span>;
+    p-&gt;pid = pid_num;
+    p-&gt;ppid = ppid;
+    <span class="f">snprintf</span>(p-&gt;name, <span class="k">sizeof</span> p-&gt;name, <span class="s">&quot;%.*s&quot;</span>, (<span class="k">int</span>)(close - open - <span class="n">1</span>), open + <span class="n">1</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}
+
+<span class="k">int</span> <span class="f">core_list_procs</span>(<span class="k">struct</span> core_proc *out, <span class="t">int32_t</span> max, <span class="t">int32_t</span> *count) {
+    <span class="k">struct</span> core_proc p;
+    <span class="k">struct</span> dirent *e;
+    <span class="t">int32_t</span> found = <span class="n">0</span>;
+
+    <span class="k">if</span> (count == NULL || max &lt; <span class="n">0</span> || (out == NULL &amp;&amp; max &gt; <span class="n">0</span>))
+        <span class="k">return</span> EINVAL;
+    DIR *d = <span class="f">opendir</span>(<span class="s">&quot;/proc&quot;</span>);
+    <span class="k">if</span> (d == NULL)
+        <span class="k">return</span> errno;
+
+    while ((e = <span class="f">readdir</span>(d)) != NULL) {
+        <span class="k">if</span> (!<span class="f">isdigit</span>((<span class="k">unsigned</span> <span class="k">char</span>)e-&gt;d_name[<span class="n">0</span>]))
+            continue;
+        <span class="k">if</span> (<span class="f">read_stat</span>(e-&gt;d_name, &amp;p) != <span class="n">0</span>)
+            continue;
+        <span class="k">if</span> (found &lt; max)
+            out[found] = p;
+        found++;
+    }
+    <span class="f">closedir</span>(d);
+    *count = found;
+    <span class="k">return</span> found &gt; max ? ERANGE : <span class="n">0</span>;
+}</pre>
+        </figure>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор core_procs.c по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Заполнить массив <code>out</code> строками «номер процесса, номер родителя, имя» для всех процессов системы. Список берётся из снимка, который делает Windows: функция проходит его от первой записи до последней.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>снимок</b><small>CreateToolhelp32Snapshot</small></span><span><b>запись за записью</b><small>Process32FirstW / NextW</small></span><span><b>out[]</b><small>pid, ppid, имя</small></span><span><b>count</b><small>сколько найдено</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> &lt;tlhelp32.h&gt;
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_list_procs</span>(<span class="k">struct</span> core_proc *out, <span class="t">int32_t</span> max, <span class="t">int32_t</span> *count) {
+    PROCESSENTRY32W pe;
+    <span class="t">int32_t</span> found = <span class="n">0</span>;
+
+    <span class="k">if</span> (count == NULL || max &lt; <span class="n">0</span> || (out == NULL &amp;&amp; max &gt; <span class="n">0</span>))
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="t">HANDLE</span> snap = <span class="f">CreateToolhelp32Snapshot</span>(TH32CS_SNAPPROCESS, <span class="n">0</span>);
+    <span class="k">if</span> (snap == INVALID_HANDLE_VALUE)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+
+    pe.dwSize = <span class="k">sizeof</span> pe;
+    <span class="k">if</span> (!<span class="f">Process32FirstW</span>(snap, &amp;pe)) {
+        <span class="t">DWORD</span> err = <span class="f">GetLastError</span>();
+        <span class="f">CloseHandle</span>(snap);
+        <span class="k">return</span> (<span class="k">int</span>)err;
+    }
+    do {
+        <span class="k">if</span> (found &lt; max) {
+            out[found].pid = pe.th32ProcessID;
+            out[found].ppid = pe.th32ParentProcessID;
+            <span class="k">if</span> (<span class="f">WideCharToMultiByte</span>(CP_UTF8, <span class="n">0</span>, pe.szExeFile, -<span class="n">1</span>, out[found].name,
+                                    <span class="k">sizeof</span> out[found].name, NULL, NULL) == <span class="n">0</span>)
+                out[found].name[<span class="k">sizeof</span> out[found].name - <span class="n">1</span>] = <span class="s">&#x27;\0&#x27;</span>;
+        }
+        found++;
+    } while (<span class="f">Process32NextW</span>(snap, &amp;pe));
+
+    <span class="f">CloseHandle</span>(snap);
+    *count = found;
+    <span class="k">return</span> found &gt; max ? ERROR_INSUFFICIENT_BUFFER : <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-3"><b>Подключить заголовочные файлы</b><ul class="words"><li><code>windows.h</code> — основные функции и типы WinAPI;</li><li><code>tlhelp32.h</code> — функции снимка процессов (Tool Help), их нет в <code>windows.h</code>;</li><li><code>core.h</code> — <code>struct core_proc</code> и объявление функции ядра.</li></ul></li>
+              <li data-lines="5-7"><b>Начать функцию</b><p><code>PROCESSENTRY32W pe</code> — одна запись снимка: номер процесса, номер родителя, имя файла и ещё несколько полей. Буква <code>W</code> в конце означает, что имя хранится в UTF-16. <code>found</code> — сколько процессов найдено, считается и тогда, когда место в <code>out</code> кончилось.</p></li>
+              <li data-lines="9-10"><b>Проверить параметры</b><p>Без адреса для <code>count</code> функции некуда вернуть число процессов. Отрицательное <code>max</code> не имеет смысла. Пустой <code>out</code> допустим только при <code>max</code> = 0: так можно спросить «сколько процессов?», ничего не получая. В остальных случаях — код 87, <code>ERROR_INVALID_PARAMETER</code>, как в главе 1.1.</p></li>
+              <li data-lines="11-13"><b>Сделать снимок</b><p><code>CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)</code> просит Windows записать список процессов на этот момент. Ответ — <code>HANDLE</code>, номер объекта ядра, через который читают снимок. Второй параметр, 0, для списка процессов не используется.</p><div class="vsteps"><div class="vcard is-sys"><h5>ядро Windows</h5><b>процессы сейчас</b><small>список меняется каждую секунду</small></div><div class="varr">снимок</div><div class="vcard is-c"><h5>объект ядра</h5><b>snap</b><small>список на один момент, больше не меняется</small></div></div><p class="like">Фотография очереди: люди в очереди приходят и уходят, а на фотографии их можно спокойно пересчитать.</p></li>
+              <li data-lines="15-20"><b>Прочитать первую запись</b><p>Перед первым вызовом в <code>pe.dwSize</code> записывают размер структуры: по нему Windows определяет версию структуры записи. <code>Process32FirstW</code> копирует первую запись снимка в <code>pe</code>. Если она не прочиталась, функция берёт код ошибки, закрывает снимок и возвращает код.</p></li>
+              <li data-lines="21-30"><b>Пройти снимок</b><p>Цикл <code>do … while</code> сначала выполняет тело, потом проверяет условие: первая запись уже прочитана и должна попасть в список. <code>Process32NextW</code> берёт следующую запись и возвращает <code>FALSE</code>, когда записи кончились.</p><ul class="words"><li><code>th32ProcessID</code> — номер процесса, <code>th32ParentProcessID</code> — номер родителя;</li><li><code>WideCharToMultiByte(CP_UTF8, …)</code> переводит имя из UTF-16 в UTF-8, как имя компьютера в главе 1.1. Если имя не помещается в 64 байта, функция возвращает 0, и последний байт делается нулём;</li><li><code>found++</code> стоит вне <code>if</code>: процессы считаются до конца, даже когда место кончилось.</li></ul></li>
+              <li data-lines="32-34"><b>Закрыть снимок и вернуть ответ</b><p><code>CloseHandle</code> освобождает объект снимка. В <code>*count</code> записывается, сколько процессов найдено. Если их больше, чем мест, функция возвращает 122, <code>ERROR_INSUFFICIENT_BUFFER</code>: первые <code>max</code> строк заполнены, а <code>count</code> говорит, сколько мест нужно.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="mac">
+          <p class="trace__head"><span>Разбор core_procs.c по шагам</span><span>macOS</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Заполнить массив <code>out</code> строками «номер процесса, номер родителя, имя» для всех процессов системы. Сначала функция получает от ядра macOS номера всех процессов, потом про каждый номер спрашивает родителя и имя.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>номера процессов</b><small>proc_listallpids</small></span><span><b>про каждый</b><small>proc_pidinfo</small></span><span><b>out[]</b><small>pid, ppid, имя</small></span><span><b>count</b><small>сколько найдено</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;libproc.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_list_procs</span>(<span class="k">struct</span> core_proc *out, <span class="t">int32_t</span> max, <span class="t">int32_t</span> *count) {
+    <span class="k">static</span> <span class="t">pid_t</span> pids[<span class="n">8192</span>];
+    <span class="k">struct</span> proc_bsdshortinfo si;
+    <span class="t">int32_t</span> found = <span class="n">0</span>;
+
+    <span class="k">if</span> (count == NULL || max &lt; <span class="n">0</span> || (out == NULL &amp;&amp; max &gt; <span class="n">0</span>))
+        <span class="k">return</span> EINVAL;
+    <span class="k">int</span> n = <span class="f">proc_listallpids</span>(pids, <span class="k">sizeof</span> pids);
+    <span class="k">if</span> (n &lt; <span class="n">0</span>)
+        <span class="k">return</span> errno;
+
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; n; i++) {
+        <span class="k">if</span> (<span class="f">proc_pidinfo</span>(pids[i], PROC_PIDT_SHORTBSDINFO, <span class="n">0</span>, &amp;si, <span class="k">sizeof</span> si) != <span class="k">sizeof</span> si)
+            continue;
+        <span class="k">if</span> (found &lt; max) {
+            out[found].pid = pids[i];
+            out[found].ppid = si.pbsi_ppid;
+            <span class="f">snprintf</span>(out[found].name, <span class="k">sizeof</span> out[found].name, <span class="s">&quot;%s&quot;</span>, si.pbsi_comm);
+        }
+        found++;
+    }
+    *count = found;
+    <span class="k">return</span> found &gt; max ? ERANGE : <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Подключить заголовочные файлы</b><ul class="words"><li><code>errno.h</code> — коды ошибок <code>EINVAL</code>, <code>ERANGE</code>;</li><li><code>libproc.h</code> — функции <code>proc_listallpids</code> и <code>proc_pidinfo</code> — сведения о процессах от ядра macOS;</li><li><code>stdio.h</code> — <code>snprintf</code>; <code>core.h</code> — структура и объявление.</li></ul></li>
+              <li data-lines="7-9"><b>Подготовить место</b><p><code>static pid_t pids[8192]</code> — массив для номеров процессов, 32 КБ. Слово <code>static</code> кладёт его в память программы, где он хранится всё время работы; стопка вызовов для такого массива мала. <code>struct proc_bsdshortinfo si</code> — краткие сведения об одном процессе. <code>found</code> — счётчик найденных.</p></li>
+              <li data-lines="11-12"><b>Проверить параметры</b><p>Те же проверки, что в других системах. Неверный параметр — код 22, <code>EINVAL</code>, как в главе 1.2.</p></li>
+              <li data-lines="13-15"><b>Получить номера всех процессов</b><p><code>proc_listallpids(pids, sizeof pids)</code> записывает в массив номера всех процессов и возвращает, сколько записал. Второй параметр — размер массива в байтах: 8192 места по 4 байта, 32 768. При ошибке функция возвращает −1, а код ошибки лежит в <code>errno</code>.</p></li>
+              <li data-lines="17-19"><b>Спросить про каждый процесс</b><p><code>proc_pidinfo(номер, PROC_PIDT_SHORTBSDINFO, 0, &amp;si, sizeof si)</code> заполняет <code>si</code> краткими сведениями о процессе и возвращает число записанных байт. Если байт меньше, чем размер структуры, процесс пропускается: он мог завершиться между двумя вызовами.</p><div class="vsteps"><div class="vcard is-sys"><h5>шаг 13</h5><b>pids[]</b><small>только номера: 0, 1, 4503, …</small></div><div class="varr">номер</div><div class="vcard is-c"><h5>шаг 18</h5><b>si</b><small>pbsi_ppid, pbsi_comm</small></div><div class="varr">копия</div><div class="vcard is-py"><h5>out[found]</h5><b>pid, ppid, имя</b><small>80 байт</small></div></div></li>
+              <li data-lines="20-25"><b>Записать строку списка</b><p>Номер берётся из <code>pids[i]</code>, родитель — из <code>si.pbsi_ppid</code>. Имя <code>si.pbsi_comm</code> — массив из 16 байт (<code>MAXCOMLEN</code>), поэтому имя длиннее 15 символов приходит обрезанным. <code>snprintf(out, размер, "%s", имя)</code> копирует строку. Нулевой байт в конце она ставит всегда. <code>found++</code> стоит вне <code>if</code>: процессы считаются до конца.</p></li>
+              <li data-lines="27-28"><b>Вернуть ответ</b><p>В <code>*count</code> — сколько процессов найдено. Если мест меньше, функция возвращает 34, <code>ERANGE</code> («результат не помещается»): первые <code>max</code> строк заполнены.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="linux">
+          <p class="trace__head"><span>Разбор core_procs.c по шагам</span><span>Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Заполнить массив <code>out</code> строками «номер процесса, номер родителя, имя» для всех процессов системы. В Linux у каждого процесса есть папка <code>/proc/номер</code>, а в ней файл <code>stat</code> со сведениями о процессе. Функция читает папку <code>/proc</code> и файл <code>stat</code> каждого процесса.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>/proc</b><small>папки-номера</small></span><span><b>/proc/N/stat</b><small>pid (имя) состояние ppid</small></span><span><b>out[]</b><small>pid, ppid, имя</small></span><span><b>count</b><small>сколько найдено</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;ctype.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;dirent.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">static</span> <span class="k">int</span> <span class="f">read_stat</span>(<span class="k">const</span> <span class="k">char</span> *pid, <span class="k">struct</span> core_proc *p) {
+    <span class="k">char</span> path[<span class="n">64</span>], line[<span class="n">512</span>];
+    <span class="f">snprintf</span>(path, <span class="k">sizeof</span> path, <span class="s">&quot;/proc/%s/stat&quot;</span>, pid);
+    FILE *f = <span class="f">fopen</span>(path, <span class="s">&quot;r&quot;</span>);
+    <span class="k">if</span> (f == NULL)
+        <span class="k">return</span> -<span class="n">1</span>;
+    <span class="t">size_t</span> len = <span class="f">fread</span>(line, <span class="n">1</span>, <span class="k">sizeof</span> line - <span class="n">1</span>, f);
+    <span class="f">fclose</span>(f);
+    line[len] = <span class="s">&#x27;\0&#x27;</span>;
+
+    <span class="k">char</span> *open = <span class="f">strchr</span>(line, <span class="s">&#x27;(&#x27;</span>);
+    <span class="k">char</span> *close = <span class="f">strrchr</span>(line, <span class="s">&#x27;)&#x27;</span>);
+    <span class="k">if</span> (open == NULL || close == NULL)
+        <span class="k">return</span> -<span class="n">1</span>;
+    <span class="k">long</span> <span class="k">long</span> pid_num = <span class="n">0</span>, ppid = <span class="n">0</span>;
+    <span class="k">if</span> (<span class="f">sscanf</span>(line, <span class="s">&quot;%lld&quot;</span>, &amp;pid_num) != <span class="n">1</span> || <span class="f">sscanf</span>(close + <span class="n">2</span>, <span class="s">&quot;%*c %lld&quot;</span>, &amp;ppid) != <span class="n">1</span>)
+        <span class="k">return</span> -<span class="n">1</span>;
+    p-&gt;pid = pid_num;
+    p-&gt;ppid = ppid;
+    <span class="f">snprintf</span>(p-&gt;name, <span class="k">sizeof</span> p-&gt;name, <span class="s">&quot;%.*s&quot;</span>, (<span class="k">int</span>)(close - open - <span class="n">1</span>), open + <span class="n">1</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}
+
+<span class="k">int</span> <span class="f">core_list_procs</span>(<span class="k">struct</span> core_proc *out, <span class="t">int32_t</span> max, <span class="t">int32_t</span> *count) {
+    <span class="k">struct</span> core_proc p;
+    <span class="k">struct</span> dirent *e;
+    <span class="t">int32_t</span> found = <span class="n">0</span>;
+
+    <span class="k">if</span> (count == NULL || max &lt; <span class="n">0</span> || (out == NULL &amp;&amp; max &gt; <span class="n">0</span>))
+        <span class="k">return</span> EINVAL;
+    DIR *d = <span class="f">opendir</span>(<span class="s">&quot;/proc&quot;</span>);
+    <span class="k">if</span> (d == NULL)
+        <span class="k">return</span> errno;
+
+    while ((e = <span class="f">readdir</span>(d)) != NULL) {
+        <span class="k">if</span> (!<span class="f">isdigit</span>((<span class="k">unsigned</span> <span class="k">char</span>)e-&gt;d_name[<span class="n">0</span>]))
+            continue;
+        <span class="k">if</span> (<span class="f">read_stat</span>(e-&gt;d_name, &amp;p) != <span class="n">0</span>)
+            continue;
+        <span class="k">if</span> (found &lt; max)
+            out[found] = p;
+        found++;
+    }
+    <span class="f">closedir</span>(d);
+    *count = found;
+    <span class="k">return</span> found &gt; max ? ERANGE : <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-6"><b>Подключить заголовочные файлы</b><ul class="words"><li><code>ctype.h</code> — <code>isdigit</code>, проверка «это цифра»;</li><li><code>dirent.h</code> — чтение папки: <code>opendir</code>, <code>readdir</code>, <code>closedir</code>;</li><li><code>errno.h</code>, <code>stdio.h</code>, <code>string.h</code> — коды ошибок, файлы и <code>snprintf</code>, поиск символа в строке.</li></ul></li>
+              <li data-lines="8-16"><b>Прочитать файл stat</b><p>Вспомогательная функция <code>read_stat</code> объявлена <code>static</code>: она видна только внутри этого файла и не попадает в таблицу экспорта библиотеки.</p><ul class="words"><li><code>snprintf(path, …, "/proc/%s/stat", pid)</code> собирает путь, например <code>/proc/305/stat</code>;</li><li><code>fopen</code> открывает файл; если процесс уже завершился, файла нет, и функция возвращает −1;</li><li><code>fread</code> читает до 511 байт, <code>line[len] = '\0'</code> превращает их в строку C.</li></ul><p>Начало файла для процесса из кадра:</p><div class="bytes "><span class="w"><i>305</i><small>pid</small></span><span class="w"><i>(list_procs)</i><small>имя в скобках</small></span><span class=""><i>R</i><small>состояние</small></span><span class="w"><i>229</i><small>ppid</small></span><span class=""><i>…</i><small>ещё 48 полей</small></span></div></li>
+              <li data-lines="18-21"><b>Найти скобки вокруг имени</b><p>Имя процесса стоит в скобках и может содержать пробелы и скобки, например <code>(Web Content)</code>. Поэтому открывающую скобку ищут с начала строки функцией <code>strchr</code>, а закрывающую — с конца функцией <code>strrchr</code>. Всё между ними — имя.</p><p class="like">Адрес на конверте читают от индекса до конца строки: где бы внутри ни стояла запятая, она часть адреса.</p></li>
+              <li data-lines="22-28"><b>Разобрать числа</b><p><code>sscanf(line, "%lld", &amp;pid_num)</code> читает первое число — номер процесса. <code>close + 2</code> — адрес сразу после «<code>) </code>». С него <code>"%*c %lld"</code> пропускает букву состояния (<code>*</code> — прочитать и не сохранять) и читает номер родителя. Имя копируется форматом <code>"%.*s"</code>: <code>*</code> берёт длину из параметра — число символов между скобками.</p></li>
+              <li data-lines="31-40"><b>Открыть папку /proc</b><p>После тех же проверок параметров <code>opendir("/proc")</code> открывает папку. Это не папка на диске: её содержимое ядро Linux составляет в момент чтения.</p></li>
+              <li data-lines="42-50"><b>Пройти все записи папки</b><p><code>readdir</code> возвращает следующую запись папки или <code>NULL</code>, когда записи кончились. В <code>/proc</code> есть и другие файлы, например <code>cpuinfo</code>, поэтому записи, которые начинаются не с цифры, пропускаются. Если <code>stat</code> не прочитался, процесс тоже пропускается. <code>out[found] = p</code> копирует все 80 байт структуры одной строкой.</p></li>
+              <li data-lines="51-53"><b>Закрыть папку и вернуть ответ</b><p><code>closedir</code> освобождает папку. Дальше — как в других системах: <code>*count</code> и код 34, <code>ERANGE</code>, если мест меньше, чем процессов.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p>Во всех трёх файлах одинаковы проверка параметров, счётчик <code>found</code> вне условия и ответ в конце: так в коде выполняется договор из шага 1. Различается только то, как система отдаёт сведения о процессах.</p>
+        <p class="step-done"><b>Что получилось.</b>Функция <code>core_list_procs</code> написана для своей системы. Проверим её программой на C, прежде чем вызывать из Python.</p>
+
+        <h2 id="s4"><span class="sec">§4</span>Шаг 3. Проверить ядро программой на C</h2>
+        <p>Программа проверки <code>agent/core/list_procs.c</code> одна для трёх систем: она вызывает функцию ядра и печатает список.</p>
+        <figure class="code" data-os="win mac linux">
+          <figcaption><span>agent/core/list_procs.c · все системы</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;inttypes.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdlib.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">#define</span> MAX <span class="n">4096</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">int</span> argc, <span class="k">char</span> *argv[]) {
+    <span class="k">static</span> <span class="k">struct</span> core_proc procs[MAX];
+    <span class="t">int32_t</span> max = argc &gt; <span class="n">1</span> ? <span class="f">atoi</span>(argv[<span class="n">1</span>]) : MAX;
+    <span class="t">int32_t</span> count = <span class="n">0</span>;
+
+    <span class="k">if</span> (max &lt; <span class="n">0</span> || max &gt; MAX)
+        max = MAX;
+    <span class="k">int</span> err = <span class="f">core_list_procs</span>(procs, max, &amp;count);
+    <span class="k">if</span> (err != <span class="n">0</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;core_list_procs: error %d, need %d places, have %d\n&quot;</span>, err, (<span class="k">int</span>)count, (<span class="k">int</span>)max);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="k">for</span> (<span class="t">int32_t</span> i = <span class="n">0</span>; i &lt; count; i++)
+        <span class="f">printf</span>(<span class="s">&quot;%7&quot;</span> PRId64 <span class="s">&quot; %7&quot;</span> PRId64 <span class="s">&quot;  %s\n&quot;</span>, procs[i].pid, procs[i].ppid, procs[i].name);
+    <span class="f">printf</span>(<span class="s">&quot;processes %d, sizeof %zu\n&quot;</span>, (<span class="k">int</span>)count, <span class="k">sizeof</span> procs[<span class="n">0</span>]);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор list_procs.c по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Вызвать <code>core_list_procs</code> из программы на C и напечатать список: так ядро проверяют до того, как его вызывает Python. Необязательный параметр командной строки задаёт число мест — с ним проверяется ответ «мест не хватило».</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>procs[4096]</b><small>места для списка</small></span><span><b>core_list_procs</b><small>ядро</small></span><span><b>печать</b><small>pid ppid имя</small></span><span><b>итог</b><small>processes N, sizeof 80</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;inttypes.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdlib.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">#define</span> MAX <span class="n">4096</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">int</span> argc, <span class="k">char</span> *argv[]) {
+    <span class="k">static</span> <span class="k">struct</span> core_proc procs[MAX];
+    <span class="t">int32_t</span> max = argc &gt; <span class="n">1</span> ? <span class="f">atoi</span>(argv[<span class="n">1</span>]) : MAX;
+    <span class="t">int32_t</span> count = <span class="n">0</span>;
+
+    <span class="k">if</span> (max &lt; <span class="n">0</span> || max &gt; MAX)
+        max = MAX;
+    <span class="k">int</span> err = <span class="f">core_list_procs</span>(procs, max, &amp;count);
+    <span class="k">if</span> (err != <span class="n">0</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;core_list_procs: error %d, need %d places, have %d\n&quot;</span>, err, (<span class="k">int</span>)count, (<span class="k">int</span>)max);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="k">for</span> (<span class="t">int32_t</span> i = <span class="n">0</span>; i &lt; count; i++)
+        <span class="f">printf</span>(<span class="s">&quot;%7&quot;</span> PRId64 <span class="s">&quot; %7&quot;</span> PRId64 <span class="s">&quot;  %s\n&quot;</span>, procs[i].pid, procs[i].ppid, procs[i].name);
+    <span class="f">printf</span>(<span class="s">&quot;processes %d, sizeof %zu\n&quot;</span>, (<span class="k">int</span>)count, <span class="k">sizeof</span> procs[<span class="n">0</span>]);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Подключить заголовочные файлы</b><p><code>inttypes.h</code> даёт форматы печати для типов точного размера: <code>PRId64</code> — формат для <code>int64_t</code>, на каждой системе свой (<code>lld</code> или <code>ld</code>). <code>stdlib.h</code> — <code>atoi</code>, перевод строки в число.</p></li>
+              <li data-lines="6-11"><b>Подготовить массив</b><p><code>static struct core_proc procs[4096]</code> — 4096 мест по 80 байт, 320 КБ. Такой массив не помещают в стопку вызовов: её размер ограничен, в Windows по умолчанию 1 МБ на поток. Слово <code>static</code> кладёт массив в память программы.</p><p><code>argc &gt; 1 ? atoi(argv[1]) : MAX</code> — если в командной строке есть параметр, число мест берётся из него, иначе 4096. Как устроены <code>argc</code> и <code>argv</code>, вы видели в ЛР 3.</p></li>
+              <li data-lines="13-15"><b>Вызвать функцию ядра</b><p>Число мест ограничивается размером массива, чтобы ядро не писало за его конец. В функцию уходят адрес массива, число мест и адрес <code>count</code>.</p></li>
+              <li data-lines="16-19"><b>Сообщить об ошибке</b><p>Если код не 0, программа печатает код, сколько мест нужно и сколько было, и завершается с кодом 1.</p></li>
+              <li data-lines="20-23"><b>Напечатать список</b><p>Каждая строка — номер процесса и номер родителя шириной 7 символов и имя. <code>"%7" PRId64</code> — две строки подряд, компилятор склеивает их в одну: <code>"%7lld"</code> или <code>"%7ld"</code>. Последняя строка — число процессов и размер одной записи.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p>Собираем программу из двух файлов и пишем список в файл <code>procs.txt</code>: в терминале сотни строк не уместятся. Последняя строка файла — итог:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cd agent\core
+cl /nologo /W4 list_procs.c core_procs.c
+list_procs.exe &gt; procs.txt
+findstr processes procs.txt</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>cd agent/core
+clang -Wall -Wextra -o list_procs list_procs.c core_procs.c
+./list_procs &gt; procs.txt
+tail -1 procs.txt</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>cd agent/core
+gcc -Wall -Wextra -o list_procs list_procs.c core_procs.c
+./list_procs &gt; procs.txt
+tail -1 procs.txt</pre>
+        </figure>
+        <p>Знак <code>&gt;</code> направляет вывод программы в файл вместо терминала. Открываем <code>procs.txt</code> в VS Code.</p>
+        <figure class="shot" data-os="win">
+          <img src="img/win/02-list.png" alt="procs.txt в VS Code: строка list_procs.exe 5900 5976, в терминале processes 131, sizeof 80" loading="lazy">
+          <figcaption><span class="mk">1</span> Строка самой программы: <code>list_procs.exe</code>, номер 5900, родитель 5976 — <code>cmd.exe</code> терминала. <span class="mk">2</span> Итог: 131 процесс, запись — 80 байт.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/02-list.png" alt="procs.txt в VS Code: строка 4979 4503 list_procs, в терминале processes 499, sizeof 80" loading="lazy">
+          <figcaption><span class="mk">1</span> Строка самой программы: номер 4979, родитель 4503 — <code>zsh</code> терминала. <span class="mk">2</span> Итог: 499 процессов, запись — 80 байт.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/02-list.png" alt="procs.txt в VS Code: строка 305 229 list_procs, в терминале processes 17, sizeof 80" loading="lazy">
+          <figcaption><span class="mk">1</span> Строка самой программы: номер 305, родитель 229 — <code>bash</code> терминала. <span class="mk">2</span> Итог: 17 процессов, запись — 80 байт.</figcaption>
+        </figure>
+        <p>Программа нашла в списке сама себя <span class="mk">1</span>: в момент вызова она тоже процесс. Её родитель — оболочка терминала, из которой её запустили. Размер записи <span class="mk">2</span> совпал с раскладкой шага 1.</p>
+        <div data-os="win"><p>Имена в Windows — полные имена файлов с <code>.exe</code>. Первые две строки файла — особые процессы с номерами 0 и 4: <code>[System Process]</code> (бездействие системы) и <code>System</code> (потоки ядра).</p></div>
+        <div data-os="mac"><p>Имена в macOS обрезаны до 15 символов: в строке 3 имя <code>Yandex Helper (</code> оборвано на скобке, а <code>mdworker_shared</code> — ровно 15. Так хранит имя ядро macOS (<code>MAXCOMLEN</code> = 16 байт с нулём). Процесс 0 — <code>kernel_task</code>, само ядро, процесс 1 — <code>launchd</code>.</p></div>
+        <div data-os="linux"><p>Кадр снят в контейнере Docker: в нём видны только его 17 процессов, а процесс 1 — <code>sleep</code>, команда запуска контейнера. На обычном Linux процесс 1 — <code>systemd</code>, процессов сотни. Имена обрезаны до 15 символов: так хранит имя ядро Linux (<code>TASK_COMM_LEN</code> = 16 байт с нулём).</p></div>
+        <p class="step-done"><b>Что получилось.</b>Ядро отдаёт список, и в нём есть сама программа с верным родителем. Осталось сверить число процессов с программой системы.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>Шаг 4. Сверить с программой системы</h2>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Двое по очереди пересчитывают людей в зале, где идёт перерыв. Счёт расходится на несколько человек: кто-то вышел, кто-то вошёл, а каждый счётчик сам стоит в зале.</p>
+          <p class="miss">Людей в зале можно попросить замереть. Процессы во время подсчёта продолжают запускаться и завершаться.</p>
+        </div></div>
+        <p>Ядро должно находить столько же процессов, сколько находит системная программа. В ЛР 4 это была программа с окном, здесь удобнее командная: <span data-os="win"><code>tasklist</code></span><span data-os="mac linux"><code>ps</code></span>. Печатаем итог ядра и число строк вывода системной программы:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>findstr processes procs.txt
+for /f %n in (&#x27;tasklist /NH ^| find /c /v &quot;&quot;&#x27;) do @echo tasklist: %n</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>tail -1 procs.txt
+echo &quot;ps: $(ps -A -o pid= | wc -l)&quot;</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>tail -1 procs.txt
+echo &quot;ps: $(ps -A -o pid= | wc -l)&quot;</pre>
+        </figure>
+        <div data-os="win"><p><code>tasklist /NH</code> печатает процессы без заголовка, <code>find /c /v ""</code> считает строки. <code>for /f … do @echo</code> берёт число из вывода и печатает его с подписью.</p></div>
+        <div data-os="mac linux"><p><code>ps -A</code> печатает все процессы, <code>-o pid=</code> оставляет в строке только номер без заголовка, <code>wc -l</code> считает строки. <code>$(…)</code> подставляет вывод команды в текст <code>echo</code>.</p></div>
+        <figure class="shot" data-os="win">
+          <img src="img/win/03-compare.png" alt="терминал: processes 131, tasklist: 135" loading="lazy">
+          <figcaption><span class="mk">1</span> Ядро: 131 процесс. <span class="mk">2</span> <code>tasklist</code>: 135.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/03-compare.png" alt="терминал: processes 499, ps: 485" loading="lazy">
+          <figcaption><span class="mk">1</span> Ядро: 499 процессов. <span class="mk">2</span> <code>ps</code>: 485.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/03-compare.png" alt="терминал: processes 17, ps: 19" loading="lazy">
+          <figcaption><span class="mk">1</span> Ядро: 17 процессов. <span class="mk">2</span> <code>ps</code>: 19.</figcaption>
+        </figure>
+        <p>Числа близки, но не равны. Две программы считают процессы в разные моменты, и каждая попадает в свой счёт вместе со своей командой.</p>
+        <div data-os="win"><p>Список ядра снят в шаге 3, а <code>tasklist</code> запущен позже. Кроме того, в момент подсчёта работают <code>tasklist.exe</code>, <code>find.exe</code> и отдельный <code>cmd.exe</code>, который запускает <code>for /f</code>: их нет в <code>procs.txt</code>. Отсюда разница в 4 процесса.</p></div>
+        <div data-os="mac"><p>Список ядра снят в шаге 3, а <code>ps</code> запущен позже. В macOS за это время число процессов меняется заметно: короткие процессы вроде <code>mdworker_shared</code> и <code>sleep</code> постоянно появляются и завершаются. При проверке на том же Mac счёт <code>ps</code> раз в секунду за 12 секунд вырос с 548 до 568. Если запустить <code>./list_procs | tail -1</code> и <code>ps</code> сразу друг за другом, числа совпадают с точностью до самих программ. Ядро находит <code>list_procs</code> и процесс 0, а <code>ps</code> — себя.</p></div>
+        <div data-os="linux"><p>В момент подсчёта работают <code>ps</code>, <code>wc</code> и копия оболочки, которую создаёт <code>$(…)</code>, а <code>list_procs</code> уже завершился: три процесса вместо одного, разница — 2.</p></div>
+        <p>Точного совпадения в работающей системе не бывает, поэтому числа сравнивают с допуском. Надёжнее искать в списке ядра процессы, которые точно работают: оболочку терминала и саму программу.</p>
+        <p class="step-done"><b>Что получилось.</b>Ядро находит те же процессы, что системная программа. Последняя проверка ядра — ответ, когда мест мало.</p>
+
+        <h2 id="s6"><span class="sec">§6</span>Шаг 5. Дать ядру мало места</h2>
+        <p>Параметр командной строки задаёт 10 мест вместо 4096. Процессов больше, и ядро должно ответить кодом «мест не хватило» и числом, сколько мест нужно:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>list_procs.exe 10
+echo %errorlevel%</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>./list_procs 10
+echo $?</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>./list_procs 10
+echo $?</pre>
+        </figure>
+        <p><span data-os="win"><code>%errorlevel%</code></span><span data-os="mac linux"><code>$?</code></span> — код завершения последней программы.</p>
+        <figure class="shot" data-os="win">
+          <img src="img/win/04-small.png" alt="list_procs.exe 10: core_list_procs: error 122, need 132 places, have 10; errorlevel 1" loading="lazy">
+          <figcaption><span class="mk">1</span> Код 122, нужно 132 места, было 10.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/04-small.png" alt="./list_procs 10: core_list_procs: error 34, need 483 places, have 10; код 1" loading="lazy">
+          <figcaption><span class="mk">1</span> Код 34, нужно 483 места, было 10.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/04-small.png" alt="./list_procs 10: core_list_procs: error 34, need 17 places, have 10; код 1" loading="lazy">
+          <figcaption><span class="mk">1</span> Код 34, нужно 17 мест, было 10.</figcaption>
+        </figure>
+        <div data-os="win"><p>Код 122 — <code>ERROR_INSUFFICIENT_BUFFER</code>, «область данных, переданная системному вызову, слишком мала». Этим кодом многие функции WinAPI сообщают, что переданный им буфер мал.</p></div>
+        <div data-os="mac linux"><p>Код 34 — <code>ERANGE</code>, «Result too large»: результат не помещается в отведённое место. Его же возвращает, например, <code>getcwd</code>, когда путь длиннее буфера.</p></div>
+        <p>Число нужных мест — то, ради чего функция считает процессы до конца. Без него вызывающему пришлось бы угадывать размер и повторять вызов вслепую. Программа на C на этом завершается кодом 1, а мозг агента повторит вызов с нужным местом.</p>
+        <p class="step-done"><b>Что получилось.</b>Ядро соблюдает договор: при нехватке места оно не выходит за массив и сообщает, сколько мест нужно. Можно подключать функцию к мозгу.</p>
+
+        <div class="part" role="separator"><span><b>2</b>Мозг: цепочка родителей</span></div>
+        <h2 id="s7"><span class="sec">§7</span>Шаг 6. Вызвать список из Python</h2>
+        <p>Библиотека ядра теперь собирается из двух файлов: <code>core_info.c</code> и <code>core_procs.c</code>. Программа <code>list_procs.c</code> в библиотеку не входит: в ней <code>main</code>.</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 /LD core_info.c core_procs.c /Fe:sentry_core.dll</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code, папка agent/core</span></figcaption>
+<pre>clang -Wall -Wextra -shared -fPIC -o libsentry_core.dylib core_info.c core_procs.c</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code, папка agent/core</span></figcaption>
+<pre>gcc -Wall -Wextra -shared -fPIC -o libsentry_core.so core_info.c core_procs.c</pre>
+        </figure>
+        <p>В <code>brain.py</code> добавляются класс <code>CoreProc</code>, типы новой функции и две функции Python. Класс ставится после <code>CoreInfo</code>, типы — после типов <code>core_get_info</code>, функции — после <code>get_info</code>. Кроме того, в начало файла добавляется <code>import errno</code>, а функция <code>error_text</code> из задания модуля 1 остаётся как была:</p>
+        <figure class="code">
+          <figcaption><span>agent/brain/brain.py · новые части</span></figcaption>
+<pre><span class="k">class</span> <span class="f">CoreProc</span>(ctypes.Structure):
+    _fields_ = [
+        (<span class="s">&quot;pid&quot;</span>, ctypes.c_int64),
+        (<span class="s">&quot;ppid&quot;</span>, ctypes.c_int64),
+        (<span class="s">&quot;name&quot;</span>, ctypes.c_char * <span class="n">64</span>),
+    ]
+
+core.core_list_procs.argtypes = [ctypes.<span class="f">POINTER</span>(CoreProc), ctypes.c_int32, ctypes.<span class="f">POINTER</span>(ctypes.c_int32)]
+core.core_list_procs.restype = ctypes.c_int
+TOO_SMALL = <span class="n">122</span> <span class="k">if</span> sys.platform == <span class="s">&quot;win32&quot;</span> <span class="k">else</span> errno.ERANGE
+
+<span class="k">def</span> <span class="f">list_procs</span>(room=<span class="n">256</span>):
+    while <span class="k">True</span>:
+        buf = (CoreProc * room)()
+        count = ctypes.<span class="f">c_int32</span>()
+        err = core.<span class="f">core_list_procs</span>(buf, room, ctypes.<span class="f">byref</span>(count))
+        <span class="k">if</span> err == <span class="n">0</span>:
+            <span class="k">return</span> [{<span class="s">&quot;pid&quot;</span>: p.pid, <span class="s">&quot;ppid&quot;</span>: p.ppid, <span class="s">&quot;name&quot;</span>: p.name.<span class="f">decode</span>(<span class="s">&quot;utf-8&quot;</span>, <span class="s">&quot;replace&quot;</span>)}
+                    <span class="k">for</span> p <span class="k">in</span> buf[:count.value]]
+        <span class="k">if</span> err != TOO_SMALL:
+            <span class="k">raise</span> <span class="f">OSError</span>(err, <span class="f">error_text</span>(err))
+        room = count.value + <span class="n">64</span>
+
+<span class="k">def</span> <span class="f">parents</span>(procs, pid):
+    by_pid = {p[<span class="s">&quot;pid&quot;</span>]: p <span class="k">for</span> p <span class="k">in</span> procs}
+    chain = []
+    while pid <span class="k">in</span> by_pid <span class="k">and</span> <span class="f">len</span>(chain) &lt; <span class="n">64</span>:
+        p = by_pid[pid]
+        chain.<span class="f">append</span>(p)
+        <span class="k">if</span> p[<span class="s">&quot;ppid&quot;</span>] == pid:
+            break
+        pid = p[<span class="s">&quot;ppid&quot;</span>]
+    <span class="k">return</span> chain</pre>
+        </figure>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор brain.py · новые части по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Получить список процессов из ядра, сколько бы их ни было, и найти цепочку родителей процесса. Цепочка — первое, что агент сообщает о себе: кто его запустил.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>ядро</b><small>core_list_procs</small></span><span><b>список словарей</b><small>pid, ppid, name</small></span><span><b>словарь по pid</b><small></small></span><span><b>цепочка</b><small>я → родитель → …</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">class</span> <span class="f">CoreProc</span>(ctypes.Structure):
+    _fields_ = [
+        (<span class="s">&quot;pid&quot;</span>, ctypes.c_int64),
+        (<span class="s">&quot;ppid&quot;</span>, ctypes.c_int64),
+        (<span class="s">&quot;name&quot;</span>, ctypes.c_char * <span class="n">64</span>),
+    ]
+
+core.core_list_procs.argtypes = [ctypes.<span class="f">POINTER</span>(CoreProc), ctypes.c_int32, ctypes.<span class="f">POINTER</span>(ctypes.c_int32)]
+core.core_list_procs.restype = ctypes.c_int
+TOO_SMALL = <span class="n">122</span> <span class="k">if</span> sys.platform == <span class="s">&quot;win32&quot;</span> <span class="k">else</span> errno.ERANGE
+
+<span class="k">def</span> <span class="f">list_procs</span>(room=<span class="n">256</span>):
+    while <span class="k">True</span>:
+        buf = (CoreProc * room)()
+        count = ctypes.<span class="f">c_int32</span>()
+        err = core.<span class="f">core_list_procs</span>(buf, room, ctypes.<span class="f">byref</span>(count))
+        <span class="k">if</span> err == <span class="n">0</span>:
+            <span class="k">return</span> [{<span class="s">&quot;pid&quot;</span>: p.pid, <span class="s">&quot;ppid&quot;</span>: p.ppid, <span class="s">&quot;name&quot;</span>: p.name.<span class="f">decode</span>(<span class="s">&quot;utf-8&quot;</span>, <span class="s">&quot;replace&quot;</span>)}
+                    <span class="k">for</span> p <span class="k">in</span> buf[:count.value]]
+        <span class="k">if</span> err != TOO_SMALL:
+            <span class="k">raise</span> <span class="f">OSError</span>(err, <span class="f">error_text</span>(err))
+        room = count.value + <span class="n">64</span>
+
+<span class="k">def</span> <span class="f">parents</span>(procs, pid):
+    by_pid = {p[<span class="s">&quot;pid&quot;</span>]: p <span class="k">for</span> p <span class="k">in</span> procs}
+    chain = []
+    while pid <span class="k">in</span> by_pid <span class="k">and</span> <span class="f">len</span>(chain) &lt; <span class="n">64</span>:
+        p = by_pid[pid]
+        chain.<span class="f">append</span>(p)
+        <span class="k">if</span> p[<span class="s">&quot;ppid&quot;</span>] == pid:
+            break
+        pid = p[<span class="s">&quot;ppid&quot;</span>]
+    <span class="k">return</span> chain</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-6"><b>Описать структуру процесса</b><p>Класс <code>CoreProc</code> повторяет <code>struct core_proc</code> из <code>core.h</code>: два поля по 8 байт и массив из 64 байт. По нему ctypes посчитает размер 80.</p></li>
+              <li data-lines="8-10"><b>Задать типы функции</b><p>Три параметра — указатель на массив структур, число мест <code>c_int32</code> и указатель на <code>c_int32</code>. <code>TOO_SMALL</code> — код «мест не хватило»: 122 в Windows, <code>errno.ERANGE</code> (34) в macOS и Linux.</p></li>
+              <li data-lines="12-16"><b>Вызвать ядро</b><p><code>CoreProc * room</code> — тип «массив из <code>room</code> структур», скобки <code>()</code> создают такой массив, заполненный нулями. <code>c_int32()</code> — число, куда ядро запишет <code>count</code>. Массив передаётся без <code>byref</code>: в ctypes, как и в C, массив передаётся адресом первого элемента.</p></li>
+              <li data-lines="17-19"><b>Вернуть список словарей</b><p>При коде 0 из первых <code>count</code> структур собирается список словарей. <code>decode("utf-8", "replace")</code> заменяет знаком «�» байты, которые не читаются как UTF-8: в macOS обрезанное имя может закончиться на половине русской буквы.</p></li>
+              <li data-lines="20-22"><b>Повторить с нужным местом</b><p>Любой код, кроме «мест не хватило», становится исключением. При <code>TOO_SMALL</code> в <code>count</code> лежит нужное число мест. Новый размер берётся с запасом 64: пока идёт второй вызов, могут появиться новые процессы. Цикл <code>while True</code> повторяет вызов, пока места не хватит.</p><div class="vsteps"><div class="vcard is-bad"><h5>вызов 1</h5><b>room = 256</b><small>на кадре macOS процессов 491</small></div><div class="varr">код 34, count = 491</div><div class="vcard is-ok"><h5>вызов 2</h5><b>room = 555</b><small>491 + 64</small></div><div class="varr">код 0</div><div class="vcard is-py"><h5>Python</h5><b>список из 491</b></div></div></li>
+              <li data-lines="24-26"><b>Сделать словарь по номерам</b><p><code>{p["pid"]: p for p in procs}</code> — словарь «номер → процесс». По нему родитель находится сразу, без перебора списка.</p></li>
+              <li data-lines="27-33"><b>Подняться по родителям</b><p>Цикл берёт процесс, добавляет его в цепочку и переходит к родителю. Остановок три:</p><ul class="words"><li>номера родителя нет в списке — родитель уже завершился или это процесс 1 в контейнере;</li><li>процесс сам себе родитель — так записан процесс 0 в Windows и macOS;</li><li>в цепочке 64 процесса — защита от круга: в Windows номер завершённого процесса может достаться новому, и цепочка может замкнуться.</li></ul></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p>В конце файла сообщение <code>agent_started</code> получает два новых поля — число процессов и имена цепочки родителей от самого <code>brain.py</code> вверх:</p>
+        <figure class="code">
+          <figcaption><span>agent/brain/brain.py · запуск</span></figcaption>
+<pre><span class="k">if</span> __name__ == <span class="s">&quot;__main__&quot;</span>:
+    procs = <span class="f">list_procs</span>()
+    chain = <span class="f">parents</span>(procs, os.<span class="f">getpid</span>())
+    message = {<span class="s">&quot;event&quot;</span>: <span class="s">&quot;agent_started&quot;</span>, <span class="s">&quot;os&quot;</span>: sys.platform, **<span class="f">get_info</span>(),
+               <span class="s">&quot;procs&quot;</span>: <span class="f">len</span>(procs), <span class="s">&quot;parents&quot;</span>: [p[<span class="s">&quot;name&quot;</span>] <span class="k">for</span> p <span class="k">in</span> chain]}
+    <span class="f">print</span>(json.<span class="f">dumps</span>(message, ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+    <span class="k">if</span> <span class="f">len</span>(sys.argv) &gt; <span class="n">1</span>:
+        status, body = <span class="f">send</span>(message, sys.argv[<span class="n">1</span>])
+        <span class="f">print</span>(<span class="s">&quot;n8n:&quot;</span>, status, body)</pre>
+        </figure>
+        <p>Запускаем из папки <code>agent/brain</code>:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cd ..\brain
+python brain.py</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>cd ../brain
+python3 brain.py</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>cd ../brain
+python3 brain.py</pre>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/05-brain.png" alt="терминал VS Code: python brain.py, вывод procs 118 и parents python.exe, cmd.exe, Code.exe, Code.exe, cmd.exe, explorer.exe" loading="lazy">
+          <figcaption><span class="mk">1</span> Запуск <code>python brain.py</code>. <span class="mk">2</span> 118 процессов. <span class="mk">3</span> Цепочка родителей: <code>python.exe</code> → <code>cmd.exe</code> → <code>Code.exe</code> → <code>Code.exe</code> → <code>cmd.exe</code> → <code>explorer.exe</code>. Кадр снят Python для ARM64 с ядром, собранным для ARM64: на компьютере с процессором x64 вывод такой же.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/05-brain.png" alt="VS Code с brain.py: def list_procs в рамке, вывод procs 491 и parents Python, zsh, Code Helper, Code, launchd, kernel_task" loading="lazy">
+          <figcaption><span class="mk">1</span> Функция <code>list_procs</code> с повтором. <span class="mk">2</span> 491 процесс. <span class="mk">3</span> Цепочка родителей: <code>Python</code> → <code>zsh</code> → <code>Code Helper</code> → <code>Code</code> → <code>launchd</code> → <code>kernel_task</code>.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/05-brain.png" alt="VS Code с brain.py: def list_procs в рамке, вывод procs 17 и parents python3, bash, code, code, sleep" loading="lazy">
+          <figcaption><span class="mk">1</span> Функция <code>list_procs</code> с повтором. <span class="mk">2</span> 17 процессов. <span class="mk">3</span> Цепочка родителей: <code>python3</code> → <code>bash</code> → <code>code</code> → <code>code</code> → <code>sleep</code>.</figcaption>
+        </figure>
+        <div data-os="win"><p>На кадре 118 процессов, и 256 мест хватило с первого вызова. Если процессов больше 256, первый вызов возвращает «мест не хватило», второй — весь список.</p></div>
+        <div data-os="mac"><p>Процессов больше 256, поэтому первый вызов вернул «мест не хватило», а второй — весь список.</p></div>
+        <div data-os="linux"><p>В контейнере 17 процессов, и 256 мест хватило с первого вызова. На обычном Linux процессов сотни, и сработает повтор.</p></div>
+        <p>Цепочка <span class="mk">3</span> читается снизу вверх как путь запуска: система запустила VS Code, VS Code — оболочку терминала, оболочка — Python.</p>
+        <div data-os="mac"><p>Цепочка доходит до процесса 0 <code>kernel_task</code>: у него <code>ppid</code> тоже 0, и функция <code>parents</code> останавливается.</p></div>
+        <div data-os="linux"><p>Цепочка кончается на процессе 1 <code>sleep</code>: его родитель 0 в списке отсутствует, потому что процесса 0 в <code>/proc</code> нет.</p></div>
+        <div data-os="win"><p>В Windows цепочка часто обрывается раньше: родитель записан номером, а сам родитель мог давно завершиться. На кадре цепочка кончается на <code>explorer.exe</code>: при входе в систему его запускает процесс <code>userinit.exe</code> и сразу завершается, поэтому родителя Проводника в списке нет. Второй <code>cmd.exe</code> в цепочке — окно, из которого запущен VS Code.</p></div>
+        <p class="step-done"><b>Что получилось.</b>Мозг агента получает полный список процессов, сколько бы их ни было, и находит цепочку процессов, которые его запустили.</p>
+
+        <h2 id="s8"><span class="sec">§8</span>Шаг 7. Отправить в репозиторий</h2>
+        <p>В репозиторий уходят исходники: <code>core.h</code>, <code>core_procs.c</code>, <code>list_procs.c</code> и <code>brain.py</code>. Собранные файлы и <code>procs.txt</code> в него не входят: библиотеку и программу каждый собирает у себя, а список процессов у каждого свой. В <code>agent/core/README.md</code> дописываем строку о <code>core_procs.c</code> и сборке библиотеки из двух файлов.</p>
+        <figure class="code">
+          <figcaption><span>терминал в папке sysprog-start</span><span>то же, что плюс, Commit и Sync Changes</span></figcaption>
+<pre>git add agent/core/core.h agent/core/core_procs.c agent/core/list_procs.c agent/core/README.md agent/brain/brain.py
+git commit -m "core: core_list_procs — список процессов, brain: цепочка родителей"
+git push</pre>
+        </figure>
+        <p>Перед <code>git add</code> посмотрите <code>git status</code>: если в списке есть <span data-os="win"><code>list_procs.exe</code></span><span data-os="mac linux"><code>list_procs</code></span> или <code>procs.txt</code>, допишите их в <code>.gitignore</code>.</p>
+        <p class="step-done"><b>Что получилось.</b>Ядро и мозг с новым списком процессов в репозитории. Последняя часть — что проверять в коде, если такую функцию пишет помощник ИИ.</p>
+
+        <h2 id="s9"><span class="sec">§9</span>Запрос к помощнику ИИ</h2>
+        <p>Функцию списка процессов помощник ИИ пишет быстро, но в ней легко пропустить договор о месте. Запрос в режиме Р1 из главы 0.3:</p>
+        <figure class="code">
+          <figcaption><span>запрос помощнику</span></figcaption>
+<pre>Вот core.h. Напиши core_list_procs для <span data-os="win">Windows</span><span data-os="mac">macOS</span><span data-os="linux">Linux</span>: функция заполняет out не больше чем max строками,
+в *count пишет число процессов, при нехватке места возвращает код ошибки.</pre>
+        </figure>
+        <ul class="checklist">
+          <li>функция не пишет в <code>out</code> больше <code>max</code> строк — проверка <code>if (found &lt; max)</code> стоит перед записью;</li>
+          <li>счётчик растёт и после того, как место кончилось, иначе <code>count</code> не скажет, сколько мест нужно;</li>
+          <li><span data-os="win">снимок закрывается <code>CloseHandle</code> на всех путях, в том числе при ошибке <code>Process32FirstW</code>;</span><span data-os="mac">массив для <code>proc_listallpids</code> передаётся размером в байтах, а результат — число номеров;</span><span data-os="linux">закрывающая скобка имени ищется с конца строки, и папка закрывается <code>closedir</code>;</span></li>
+          <li>шаг 5 даёт код <span data-os="win">122</span><span data-os="mac linux">34</span> и число нужных мест, шаг 4 — число процессов рядом с системной программой.</li>
+        </ul>
+        <p>Первые три пункта проверяются чтением кода, последний — запуском.</p>
+
+        <div class="part" role="separator"><span><b>3</b>Справка</span></div>
+        <h2 id="s10"><span class="sec">§10</span>Справка: функции и команды</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Что нужно</th><th>Windows</th><th>macOS</th><th>Linux</th></tr></thead>
+            <tbody>
+              <tr><td>Все процессы</td><td><code>CreateToolhelp32Snapshot</code>, <code>Process32FirstW</code>, <code>Process32NextW</code></td><td><code>proc_listallpids</code></td><td><code>opendir("/proc")</code>, <code>readdir</code></td></tr>
+              <tr><td>Родитель и имя</td><td>поля <code>th32ParentProcessID</code>, <code>szExeFile</code></td><td><code>proc_pidinfo(…, PROC_PIDT_SHORTBSDINFO, …)</code></td><td>файл <code>/proc/N/stat</code></td></tr>
+              <tr><td>Длина имени</td><td>полное имя файла</td><td>15 символов</td><td>15 символов</td></tr>
+              <tr><td>«Мест не хватило»</td><td>122 <code>ERROR_INSUFFICIENT_BUFFER</code></td><td colspan="2">34 <code>ERANGE</code></td></tr>
+              <tr><td>Число процессов командой</td><td><code>tasklist /NH | find /c /v ""</code></td><td colspan="2"><code>ps -A -o pid= | wc -l</code></td></tr>
+              <tr><td>Собрать библиотеку</td><td><code>cl /LD core_info.c core_procs.c /Fe:sentry_core.dll</code></td><td><code>clang -shared -fPIC … core_info.c core_procs.c</code></td><td><code>gcc -shared -fPIC … core_info.c core_procs.c</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="part" role="separator"><span><b>4</b>Проверка себя</span></div>
+        <h2 id="s11"><span class="sec">§11</span>Частые вопросы</h2>
+        <div class="myths">
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>В записи процесса хранится список его детей.</div>
+            <div class="myth__yes"><b>На самом деле</b>Хранится только номер родителя. Детей находят по всему списку — так строят дерево ЛР 4 и программы системы.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Число процессов у ядра и у системной программы должно совпасть точно.</div>
+            <div class="myth__yes"><b>На самом деле</b>Процессы появляются и завершаются каждую секунду, а каждая программа попадает в свой счёт. В шаге 4 числа разошлись на 2–14.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Если места мало, функция вернёт часть списка без ошибки.</div>
+            <div class="myth__yes"><b>На самом деле</b>Она вернёт часть списка и код ошибки, а в <code>count</code> — сколько мест нужно. Код нельзя пропускать: иначе агент не узнает, что список неполный.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Номер родителя всегда указывает на настоящего родителя.</div>
+            <div class="myth__yes"><b>На самом деле</b>Родитель мог завершиться, а его номер — достаться другому процессу. Поэтому <code>parents</code> ограничивает цепочку 64 шагами.</div>
+          </div>
+        </div>
+
+        <h2 id="s12"><span class="sec">§12</span>Проверьте себя</h2>
+        <details>
+          <summary>Какого размера <code>struct core_proc</code> и почему номера в ней по 8 байт?</summary>
+          <p>80 байт: 8 + 8 + 64. Поле на 8 байт вмещает номер процесса любой из трёх систем. Пропусков для выравнивания нет, поэтому раскладка одна на всех системах и совпадает с описанием в Python.</p>
+        </details>
+        <details>
+          <summary>Зачем функция считает процессы и после того, как место в массиве кончилось?</summary>
+          <p>Чтобы записать в <code>count</code> число нужных мест. По нему мозг агента сразу повторяет вызов с массивом нужного размера.</p>
+        </details>
+        <details>
+          <summary>Что вернёт <code>core_list_procs</code>, если передать <code>max</code> = 10, а процессов 17?</summary>
+          <p>Первые 10 строк в <code>out</code>, <code>count</code> = 17 и код <span data-os="win">122</span><span data-os="mac linux">34</span>.</p>
+        </details>
+        <details>
+          <summary>Почему имя процесса в macOS и Linux бывает обрезано, а в Windows — нет?</summary>
+          <p>Ядра macOS и Linux хранят короткое имя процесса в 16 байтах с нулём, то есть до 15 символов. В Windows из снимка приходит полное имя файла программы.</p>
+        </details>
+        <details>
+          <summary>Почему в Linux закрывающую скобку имени ищут с конца строки?</summary>
+          <p>Имя процесса может содержать пробелы и скобки. Всё между первой «(» и последней «)» — имя, а числа после него читаются уже без ошибок.</p>
+        </details>
+        <details>
+          <summary>Где кончается цепочка родителей и почему?</summary>
+          <p>Когда номера родителя нет в списке (родитель завершился или это процесс 1 в контейнере), когда процесс сам себе родитель (процесс 0) или после 64 шагов.</p>
+        </details>
+
+        <h2 id="s13"><span class="sec">§13</span>Шпаргалка по главе</h2>
+        <div class="cheat">
+          <div><b>Строка списка</b><span><code>struct core_proc</code>: <code>pid</code>, <code>ppid</code>, <code>name[64]</code></span><span>80 байт</span></div>
+          <div><b>Договор</b><span><code>core_list_procs(out, max, &amp;count)</code></span><span>не больше <code>max</code> строк, в <code>count</code> — сколько найдено</span></div>
+          <div><b>Мест мало</b><span data-os="win">122 <code>ERROR_INSUFFICIENT_BUFFER</code></span><span data-os="mac linux">34 <code>ERANGE</code></span><span>повторить с <code>count</code> + запас</span></div>
+          <div><b>Источник</b><span data-os="win"><code>CreateToolhelp32Snapshot</code> + <code>Process32NextW</code></span><span data-os="mac"><code>proc_listallpids</code> + <code>proc_pidinfo</code></span><span data-os="linux"><code>/proc</code> + <code>/proc/N/stat</code></span></div>
+          <div><b>Сверка</b><span data-os="win"><code>tasklist</code></span><span data-os="mac linux"><code>ps -A</code></span><span>близко, но не точно</span></div>
+          <div><b>Мозг</b><span><code>list_procs()</code> — список словарей</span><span><code>parents(procs, os.getpid())</code> — цепочка</span></div>
+        </div>
+
+        <h3>Итог главы</h3>
+        <p>Ядро агента получило функцию <code>core_list_procs</code>: она заполняет массив строками «номер, родитель, имя» по 80 байт и пишет в <code>count</code>, сколько процессов нашла. Windows отдаёт список снимком Tool Help, macOS — номерами из <code>proc_listallpids</code> и сведениями <code>proc_pidinfo</code>, Linux — папками <code>/proc</code> и файлами <code>stat</code>. Наружу функция на всех системах отдаёт одно и то же. Программа <code>list_procs.c</code> показала три вещи. Ядро находит само себя с верным родителем. Число процессов близко к числу системной программы. При 10 местах приходит код <span data-os="win">122</span><span data-os="mac linux">34</span> и число нужных мест. Мозг агента повторяет вызов с нужным местом и по номерам родителей строит цепочку от <code>brain.py</code> вверх до процесса, с которого начинается система.</p>
+
+        <div class="sources">
+          <b>Откуда взяты факты</b>
+          <ol>
+            <li>Кадры и выводы: macOS 26.1, Apple clang 17.0.0, Python 3.12.12; Linux — контейнер Debian 13, gcc 14.4, Python 3.13.5; Windows 11 ARM64 в VirtualBox, MSVC 19.44 (x64), Python 3.14.0 для x64; кадр шага 6 — Python 3.14.0 для ARM64 и ядро, собранное для ARM64; VS Code 1.144.</li>
+            <li><code>CreateToolhelp32Snapshot</code>, <code>Process32FirstW</code>, <code>PROCESSENTRY32W</code> — <a href="https://learn.microsoft.com/windows/win32/toolhelp/taking-a-snapshot-and-viewing-processes">Microsoft Learn, Taking a Snapshot and Viewing Processes</a>; коды 87 и 122 — <a href="https://learn.microsoft.com/windows/win32/debug/system-error-codes--0-499-">System Error Codes</a>.</li>
+            <li><code>proc_listallpids</code>, <code>proc_pidinfo</code>, <code>struct proc_bsdshortinfo</code>, <code>MAXCOMLEN</code> — заголовки <code>libproc.h</code>, <code>sys/proc_info.h</code>, <code>sys/param.h</code> из SDK macOS.</li>
+            <li>Формат <code>/proc/PID/stat</code> и длина имени 16 байт — <a href="https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html">man 5 proc_pid_stat</a>.</li>
+            <li><code>ERANGE</code> и <code>EINVAL</code> — <a href="https://man7.org/linux/man-pages/man3/errno.3.html">man 3 errno</a>.</li>
+          </ol>
+        </div>
+
+        <div class="pager">
+          <a href="../13-laboratornaya-4/index.html">← ЛР 4 Дерево процессов</a>
+          <a href="../../index.html">Оглавление</a>
+        </div>
+
+        <div class="colophon">
+          <span>Глава 2.1 · Список процессов · Справочник по системному программированию</span>
+          <span class="author-line">Автор: Макаров Максим Николаевич</span>
+        </div>
+
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+</body>
+</html>

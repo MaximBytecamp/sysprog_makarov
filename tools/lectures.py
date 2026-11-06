@@ -13,6 +13,7 @@ CHAPTERS = {
     '1.1': ('temy/06-c-dlya-sistemnogo-programmista', 'chapter-1-1-c-for-system-programmer.md'),
     '1.2': ('temy/07-c-i-python-vmeste', 'chapter-1-2-c-and-python.md'),
     '1.3': ('temy/08-n8n-i-ollama', 'chapter-1-3-n8n-and-ollama.md'),
+    '2.1': ('temy/14-spisok-processov', 'chapter-2-1-process-list.md'),
 }
 OSNAME = {'win': 'Windows', 'mac': 'macOS', 'linux': 'Linux', 'mac linux': 'macOS и Linux', 'win mac linux': ''}
 

@@ -1,0 +1,8 @@
+# решение задания модуля 1 (uptime_s) и собранные файлы стенда главы 2.1
+tools/src21/*/core_info.c
+tools/src21/agent/
+*.dylib
+*.so
+*.dll
+# кадры проверки ВМ
+tools/win/
