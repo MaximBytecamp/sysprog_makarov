@@ -31,3 +31,9 @@ x64 Python (C:\Py314x64 пропал), кадр — Python ARM64 + ядро, с�
 Linux — ВМ Ubuntu-lab-01, Windows — ВМ Win11-lab (шаг 5 — ветка msedgewebview2 под SearchHost: Edge в сборке нет),
 macOS — `tools/src_lab4/mac4.py`. В шаблоне — labs/04-process-tree, LABS в run_checks.py, конспект 2.1. Вычитана 06.11.2026.
 Находка: Мониторинг системы в иерархическом виде держит сироту в ветке Терминала, хотя `ps` даёт PPID 1.
+Проверка 1 (08.11.2026, в шаблоне не закоммичена): `check_agent1` в `checks/run_checks.py`, OPENED = 1. Ядро собирается из всех
+agent/core/*.c без main (`build_core`, общая с «Модуль 1 · agent» — раньше та собирала только core_info.c и ломалась на brain.py 2.1);
+система файла — `target_of_core` (windows.h / libproc.h / "/proc" / общий posix). Проверка: max = 1 → 34/122 и count > 1; процесс проверки
+в списке с ppid = os.getppid() и именем python; сверка с `ps -A -o pid=,ppid=` / Win32_Process: пропущенных и лишних ≤ max(5, 10%),
+ppid совпал у ≥ 95% общих. Прогнано: macOS (642/643), Linux gcc:14 (3/4), Windows — workflow checks1.yml в sysprog-win-shots (141/142);
+испорченный ppid ловится, ядро Linux на macOS — «пропущено». Дальше — пара 5 (ЛР 5, глава 2.2).
