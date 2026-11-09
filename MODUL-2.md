@@ -73,3 +73,6 @@ INT не доходит; вывод в файл/канал буферизует�
 linux: python3, python3, bash, code, code, sleep; win: python.exe ×2, cmd.exe, Code.exe ×2, cmd.exe, explorer.exe.
 05-leak (leak.c, 20 core_spawn без core_wait): зомби 0 → 20 (mac, linux); Windows дескрипторы 44 → 72, без CloseHandle(pi.hThread) — 44 → 92.
 Разборы — tools/walk22.py. Дальше: ch22.py → temy/16-zapusk-processa.
+**Пара 5 закрыта 09.11:** ЛР 5 (04aec18), глава 2.2 `temy/16-zapusk-processa` (ea119ec, вычитана), шаблон — labs/05-process-birth (b80351f),
+конспект 2.2 и agent/README (0c4962e). Проверки шаблона на ядре 2.2 проходят (build_core берёт core_spawn.c, run_child.c и leak.c с main пропускает).
+Дальше — пара 6: ЛР 6 «Кто загружает процессор», глава 2.3 «Процессорное время», проверка 2 «Процесс загружает процессор больше 80%».
