@@ -62,3 +62,14 @@ HOSTNAME.EXE / cmd.exe / python.exe + Event Class is Process), 01-birth (cmd 198
 три кадра (lab_build.shot принимает список). Тексты macOS — «Заполняется после съёмки кадра», кадры macOS — места `todo:`.
 Шаблон (не закоммичен): labs/05-process-birth (README, report.md, 5 заглушек), строка в labs/README.md, LABS в run_checks.py, SNAPS в snaps.py.
 Осталось: кадры macOS (fs_usage, ждёт правила sudoers от пользователя), ссылка в index.html, глава 2.2 (`temy/16-zapusk-processa`), вычитка, коммиты.
+ЛР 5 опубликована 09.11 (книга 04aec18, шаблон b80351f): кадры macOS — `tools/src_lab5/shoot_mac5.py` (два окна Терминала,
+в нижнем bash: fs_usage по умолчанию скрывает Terminal, sh, zsh даже с -e; шум исключается `-e "Code Helper (Plugin)" "Docker Desktop" …` —
+по имени, число после точки в выводе — номер потока; без -w имя процесса без точки; fs_usage из sudo останавливать kill -TERM на pid sudo,
+INT не доходит; вывод в файл/канал буферизуется). Дальше — глава 2.2 `temy/16-zapusk-processa`, код `tools/src22`.
+Глава 2.2 — кадры сняты 09.11 (`~/sysprog-shots/m22`: shoot22.py mac|linux через CDP, рамки mark.py + marks.json; Windows — экран ВМ 800×600,
+файлы и start22.cmd на ISO `~/sysprog-shots/win/m22.iso`, ядро ARM64 через vcvarsamd64_arm64, рамки winmark22.py; EfiGraphicsResolution не помог).
+Числа: 02-run — mac pid 88026, linux 308, win 8952, код 7; 03-errors — 60 (pid 88235) / 110 (348) / 258 (4664, cmd /c "ping -n 3 127.0.0.1 >nul"), нет программы — 2;
+04-brain — child 88861 / 484 / 4448, child_code 3, procs 695 / 19 / 139; parents mac: python3.9, Python, zsh, Code Helper, Code, launchd, kernel_task;
+linux: python3, python3, bash, code, code, sleep; win: python.exe ×2, cmd.exe, Code.exe ×2, cmd.exe, explorer.exe.
+05-leak (leak.c, 20 core_spawn без core_wait): зомби 0 → 20 (mac, linux); Windows дескрипторы 44 → 72, без CloseHandle(pi.hThread) — 44 → 92.
+Разборы — tools/walk22.py. Дальше: ch22.py → temy/16-zapusk-processa.

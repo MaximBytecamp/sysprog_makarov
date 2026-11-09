@@ -285,6 +285,7 @@ HTML = f'''<!doctype html>
         <div class="pager">
           <a href="../14-spisok-processov/index.html">← 2.1 Список процессов</a>
           <a href="../../index.html">Оглавление</a>
+          <a href="../16-zapusk-processa/index.html">2.2 Запуск процесса →</a>
         </div>
 
         <div class="colophon">

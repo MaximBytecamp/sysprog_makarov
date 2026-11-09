@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>2.2 Запуск процесса · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 2 · Процессы, потоки и память</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 2 · процессы</p>
+          <p class="running__folio">2.2</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">2.2</span>
+          <h1>Запуск процесса</h1>
+          <p class="lead">В главе ядро агента получает функции <code>core_spawn</code> и <code>core_wait</code>: первая запускает программу, вторая ждёт её завершения и возвращает код. Разобрано, как запуск устроен в Windows и в macOS и Linux, чем ядро держит запущенный процесс, что делать, когда время вышло или программы нет, и что остаётся в системе, если код не забрать. В конце мозг агента запускает программу и находит её своим ребёнком в списке процессов.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Категория</dt><dd>Процессы</dd></div>
+          <div><dt>Уровень</dt><dd>Начальный</dd></div>
+          <div><dt>Что получится</dt><dd><code>agent/core/core_spawn.c</code>, <code>run_child.c</code>, новый <code>brain.py</code></dd></div>
+          <div><dt>Сколько занимает</dt><dd>Пара 5, около сорока пяти минут за компьютером</dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>Порядок действий</b>
+          <ol>
+            <li><a href="#s1">Задача главы</a></li>
+            <li><a href="#s2">Шаг 1. Описать запущенный процесс в core.h</a></li>
+            <li><a href="#s3">Шаг 2. Написать core_spawn.c</a></li>
+            <li><a href="#s4">Шаг 3. Проверить ядро программой на C</a></li>
+            <li><a href="#s5">Шаг 4. Время вышло и программы нет</a></li>
+            <li><a href="#s6">Шаг 5. Запустить процесс из Python</a></li>
+            <li><a href="#s7">Шаг 6. Отправить в репозиторий</a></li>
+            <li><a href="#s8">Запрос к помощнику ИИ</a></li>
+            <li><a href="#s9">Справка: функции и команды</a></li>
+            <li><a href="#s10">Частые вопросы</a></li>
+            <li><a href="#s11">Проверьте себя</a></li>
+            <li><a href="#s12">Шпаргалка по главе</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Задача главы</h2>
+        <p>В ЛР 5 было видно, как родитель запускает программу: просит ядро системы создать процесс, ждёт его завершения и забирает код. В этой главе то же делает ядро агента. Оно получает две функции: <code>core_spawn</code> запускает программу по списку аргументов, <code>core_wait</code> ждёт её завершения и возвращает код. Мозг агента запускает через них программу на Python, находит её в списке процессов из главы 2.1 и получает её код.</p>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Начальник смены отдаёт заказ в цех: что сделать и из чего. Цех выдаёт номер заказа, а когда заказ готов, сообщает итог: «сделано» или «брак, причина такая-то». Начальник спрашивает о заказе по номеру столько раз, сколько нужно, пока не заберёт итог.</p>
+          <p class="miss">Цех не хранит готовые заказы вечно. Процесс тоже: его запись остаётся в системе, пока родитель не заберёт код, и родитель обязан это сделать.</p>
+        </div></div>
+        <p>Схема показывает путь запуска целиком: мозг передаёт список аргументов ядру агента, ядро агента — системе, а код завершения возвращается тем же путём.</p>
+        <figure class="scheme">
+          <p class="scheme__head">Путь запуска: от мозга до кода завершения</p>
+          <div class="scheme__body">
+<div class="vsteps"><div class="vcard is-py"><h5>мозг</h5><b><code>spawn([…])</code></b><small>список: программа и аргументы</small></div><div class="varr">argv</div><div class="vcard is-c"><h5>ядро агента</h5><b><code>core_spawn</code></b><small><span data-os="win">CreateProcessW</span><span data-os="mac linux">posix_spawnp</span></small></div><div class="varr">системный вызов</div><div class="vcard is-sys"><h5>система</h5><b>новый процесс</b><small>номер, память, программа</small></div><div class="varr">работает</div><div class="vcard is-py"><h5>ребёнок</h5><b>завершается</b><small>оставляет код, например 3</small></div></div><div class="vsteps"><div class="vcard is-sys"><h5>ребёнок</h5><b>код 3</b><small>хранится в системе</small></div><div class="varr">забирает</div><div class="vcard is-c"><h5>ядро агента</h5><b><code>core_wait</code></b><small><span data-os="win">WaitForSingleObject, GetExitCodeProcess</span><span data-os="mac linux">waitpid</span></small></div><div class="varr">code</div><div class="vcard is-py"><h5>мозг</h5><b><code>wait(child)</code></b><small>возвращает 3</small></div></div>
+          </div>
+          <p class="scheme__note">Верхняя строка — запуск, нижняя — путь кода завершения обратно к мозгу. Бирюзовые карточки — Python, янтарные — ядро на C, серые — система.</p>
+        </figure>
+        <p>По верхней строке видно, что сам мозг процессы не создаёт: он передаёт список строк функции на C, а та вызывает <span data-os="win"><code>CreateProcessW</code></span><span data-os="mac linux"><code>posix_spawnp</code></span>. Нижняя строка — обратный путь: код 3, который оставил ребёнок, хранится в системе, пока <code>core_wait</code> его не заберёт и не отдаст мозгу. <span class="term">Код завершения</span> — число, которое процесс оставляет при завершении: 0 — успех, остальные числа — ошибки, смысл которых задаёт программа.</p>
+        <div class="why">
+          <p class="why__head">Зачем это нужно в работе</p>
+          <ul class="why__list">
+            <li><b>Запускать проверки.</b> Агенты наблюдения запускают системные программы и разбирают их вывод и код. Код завершения — самый короткий ответ «получилось или нет».</li>
+            <li><b>Не терять завершившиеся процессы.</b> Программа, которая запускает детей и не забирает их коды, копит в системе записи о них. За сутки работы службы их набираются тысячи.</li>
+            <li><b>Ограничивать время.</b> Зависшая программа не должна останавливать агента, поэтому ожидание идёт с пределом времени.</li>
+          </ul>
+        </div>
+        <p>Глава продолжает репозиторий <code>sysprog-start</code> после главы 2.1: в <code>agent/core</code> лежат <code>core.h</code>, <code>core_info.c</code> и <code>core_procs.c</code>, в <code>agent/brain</code> — <code>brain.py</code> со списком процессов. <span data-os="win">Команды выполняются во встроенном терминале VS Code, запущенного из окна <b>x64 Native Tools Command Prompt for VS 2022</b>, как в главах 1.2 и 2.1.</span><span data-os="mac linux">Команды выполняются во встроенном терминале VS Code в папке <code>agent/core</code>.</span></p>
+        <p class="bridge">Ядро отвечает о запущенном процессе структурой, поэтому первая часть начинается с её описания в <code>core.h</code>.</p>
+
+        <div class="part" role="separator"><span><b>1</b>Ядро: запуск и ожидание</span></div>
+        <h2 id="s2"><span class="sec">§2</span>Шаг 1. Описать запущенный процесс в core.h</h2>
+        <p>О запущенном процессе ядро агента запоминает две вещи: номер процесса и <span class="term">дескриптор</span> — номер, по которому Windows даёт работать с объектом системы, например с процессом. В macOS и Linux к процессу обращаются по его номеру, и поле дескриптора там остаётся нулём. Оба поля — <code>int64_t</code>: в номер процесса и в дескриптор Windows помещается 8 байт.</p>
+        <div class="code-pair">
+          <figure class="code code--was" data-read>
+            <figcaption><span>agent/core/core.h</span><span>было</span></figcaption>
+<pre><span class="k">struct</span> core_proc {
+    <span class="c">…</span>
+};
+
+CORE_API <span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out);
+CORE_API <span class="k">int</span> <span class="f">core_list_procs</span>(<span class="k">struct</span> core_proc *out, <span class="t">int32_t</span> max, <span class="t">int32_t</span> *count);</pre>
+          </figure>
+          <figure class="code code--now" data-read>
+            <figcaption><span>agent/core/core.h</span><span>стало</span></figcaption>
+<pre><span class="k">struct</span> core_proc {
+    <span class="c">…</span>
+};
+<mark>
+<span class="k">struct</span> core_child {
+    <span class="t">int64_t</span> pid;
+    <span class="t">int64_t</span> handle;
+};</mark>
+
+CORE_API <span class="k">int</span> <span class="f">core_get_info</span>(<span class="k">struct</span> core_info *out);
+CORE_API <span class="k">int</span> <span class="f">core_list_procs</span>(<span class="k">struct</span> core_proc *out, <span class="t">int32_t</span> max, <span class="t">int32_t</span> *count);
+<mark>CORE_API <span class="k">int</span> <span class="f">core_spawn</span>(<span class="k">char</span> *<span class="k">const</span> argv[], <span class="k">struct</span> core_child *out);
+CORE_API <span class="k">int</span> <span class="f">core_wait</span>(<span class="k">struct</span> core_child *child, <span class="t">int32_t</span> timeout_ms, <span class="t">int32_t</span> *exit_code);</mark></pre>
+          </figure>
+        </div>
+        <p>Структура занимает 16 байт, поля идут подряд:</p>
+        <div class="bytes "><span class="w"><i>pid</i><small>0 · int64_t</small></span><span class="w"><i>handle</i><small>8 · int64_t</small></span></div>
+        <p>Параметры функций:</p>
+        <ul class="words">
+          <li><code>argv</code> — список строк: имя программы и её аргументы, в конце <code>NULL</code>. Так же устроен <code>argv</code> в <code>main</code> любой программы на C;</li>
+          <li><code>out</code> — куда <code>core_spawn</code> запишет номер и дескриптор нового процесса;</li>
+          <li><code>timeout_ms</code> — сколько миллисекунд ждать; −1 — ждать сколько потребуется;</li>
+          <li><code>exit_code</code> — куда <code>core_wait</code> запишет код завершения.</li>
+        </ul>
+        <p>Обе функции, как <code>core_list_procs</code>, возвращают 0 при успехе и код ошибки системы при неудаче. Все случаи — в таблице:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Договор функций: что приходит в ответ</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th>Случай</th><th>Функция</th><th>Код</th><th>Что в ответе</th></tr></thead><tbody><tr><td>программа запущена</td><td><code>core_spawn</code></td><td class="is-ok">0</td><td><code>child.pid</code>, <span data-os="win"><code>child.handle</code></span><span data-os="mac linux"><code>handle</code> = 0</span></td></tr><tr><td>программы нет</td><td><code>core_spawn</code></td><td class="is-bad">2</td><td>ничего</td></tr><tr><td>ребёнок завершился</td><td><code>core_wait</code></td><td class="is-ok">0</td><td>код завершения в <code>exit_code</code></td></tr><tr><td>время вышло</td><td><code>core_wait</code></td><td class="is-bad"><span data-os="win">258</span><span data-os="mac">60</span><span data-os="linux">110</span></td><td>ребёнок работает, ждать можно снова</td></tr><tr><td>ошибка в параметрах</td><td>обе</td><td class="is-bad"><span data-os="win">87</span><span data-os="mac linux">22</span></td><td>ничего</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note">Ноль в колонке «Код» — успех. Код 2 одинаков на трёх системах: <span data-os="win"><code>ERROR_FILE_NOT_FOUND</code></span><span data-os="mac linux"><code>ENOENT</code></span>, «нет такого файла».</p>
+        </figure>
+        <p>Строки таблицы идут в порядке жизни процесса: запуск, ожидание, завершение. Особая строка — «время вышло»: это ошибка ожидания, а сам процесс жив, и его можно ждать снова. Код этой ошибки на трёх системах разный, а «программы нет» везде — 2, как в ЛР 5.</p>
+        <figure class="shot" data-os="win">
+          <img src="img/win/01-core-h.png" alt="VS Code с core.h: struct core_child и объявления core_spawn и core_wait в рамках" loading="lazy">
+          <figcaption><span class="mk">1</span> Структура запущенного процесса — два поля. <span class="mk">2</span> Объявления двух новых функций.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/01-core-h.png" alt="VS Code с core.h: struct core_child и объявления core_spawn и core_wait в рамках" loading="lazy">
+          <figcaption><span class="mk">1</span> Структура запущенного процесса — два поля. <span class="mk">2</span> Объявления двух новых функций.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/01-core-h.png" alt="VS Code с core.h: struct core_child и объявления core_spawn и core_wait в рамках" loading="lazy">
+          <figcaption><span class="mk">1</span> Структура запущенного процесса — два поля. <span class="mk">2</span> Объявления двух новых функций.</figcaption>
+        </figure>
+        <p class="step-done"><b>Что получилось.</b>В <code>core.h</code> описаны структура на 16 байт и договор двух функций. Теперь их нужно написать для своей системы.</p>
+
+        <h2 id="s3"><span class="sec">§3</span>Шаг 2. Написать core_spawn.c</h2>
+        <p>Обе функции — в новом файле <code>agent/core/core_spawn.c</code>. Для macOS и Linux файл один: <code>posix_spawnp</code> и <code>waitpid</code> есть в обеих системах. Windows отвечает на запуск иначе, и от этого зависит, как ядро держит процесс:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Чем держат запущенный процесс</p>
+          <div class="scheme__body">
+<div class="vsplit is-rows"><div><h6>Windows</h6><div class="vsteps"><div class="vcard is-sys"><b>CreateProcessW</b><small>ответ: номер и два дескриптора</small></div><div class="varr"></div><div class="vcard is-c"><b>дескриптор потока</b><small>сразу CloseHandle</small></div><div class="varr"></div><div class="vcard is-c"><b>дескриптор процесса</b><small>держать до core_wait</small></div></div></div><div><h6>macOS и Linux</h6><div class="vsteps"><div class="vcard is-sys"><b>posix_spawnp</b><small>ответ: номер процесса</small></div><div class="varr"></div><div class="vcard is-c"><b>номер процесса</b><small>по нему waitpid</small></div><div class="varr"></div><div class="vcard is-c"><b>waitpid</b><small>забирает код и удаляет запись</small></div></div></div></div>
+          </div>
+          <p class="scheme__note">В обоих случаях запись о завершившемся процессе живёт, пока родитель её не освободит: в Windows — закрытием дескриптора процесса, в macOS и Linux — вызовом <code>waitpid</code>.</p>
+        </figure>
+        <p>Верхняя ветка — Windows: <code>CreateProcessW</code> возвращает номер процесса и два дескриптора, потока и процесса. Дескриптор потока ядру агента не нужен и закрывается сразу, дескриптор процесса хранится до <code>core_wait</code>. Нижняя ветка — macOS и Linux: в ответ приходит только номер, и по нему <code>waitpid</code> забирает код. Последняя карточка каждой ветки — шаг, без которого система не освобождает запись о процессе. В части 3 видно, что бывает, если этот шаг пропустить.</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>agent/core/core_spawn.c · Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">#define</span> CMD_MAX <span class="n">1024</span>
+
+<span class="k">int</span> <span class="f">core_spawn</span>(<span class="k">char</span> *<span class="k">const</span> argv[], <span class="k">struct</span> core_child *out) {
+    <span class="t">WCHAR</span> cmd[CMD_MAX];
+    <span class="k">int</span> used = <span class="n">0</span>;
+    STARTUPINFOW si;
+    PROCESS_INFORMATION pi;
+
+    <span class="k">if</span> (argv == NULL || argv[<span class="n">0</span>] == NULL || out == NULL)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; argv[i] != NULL; i++) {
+        <span class="k">int</span> quote = <span class="f">strchr</span>(argv[i], <span class="s">&#x27; &#x27;</span>) != NULL;
+        <span class="k">if</span> (used + <span class="n">3</span> &gt;= CMD_MAX)
+            <span class="k">return</span> ERROR_INSUFFICIENT_BUFFER;
+        <span class="k">if</span> (i &gt; <span class="n">0</span>)
+            cmd[used++] = L<span class="s">&#x27; &#x27;</span>;
+        <span class="k">if</span> (quote)
+            cmd[used++] = L<span class="s">&#x27;&quot;&#x27;</span>;
+        <span class="k">int</span> n = <span class="f">MultiByteToWideChar</span>(CP_UTF8, <span class="n">0</span>, argv[i], -<span class="n">1</span>, cmd + used, CMD_MAX - used - <span class="n">2</span>);
+        <span class="k">if</span> (n == <span class="n">0</span>)
+            <span class="k">return</span> ERROR_INSUFFICIENT_BUFFER;
+        used += n - <span class="n">1</span>;
+        <span class="k">if</span> (quote)
+            cmd[used++] = L<span class="s">&#x27;&quot;&#x27;</span>;
+    }
+    cmd[used] = L<span class="s">&#x27;\0&#x27;</span>;
+
+    <span class="f">ZeroMemory</span>(&amp;si, <span class="k">sizeof</span> si);
+    si.cb = <span class="k">sizeof</span> si;
+    <span class="k">if</span> (!<span class="f">CreateProcessW</span>(NULL, cmd, NULL, NULL, FALSE, <span class="n">0</span>, NULL, NULL, &amp;si, &amp;pi))
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="f">CloseHandle</span>(pi.hThread);
+    out-&gt;pid = pi.dwProcessId;
+    out-&gt;handle = (<span class="t">int64_t</span>)(intptr_t)pi.hProcess;
+    <span class="k">return</span> <span class="n">0</span>;
+}
+
+<span class="k">int</span> <span class="f">core_wait</span>(<span class="k">struct</span> core_child *child, <span class="t">int32_t</span> timeout_ms, <span class="t">int32_t</span> *exit_code) {
+    <span class="t">DWORD</span> code;
+
+    <span class="k">if</span> (child == NULL || child-&gt;handle == <span class="n">0</span> || exit_code == NULL)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="t">HANDLE</span> h = (<span class="t">HANDLE</span>)(intptr_t)child-&gt;handle;
+    <span class="t">DWORD</span> r = <span class="f">WaitForSingleObject</span>(h, timeout_ms &lt; <span class="n">0</span> ? INFINITE : (<span class="t">DWORD</span>)timeout_ms);
+    <span class="k">if</span> (r == WAIT_TIMEOUT)
+        <span class="k">return</span> WAIT_TIMEOUT;
+    <span class="k">if</span> (r != WAIT_OBJECT_0)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">if</span> (!<span class="f">GetExitCodeProcess</span>(h, &amp;code))
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="f">CloseHandle</span>(h);
+    child-&gt;handle = <span class="n">0</span>;
+    *exit_code = (<span class="t">int32_t</span>)code;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="mac linux">
+          <figcaption><span>agent/core/core_spawn.c · macOS и Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;spawn.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;sys/wait.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;time.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+extern <span class="k">char</span> **environ;
+
+<span class="k">int</span> <span class="f">core_spawn</span>(<span class="k">char</span> *<span class="k">const</span> argv[], <span class="k">struct</span> core_child *out) {
+    <span class="t">pid_t</span> pid;
+
+    <span class="k">if</span> (argv == NULL || argv[<span class="n">0</span>] == NULL || out == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="k">int</span> err = <span class="f">posix_spawnp</span>(&amp;pid, argv[<span class="n">0</span>], NULL, NULL, argv, environ);
+    <span class="k">if</span> (err != <span class="n">0</span>)
+        <span class="k">return</span> err;
+    out-&gt;pid = pid;
+    out-&gt;handle = <span class="n">0</span>;
+    <span class="k">return</span> <span class="n">0</span>;
+}
+
+<span class="k">int</span> <span class="f">core_wait</span>(<span class="k">struct</span> core_child *child, <span class="t">int32_t</span> timeout_ms, <span class="t">int32_t</span> *exit_code) {
+    <span class="k">struct</span> timespec step = {<span class="n">0</span>, <span class="n">10</span> * <span class="n">1000</span> * <span class="n">1000</span>};
+    <span class="k">int</span> status;
+    <span class="t">int32_t</span> waited = <span class="n">0</span>;
+
+    <span class="k">if</span> (child == NULL || child-&gt;pid &lt;= <span class="n">0</span> || exit_code == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="k">for</span> (;;) {
+        <span class="t">pid_t</span> r = <span class="f">waitpid</span>((<span class="t">pid_t</span>)child-&gt;pid, &amp;status, WNOHANG);
+        <span class="k">if</span> (r == -<span class="n">1</span>)
+            <span class="k">return</span> errno;
+        <span class="k">if</span> (r != <span class="n">0</span>)
+            break;
+        <span class="k">if</span> (timeout_ms &gt;= <span class="n">0</span> &amp;&amp; waited &gt;= timeout_ms)
+            <span class="k">return</span> ETIMEDOUT;
+        <span class="f">nanosleep</span>(&amp;step, NULL);
+        waited += <span class="n">10</span>;
+    }
+    <span class="k">if</span> (<span class="f">WIFEXITED</span>(status))
+        *exit_code = <span class="f">WEXITSTATUS</span>(status);
+    else
+        *exit_code = <span class="n">128</span> + <span class="f">WTERMSIG</span>(status);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор core_spawn.c по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Запустить программу по списку аргументов и дождаться её кода завершения. <code>core_spawn</code> собирает из списка командную строку и вызывает <code>CreateProcessW</code>, <code>core_wait</code> ждёт процесс и забирает код.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>argv</b><small>список аргументов</small></span><span><b>cmd</b><small>одна строка UTF-16</small></span><span><b>CreateProcessW</b><small>процесс и дескриптор</small></span><span><b>WaitForSingleObject</b><small>ждать</small></span><span><b>GetExitCodeProcess</b><small>код</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">#define</span> CMD_MAX <span class="n">1024</span>
+
+<span class="k">int</span> <span class="f">core_spawn</span>(<span class="k">char</span> *<span class="k">const</span> argv[], <span class="k">struct</span> core_child *out) {
+    <span class="t">WCHAR</span> cmd[CMD_MAX];
+    <span class="k">int</span> used = <span class="n">0</span>;
+    STARTUPINFOW si;
+    PROCESS_INFORMATION pi;
+
+    <span class="k">if</span> (argv == NULL || argv[<span class="n">0</span>] == NULL || out == NULL)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; argv[i] != NULL; i++) {
+        <span class="k">int</span> quote = <span class="f">strchr</span>(argv[i], <span class="s">&#x27; &#x27;</span>) != NULL;
+        <span class="k">if</span> (used + <span class="n">3</span> &gt;= CMD_MAX)
+            <span class="k">return</span> ERROR_INSUFFICIENT_BUFFER;
+        <span class="k">if</span> (i &gt; <span class="n">0</span>)
+            cmd[used++] = L<span class="s">&#x27; &#x27;</span>;
+        <span class="k">if</span> (quote)
+            cmd[used++] = L<span class="s">&#x27;&quot;&#x27;</span>;
+        <span class="k">int</span> n = <span class="f">MultiByteToWideChar</span>(CP_UTF8, <span class="n">0</span>, argv[i], -<span class="n">1</span>, cmd + used, CMD_MAX - used - <span class="n">2</span>);
+        <span class="k">if</span> (n == <span class="n">0</span>)
+            <span class="k">return</span> ERROR_INSUFFICIENT_BUFFER;
+        used += n - <span class="n">1</span>;
+        <span class="k">if</span> (quote)
+            cmd[used++] = L<span class="s">&#x27;&quot;&#x27;</span>;
+    }
+    cmd[used] = L<span class="s">&#x27;\0&#x27;</span>;
+
+    <span class="f">ZeroMemory</span>(&amp;si, <span class="k">sizeof</span> si);
+    si.cb = <span class="k">sizeof</span> si;
+    <span class="k">if</span> (!<span class="f">CreateProcessW</span>(NULL, cmd, NULL, NULL, FALSE, <span class="n">0</span>, NULL, NULL, &amp;si, &amp;pi))
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="f">CloseHandle</span>(pi.hThread);
+    out-&gt;pid = pi.dwProcessId;
+    out-&gt;handle = (<span class="t">int64_t</span>)(intptr_t)pi.hProcess;
+    <span class="k">return</span> <span class="n">0</span>;
+}
+
+<span class="k">int</span> <span class="f">core_wait</span>(<span class="k">struct</span> core_child *child, <span class="t">int32_t</span> timeout_ms, <span class="t">int32_t</span> *exit_code) {
+    <span class="t">DWORD</span> code;
+
+    <span class="k">if</span> (child == NULL || child-&gt;handle == <span class="n">0</span> || exit_code == NULL)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="t">HANDLE</span> h = (<span class="t">HANDLE</span>)(intptr_t)child-&gt;handle;
+    <span class="t">DWORD</span> r = <span class="f">WaitForSingleObject</span>(h, timeout_ms &lt; <span class="n">0</span> ? INFINITE : (<span class="t">DWORD</span>)timeout_ms);
+    <span class="k">if</span> (r == WAIT_TIMEOUT)
+        <span class="k">return</span> WAIT_TIMEOUT;
+    <span class="k">if</span> (r != WAIT_OBJECT_0)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="k">if</span> (!<span class="f">GetExitCodeProcess</span>(h, &amp;code))
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    <span class="f">CloseHandle</span>(h);
+    child-&gt;handle = <span class="n">0</span>;
+    *exit_code = (<span class="t">int32_t</span>)code;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-5"><b>Подключить заголовочные файлы</b><ul class="words"><li><code>string.h</code> — <code>strchr</code>, поиск символа в строке;</li><li><code>windows.h</code> — функции и типы WinAPI;</li><li><code>core.h</code> — <code>struct core_child</code> и объявления функций ядра.</li></ul><p><code>CMD_MAX</code> — сколько символов UTF-16 помещается в командную строку ядра, 1024.</p></li>
+              <li data-lines="7-11"><b>Начать core_spawn</b><p><code>cmd</code> — командная строка в UTF-16: в этой кодировке её принимает <code>CreateProcessW</code>. <code>used</code> — сколько символов уже записано. <code>STARTUPINFOW si</code> — как показать окно нового процесса; здесь всё по умолчанию. <code>PROCESS_INFORMATION pi</code> — сюда Windows запишет ответ: номер процесса, номер потока и два дескриптора.</p></li>
+              <li data-lines="13-14"><b>Проверить параметры</b><p>Без списка аргументов, без имени программы или без места для ответа запускать нечего — код 87, <code>ERROR_INVALID_PARAMETER</code>.</p></li>
+              <li data-lines="15-29"><b>Собрать командную строку</b><p>В Windows программа получает аргументы одной строкой, и разбирает её сама. Поэтому список <code>argv</code> склеивается через пробел. Аргумент с пробелом берётся в кавычки, иначе он развалится на два.</p><ul class="words"><li><code>strchr(argv[i], ' ')</code> — есть ли в аргументе пробел;</li><li><code>used + 3 &gt;= CMD_MAX</code> — места не осталось даже на пробел и две кавычки: код 122;</li><li><code>MultiByteToWideChar(CP_UTF8, …)</code> — перевод аргумента из UTF-8 в UTF-16 прямо в <code>cmd</code>, как в главе 1.1. Функция возвращает число символов вместе с завершающим нулём, поэтому <code>used</code> растёт на <code>n - 1</code>.</li></ul><p>Из <code>["cmd", "/c", "exit 7"]</code> получается <code>cmd /c "exit 7"</code>.</p><p class="like">Анкету заполняют печатными буквами в одну строку, а слова из нескольких частей берут в кавычки, чтобы их не разделили.</p></li>
+              <li data-lines="32-35"><b>Создать процесс</b><p><code>ZeroMemory</code> обнуляет <code>si</code>, а <code>si.cb</code> сообщает Windows размер структуры. Параметры <code>CreateProcessW</code> по порядку:</p><ul class="words"><li><code>NULL</code> — путь к программе не задан: Windows возьмёт первое слово командной строки, допишет <code>.exe</code> и будет искать файл в папке программы-родителя, в текущей папке, в системных папках Windows и затем в папках из <code>PATH</code>;</li><li><code>cmd</code> — командная строка. Функция может её менять, поэтому строка лежит в массиве: строковую константу менять нельзя;</li><li><code>NULL, NULL</code> — права доступа к процессу и потоку по умолчанию;</li><li><code>FALSE</code> — ребёнок не получает открытые дескрипторы родителя;</li><li><code>0</code> — без особых флагов: ребёнок пишет в ту же консоль;</li><li><code>NULL, NULL</code> — переменные окружения и текущая папка родителя;</li><li><code>&amp;si, &amp;pi</code> — как показать окно и куда записать ответ.</li></ul><p>Если процесс не создан, функция возвращает 0. Причину даёт <code>GetLastError</code>: 2 — файла программы нет.</p></li>
+              <li data-lines="36-39"><b>Сохранить ответ</b><p>Windows вернула два дескриптора. <span class="term">Дескриптор</span> (handle) — номер в таблице открытых объектов процесса, через него с объектом работают функции WinAPI. Дескриптор главного потока ядру не нужен, и <code>CloseHandle</code> сразу его закрывает. Дескриптор процесса нужен, чтобы дождаться процесса и забрать код, поэтому он сохраняется в <code>out-&gt;handle</code>. <code>(int64_t)(intptr_t)</code> — перевод адреса-дескриптора в число той же ширины, что поле структуры.</p></li>
+              <li data-lines="42-46"><b>Начать core_wait</b><p>Без дескриптора процесса ждать нечего: <code>handle == 0</code> значит, что процесс не запускался или уже дождались. Дескриптор возвращается из числа обратно в <code>HANDLE</code>.</p></li>
+              <li data-lines="47-52"><b>Дождаться процесса</b><p><code>WaitForSingleObject</code> ставит поток на паузу, пока процесс не завершится или не выйдет время. Отрицательное время в ядре значит «ждать сколько потребуется» — <code>INFINITE</code>. Ответ <code>WAIT_TIMEOUT</code> (258) — время вышло, процесс ещё работает, и дескриптор остаётся открытым: его можно ждать снова. Любой другой ответ, кроме <code>WAIT_OBJECT_0</code>, — ошибка.</p></li>
+              <li data-lines="53-58"><b>Забрать код и закрыть дескриптор</b><p><code>GetExitCodeProcess</code> читает код завершения. После этого дескриптор процесса закрывается, и Windows может удалить запись о процессе. <code>child-&gt;handle = 0</code> отмечает, что ждать больше нечего.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="mac linux">
+          <p class="trace__head"><span>Разбор core_spawn.c по шагам</span><span>macOS и Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Запустить программу по списку аргументов и дождаться её кода завершения. <code>core_spawn</code> вызывает <code>posix_spawnp</code>, <code>core_wait</code> забирает код вызовом <code>waitpid</code>.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>argv</b><small>список аргументов</small></span><span><b>posix_spawnp</b><small>процесс по номеру</small></span><span><b>waitpid</b><small>спросить каждые 10 мс</small></span><span><b>status</b><small>код</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;spawn.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;sys/wait.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;time.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+extern <span class="k">char</span> **environ;
+
+<span class="k">int</span> <span class="f">core_spawn</span>(<span class="k">char</span> *<span class="k">const</span> argv[], <span class="k">struct</span> core_child *out) {
+    <span class="t">pid_t</span> pid;
+
+    <span class="k">if</span> (argv == NULL || argv[<span class="n">0</span>] == NULL || out == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="k">int</span> err = <span class="f">posix_spawnp</span>(&amp;pid, argv[<span class="n">0</span>], NULL, NULL, argv, environ);
+    <span class="k">if</span> (err != <span class="n">0</span>)
+        <span class="k">return</span> err;
+    out-&gt;pid = pid;
+    out-&gt;handle = <span class="n">0</span>;
+    <span class="k">return</span> <span class="n">0</span>;
+}
+
+<span class="k">int</span> <span class="f">core_wait</span>(<span class="k">struct</span> core_child *child, <span class="t">int32_t</span> timeout_ms, <span class="t">int32_t</span> *exit_code) {
+    <span class="k">struct</span> timespec step = {<span class="n">0</span>, <span class="n">10</span> * <span class="n">1000</span> * <span class="n">1000</span>};
+    <span class="k">int</span> status;
+    <span class="t">int32_t</span> waited = <span class="n">0</span>;
+
+    <span class="k">if</span> (child == NULL || child-&gt;pid &lt;= <span class="n">0</span> || exit_code == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="k">for</span> (;;) {
+        <span class="t">pid_t</span> r = <span class="f">waitpid</span>((<span class="t">pid_t</span>)child-&gt;pid, &amp;status, WNOHANG);
+        <span class="k">if</span> (r == -<span class="n">1</span>)
+            <span class="k">return</span> errno;
+        <span class="k">if</span> (r != <span class="n">0</span>)
+            break;
+        <span class="k">if</span> (timeout_ms &gt;= <span class="n">0</span> &amp;&amp; waited &gt;= timeout_ms)
+            <span class="k">return</span> ETIMEDOUT;
+        <span class="f">nanosleep</span>(&amp;step, NULL);
+        waited += <span class="n">10</span>;
+    }
+    <span class="k">if</span> (<span class="f">WIFEXITED</span>(status))
+        *exit_code = <span class="f">WEXITSTATUS</span>(status);
+    else
+        *exit_code = <span class="n">128</span> + <span class="f">WTERMSIG</span>(status);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-5"><b>Подключить заголовочные файлы</b><ul class="words"><li><code>errno.h</code> — коды ошибок и <code>errno</code>;</li><li><code>spawn.h</code> — <code>posix_spawnp</code>;</li><li><code>sys/wait.h</code> — <code>waitpid</code> и разбор ответа: <code>WIFEXITED</code>, <code>WEXITSTATUS</code>;</li><li><code>time.h</code> — <code>nanosleep</code>, пауза между проверками.</li></ul></li>
+              <li data-lines="7"><b>Объявить переменные окружения</b><p><code>environ</code> — массив строк «имя=значение» с переменными окружения процесса. Он есть в каждой программе, но в заголовочных файлах не объявлен, поэтому строку <code>extern</code> пишут сами. Ядро передаёт его ребёнку, и тот получает те же переменные, что у родителя.</p></li>
+              <li data-lines="9-13"><b>Начать core_spawn и проверить параметры</b><p>Без списка аргументов, без имени программы или без места для ответа — код 22, <code>EINVAL</code>.</p></li>
+              <li data-lines="14-16"><b>Запустить программу</b><p><code>posix_spawnp</code> создаёт процесс и загружает в него программу одним вызовом — те же копия и <code>execve</code>, что в ЛР 5. Буква <code>p</code> в конце значит, что имя ищется по папкам <code>PATH</code>, как у <code>env</code>.</p><ul class="words"><li><code>&amp;pid</code> — сюда запишется номер нового процесса;</li><li><code>argv[0]</code> — имя программы;</li><li><code>NULL, NULL</code> — без перенаправления файлов и без особых настроек;</li><li><code>argv</code> — весь список аргументов, его последний элемент — <code>NULL</code>;</li><li><code>environ</code> — переменные окружения.</li></ul><p>Функция возвращает код ошибки сама, без <code>errno</code>: 2 — программы нет.</p></li>
+              <li data-lines="17-19"><b>Сохранить ответ</b><p>В macOS и Linux процесс называют по номеру, отдельного дескриптора нет, поэтому <code>handle</code> равен 0.</p></li>
+              <li data-lines="22-28"><b>Начать core_wait</b><p><code>step</code> — пауза 10 мс между проверками: 0 секунд и 10 000 000 наносекунд. <code>waited</code> — сколько миллисекунд уже прошло. Без номера процесса ждать нечего — <code>EINVAL</code>.</p></li>
+              <li data-lines="29-39"><b>Проверять, завершился ли ребёнок</b><p><code>waitpid(pid, &amp;status, WNOHANG)</code> спрашивает ядро о ребёнке. С флагом <code>WNOHANG</code> вызов отвечает сразу:</p><ul class="words"><li>номер ребёнка — он завершился, код записан в <code>status</code>, и ядро удалило запись о нём;</li><li>0 — ребёнок ещё работает;</li><li>−1 — ошибка, например <code>ECHILD</code>: такого ребёнка нет.</li></ul><p>Пока ребёнок работает, цикл спит 10 мс и спрашивает снова. Когда прошло <code>timeout_ms</code>, функция возвращает <code>ETIMEDOUT</code> — 60 в macOS, 110 в Linux.</p><p class="like">Курьер звонит в дверь каждые 10 секунд и после минуты уходит с запиской «зайду позже».</p></li>
+              <li data-lines="40-44"><b>Разобрать ответ</b><p><code>status</code> — число, в котором ядро упаковало, как завершился процесс. <code>WIFEXITED</code> — завершился сам, тогда <code>WEXITSTATUS</code> даёт код. Иначе процесс завершён сигналом, и ядро записывает <code>128 + номер сигнала</code>, как это делают оболочки: сигнал 9 даёт 137.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p>В обоих файлах одинаковы проверка параметров и ответ: 0 или код ошибки системы. Различается, как система запускает процесс и как сообщает о его завершении: <span data-os="win">Windows будит ожидающий поток, когда процесс завершился</span><span data-os="mac linux">ядро агента само спрашивает систему каждые 10 мс</span>.</p>
+        <p class="step-done"><b>Что получилось.</b>Функции запуска и ожидания написаны для своей системы. Проверим их программой на C, прежде чем вызывать из Python.</p>
+
+        <h2 id="s4"><span class="sec">§4</span>Шаг 3. Проверить ядро программой на C</h2>
+        <p>Программа <code>agent/core/run_child.c</code> одна для трёх систем: она берёт из командной строки время ожидания и запускаемую программу, вызывает обе функции ядра и печатает результат.</p>
+        <figure class="code" data-os="win mac linux">
+          <figcaption><span>agent/core/run_child.c · все системы</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;inttypes.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdlib.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">int</span> argc, <span class="k">char</span> *argv[]) {
+    <span class="k">struct</span> core_child child;
+    <span class="t">int32_t</span> code = <span class="n">0</span>;
+
+    <span class="k">if</span> (argc &lt; <span class="n">3</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;usage: run_child timeout_ms program [args...]\n&quot;</span>);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="k">int</span> err = <span class="f">core_spawn</span>(argv + <span class="n">2</span>, &amp;child);
+    <span class="k">if</span> (err != <span class="n">0</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;core_spawn: error %d\n&quot;</span>, err);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;started pid %&quot;</span> PRId64 <span class="s">&quot;\n&quot;</span>, child.pid);
+    err = <span class="f">core_wait</span>(&amp;child, <span class="f">atoi</span>(argv[<span class="n">1</span>]), &amp;code);
+    <span class="k">if</span> (err != <span class="n">0</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;core_wait: error %d, pid %&quot;</span> PRId64 <span class="s">&quot; still running\n&quot;</span>, err, child.pid);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;pid %&quot;</span> PRId64 <span class="s">&quot; exited, code %d\n&quot;</span>, child.pid, (<span class="k">int</span>)code);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор run_child.c по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Проверить ядро без Python: запустить программу из командной строки, напечатать номер нового процесса и его код завершения или ошибку.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>argv[1]</b><small>время</small></span><span><b>core_spawn</b><small>запуск</small></span><span><b>core_wait</b><small>ожидание</small></span><span><b>печать</b><small>pid и код</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;inttypes.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdlib.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">int</span> argc, <span class="k">char</span> *argv[]) {
+    <span class="k">struct</span> core_child child;
+    <span class="t">int32_t</span> code = <span class="n">0</span>;
+
+    <span class="k">if</span> (argc &lt; <span class="n">3</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;usage: run_child timeout_ms program [args...]\n&quot;</span>);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="k">int</span> err = <span class="f">core_spawn</span>(argv + <span class="n">2</span>, &amp;child);
+    <span class="k">if</span> (err != <span class="n">0</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;core_spawn: error %d\n&quot;</span>, err);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;started pid %&quot;</span> PRId64 <span class="s">&quot;\n&quot;</span>, child.pid);
+    err = <span class="f">core_wait</span>(&amp;child, <span class="f">atoi</span>(argv[<span class="n">1</span>]), &amp;code);
+    <span class="k">if</span> (err != <span class="n">0</span>) {
+        <span class="f">printf</span>(<span class="s">&quot;core_wait: error %d, pid %&quot;</span> PRId64 <span class="s">&quot; still running\n&quot;</span>, err, child.pid);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="f">printf</span>(<span class="s">&quot;pid %&quot;</span> PRId64 <span class="s">&quot; exited, code %d\n&quot;</span>, child.pid, (<span class="k">int</span>)code);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Подключить заголовочные файлы</b><p><code>inttypes.h</code> — формат <code>PRId64</code> для <code>int64_t</code>, <code>stdlib.h</code> — <code>atoi</code>.</p></li>
+              <li data-lines="6-13"><b>Проверить командную строку</b><p>Программе нужны хотя бы два параметра: время ожидания в миллисекундах и имя программы. Например, <code>run_child 5000 sh -c "exit 7"</code>: <code>argv[1]</code> — 5000, с <code>argv[2]</code> начинается запускаемая программа.</p></li>
+              <li data-lines="14-19"><b>Запустить</b><p><code>argv + 2</code> — адрес третьего элемента: ядро получает список с имени программы, без <code>run_child</code> и времени. Список уже кончается <code>NULL</code>, так устроен <code>argv</code> любой программы на C.</p></li>
+              <li data-lines="20-24"><b>Дождаться</b><p><code>atoi(argv[1])</code> — время из командной строки числом. Если время вышло, программа сообщает код и номер процесса, который ещё работает.</p></li>
+              <li data-lines="25-26"><b>Напечатать код</b><p>Номер процесса и его код завершения. Сама <code>run_child</code> завершается с кодом 0.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p>Собираем программу из двух файлов и запускаем вторую оболочку, которая сразу завершается с кодом 7:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 run_child.c core_spawn.c
+run_child.exe 5000 cmd /c exit 7</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>clang -Wall -Wextra -o run_child run_child.c core_spawn.c
+./run_child 5000 sh -c &quot;exit 7&quot;</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>gcc -Wall -Wextra -o run_child run_child.c core_spawn.c
+./run_child 5000 sh -c &quot;exit 7&quot;</pre>
+        </figure>
+        <div data-os="win"><p>Строки компоновщика «Создается библиотека run_child.lib и объект run_child.exp» появляются, потому что функции ядра помечены <code>CORE_API</code>, то есть <code>__declspec(dllexport)</code>. Для программы <code>.exe</code> эти файлы не нужны, их можно удалить.</p></div>
+        <figure class="shot" data-os="win">
+          <img src="img/win/02-run.png" alt="терминал: started pid 8952, pid 8952 exited, code 7" loading="lazy">
+          <figcaption><span class="mk">1</span> Процесс запущен, номер 8952. <span class="mk">2</span> Он завершился с кодом 7.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/02-run.png" alt="терминал: started pid 88026, pid 88026 exited, code 7" loading="lazy">
+          <figcaption><span class="mk">1</span> Процесс запущен, номер 88026. <span class="mk">2</span> Он завершился с кодом 7.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/02-run.png" alt="терминал: started pid 308, pid 308 exited, code 7" loading="lazy">
+          <figcaption><span class="mk">1</span> Процесс запущен, номер 308. <span class="mk">2</span> Он завершился с кодом 7.</figcaption>
+        </figure>
+        <p>Строка <span class="mk">1</span> напечатана сразу после <code>core_spawn</code>: процесс уже создан и получил номер. Строка <span class="mk">2</span> — после <code>core_wait</code>: ребёнок завершился, и его код 7 дошёл до программы на C. Это та же цепочка, что в шаге 3 ЛР 5, только родитель теперь — ядро агента.</p>
+        <p class="step-done"><b>Что получилось.</b>Ядро запускает программу и получает её код. Осталось проверить два отказа: ребёнок работает дольше отведённого времени, и программы нет.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>Шаг 4. Время вышло и программы нет</h2>
+        <p>Первая команда запускает ребёнка, который работает около 2 секунд, и даёт ему 300 мс. Вторая запускает программу <code>nosuch</code>, которой нет. После каждой печатается код завершения <code>run_child</code>:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>run_child.exe 300 cmd /c &quot;ping -n 3 127.0.0.1 &gt;nul&quot;
+echo %errorlevel%
+run_child.exe 1000 nosuch
+echo %errorlevel%</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>./run_child 300 sleep 2
+echo $?
+./run_child 1000 nosuch
+echo $?</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>./run_child 300 sleep 2
+echo $?
+./run_child 1000 nosuch
+echo $?</pre>
+        </figure>
+        <div data-os="win"><p><code>ping -n 3</code> трижды проверяет связь с этим же компьютером с паузой в секунду, <code>&gt;nul</code> убирает его вывод. Аргумент с пробелами взят в кавычки, и <code>core_spawn</code> передаёт его тоже в кавычках.</p></div>
+        <div data-os="mac linux"><p><code>sleep 2</code> ждёт 2 секунды и ничего не делает.</p></div>
+        <figure class="shot" data-os="win">
+          <img src="img/win/03-errors.png" alt="терминал: core_wait: error 258, pid 4664 still running; core_spawn: error 2" loading="lazy">
+          <figcaption><span class="mk">1</span> Время вышло: код 258, процесс 4664 работает. <span class="mk">2</span> Программы нет: код 2.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/03-errors.png" alt="терминал: core_wait: error 60, pid 88235 still running; core_spawn: error 2" loading="lazy">
+          <figcaption><span class="mk">1</span> Время вышло: код 60, процесс 88235 работает. <span class="mk">2</span> Программы нет: код 2.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/03-errors.png" alt="терминал: core_wait: error 110, pid 348 still running; core_spawn: error 2" loading="lazy">
+          <figcaption><span class="mk">1</span> Время вышло: код 110, процесс 348 работает. <span class="mk">2</span> Программы нет: код 2.</figcaption>
+        </figure>
+        <div data-os="win"><p>258 — <code>WAIT_TIMEOUT</code>: <code>WaitForSingleObject</code> не дождался процесса. 2 — <code>ERROR_FILE_NOT_FOUND</code>: <code>CreateProcessW</code> не нашла <code>nosuch.exe</code> ни в одной папке поиска.</p></div>
+        <div data-os="mac"><p>60 — <code>ETIMEDOUT</code> в macOS, «Operation timed out». 2 — <code>ENOENT</code>: <code>posix_spawnp</code> не нашла <code>nosuch</code> ни в одной папке <code>PATH</code>.</p></div>
+        <div data-os="linux"><p>110 — <code>ETIMEDOUT</code> в Linux, «Connection timed out»: у одной и той же ошибки в двух системах разные номера. 2 — <code>ENOENT</code>: <code>posix_spawnp</code> не нашла <code>nosuch</code> ни в одной папке <code>PATH</code>.</p></div>
+        <p>После отказа ожидания процесс продолжает работать: <code>run_child</code> завершилась, а ребёнок ещё секунду-две работает сам и становится сиротой, как в ЛР 4. Во втором случае процесса не было вовсе, поэтому печатать нечего, кроме кода. Обе программы завершились с кодом 1: так <code>run_child</code> сообщает о любой ошибке.</p>
+        <p class="step-done"><b>Что получилось.</b>Ядро различает три исхода: код ребёнка, «время вышло» и «программы нет». Можно подключать функции к мозгу.</p>
+
+        <div class="part" role="separator"><span><b>2</b>Мозг: запуск из Python</span></div>
+        <h2 id="s6"><span class="sec">§6</span>Шаг 5. Запустить процесс из Python</h2>
+        <p>Библиотека ядра теперь собирается из трёх файлов. Программа <code>run_child.c</code> в неё не входит: в ней <code>main</code>.</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 /LD core_info.c core_procs.c core_spawn.c /Fe:sentry_core.dll</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>clang -Wall -Wextra -shared -fPIC -o libsentry_core.dylib core_info.c core_procs.c core_spawn.c</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>gcc -Wall -Wextra -shared -fPIC -o libsentry_core.so core_info.c core_procs.c core_spawn.c</pre>
+        </figure>
+        <p>В <code>brain.py</code> добавляются класс <code>CoreChild</code> после <code>CoreProc</code>, типы новых функций после типов <code>core_list_procs</code> и функции <code>spawn</code> и <code>wait</code> после <code>parents</code>:</p>
+        <figure class="code">
+          <figcaption><span>agent/brain/brain.py · новые части</span></figcaption>
+<pre><span class="k">class</span> <span class="f">CoreChild</span>(ctypes.Structure):
+    _fields_ = [
+        (<span class="s">&quot;pid&quot;</span>, ctypes.c_int64),
+        (<span class="s">&quot;handle&quot;</span>, ctypes.c_int64),
+    ]
+
+core.core_spawn.argtypes = [ctypes.<span class="f">POINTER</span>(ctypes.c_char_p), ctypes.<span class="f">POINTER</span>(CoreChild)]
+core.core_spawn.restype = ctypes.c_int
+core.core_wait.argtypes = [ctypes.<span class="f">POINTER</span>(CoreChild), ctypes.c_int32, ctypes.<span class="f">POINTER</span>(ctypes.c_int32)]
+core.core_wait.restype = ctypes.c_int
+
+<span class="k">def</span> <span class="f">spawn</span>(args):
+    argv = (ctypes.c_char_p * (<span class="f">len</span>(args) + <span class="n">1</span>))(*[a.<span class="f">encode</span>(<span class="s">&quot;utf-8&quot;</span>) <span class="k">for</span> a <span class="k">in</span> args], <span class="k">None</span>)
+    child = <span class="f">CoreChild</span>()
+    err = core.<span class="f">core_spawn</span>(argv, ctypes.<span class="f">byref</span>(child))
+    <span class="k">if</span> err != <span class="n">0</span>:
+        <span class="k">raise</span> <span class="f">OSError</span>(err, <span class="f">error_text</span>(err))
+    <span class="k">return</span> child
+
+<span class="k">def</span> <span class="f">wait</span>(child, timeout_ms=-<span class="n">1</span>):
+    code = ctypes.<span class="f">c_int32</span>()
+    err = core.<span class="f">core_wait</span>(ctypes.<span class="f">byref</span>(child), timeout_ms, ctypes.<span class="f">byref</span>(code))
+    <span class="k">if</span> err != <span class="n">0</span>:
+        <span class="k">raise</span> <span class="f">OSError</span>(err, <span class="f">error_text</span>(err))
+    <span class="k">return</span> code.value</pre>
+        </figure>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор brain.py · новые части по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Дать мозгу две функции: <code>spawn</code> запускает программу через ядро, <code>wait</code> ждёт её и возвращает код завершения или поднимает исключение.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>["python", …]</b><small>список</small></span><span><b>argv</b><small>массив с NULL</small></span><span><b>core_spawn</b><small>запуск</small></span><span><b>core_wait</b><small>код</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">class</span> <span class="f">CoreChild</span>(ctypes.Structure):
+    _fields_ = [
+        (<span class="s">&quot;pid&quot;</span>, ctypes.c_int64),
+        (<span class="s">&quot;handle&quot;</span>, ctypes.c_int64),
+    ]
+
+core.core_spawn.argtypes = [ctypes.<span class="f">POINTER</span>(ctypes.c_char_p), ctypes.<span class="f">POINTER</span>(CoreChild)]
+core.core_spawn.restype = ctypes.c_int
+core.core_wait.argtypes = [ctypes.<span class="f">POINTER</span>(CoreChild), ctypes.c_int32, ctypes.<span class="f">POINTER</span>(ctypes.c_int32)]
+core.core_wait.restype = ctypes.c_int
+
+<span class="k">def</span> <span class="f">spawn</span>(args):
+    argv = (ctypes.c_char_p * (<span class="f">len</span>(args) + <span class="n">1</span>))(*[a.<span class="f">encode</span>(<span class="s">&quot;utf-8&quot;</span>) <span class="k">for</span> a <span class="k">in</span> args], <span class="k">None</span>)
+    child = <span class="f">CoreChild</span>()
+    err = core.<span class="f">core_spawn</span>(argv, ctypes.<span class="f">byref</span>(child))
+    <span class="k">if</span> err != <span class="n">0</span>:
+        <span class="k">raise</span> <span class="f">OSError</span>(err, <span class="f">error_text</span>(err))
+    <span class="k">return</span> child
+
+<span class="k">def</span> <span class="f">wait</span>(child, timeout_ms=-<span class="n">1</span>):
+    code = ctypes.<span class="f">c_int32</span>()
+    err = core.<span class="f">core_wait</span>(ctypes.<span class="f">byref</span>(child), timeout_ms, ctypes.<span class="f">byref</span>(code))
+    <span class="k">if</span> err != <span class="n">0</span>:
+        <span class="k">raise</span> <span class="f">OSError</span>(err, <span class="f">error_text</span>(err))
+    <span class="k">return</span> code.value</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-5"><b>Описать struct core_child</b><p>Те же два поля по 8 байт, что в <code>core.h</code>: номер процесса и дескриптор.</p></li>
+              <li data-lines="7-10"><b>Описать функции ядра</b><p><code>ctypes.POINTER(ctypes.c_char_p)</code> — адрес массива строк, это <code>char *const argv[]</code> на стороне C. Остальные типы — как в главе 2.1.</p></li>
+              <li data-lines="12-18"><b>spawn: список Python → argv</b><p><code>ctypes.c_char_p * (len(args) + 1)</code> — тип «массив строк на одно место больше списка». Последнее место — <code>None</code>, в C это <code>NULL</code>, конец списка. Строки Python переводятся в байты UTF-8 через <code>encode</code>. Из <code>["python", "-c", "…"]</code> получается массив из четырёх элементов, последний — пустой адрес.</p><p>Если ядро вернуло не 0, функция поднимает <code>OSError</code> с кодом и текстом, как <code>get_info</code>.</p></li>
+              <li data-lines="20-25"><b>wait: ждать и вернуть код</b><p><code>timeout_ms=-1</code> по умолчанию — ждать сколько потребуется. Код завершения ребёнка ядро записывает в <code>code</code>, функция возвращает его обычным числом Python.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p>Блок запуска в конце файла меняется: мозг запускает ребёнка — второй Python, который ждёт секунду и завершается с кодом 3. Пока ребёнок работает, мозг берёт список процессов и строит цепочку родителей уже от ребёнка, а затем ждёт его код не дольше 5 секунд:</p>
+        <figure class="code">
+          <figcaption><span>agent/brain/brain.py · блок запуска</span></figcaption>
+<pre><span class="k">if</span> __name__ == <span class="s">&quot;__main__&quot;</span>:
+    child = <span class="f">spawn</span>([sys.executable, <span class="s">&quot;-c&quot;</span>, <span class="s">&quot;import time; time.sleep(1); raise SystemExit(3)&quot;</span>])
+    procs = <span class="f">list_procs</span>()
+    chain = <span class="f">parents</span>(procs, child.pid)
+    code = <span class="f">wait</span>(child, <span class="n">5000</span>)
+    message = {<span class="s">&quot;event&quot;</span>: <span class="s">&quot;agent_started&quot;</span>, <span class="s">&quot;os&quot;</span>: sys.platform, **<span class="f">get_info</span>(),
+               <span class="s">&quot;procs&quot;</span>: <span class="f">len</span>(procs), <span class="s">&quot;child&quot;</span>: child.pid, <span class="s">&quot;child_code&quot;</span>: code,
+               <span class="s">&quot;parents&quot;</span>: [p[<span class="s">&quot;name&quot;</span>] <span class="k">for</span> p <span class="k">in</span> chain]}
+    <span class="f">print</span>(json.<span class="f">dumps</span>(message, ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+    <span class="k">if</span> <span class="f">len</span>(sys.argv) &gt; <span class="n">1</span>:
+        status, body = <span class="f">send</span>(message, sys.argv[<span class="n">1</span>])
+        <span class="f">print</span>(<span class="s">&quot;n8n:&quot;</span>, status, body)</pre>
+        </figure>
+        <p><code>sys.executable</code> — полный путь к интерпретатору Python, который выполняет <code>brain.py</code>: ребёнок запускается тем же Python. <code>raise SystemExit(3)</code> завершает программу с кодом 3.</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cd ..\brain
+python brain.py</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>cd ../brain
+python3 brain.py</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>cd ../brain
+python3 brain.py</pre>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/04-brain.png" alt="терминал: JSON с child 4448, child_code 3 и цепочкой parents" loading="lazy">
+          <figcaption><span class="mk">1</span> Ребёнок — процесс 4448, его код 3. <span class="mk">2</span> Цепочка родителей ребёнка: <code>python.exe</code> ребёнка, <code>python.exe</code> мозга, <code>cmd.exe</code> терминала, два <code>Code.exe</code>, <code>cmd.exe</code> и <code>explorer.exe</code>.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/04-brain.png" alt="brain.py с функциями spawn и wait, в терминале child 88861, child_code 3 и цепочка parents" loading="lazy">
+          <figcaption><span class="mk">1</span> Функции <code>spawn</code> и <code>wait</code>. <span class="mk">2</span> Ребёнок — процесс 88861, его код 3. <span class="mk">3</span> Цепочка родителей ребёнка: <code>python3.9</code> ребёнка, <code>Python</code> мозга, <code>zsh</code>, VS Code, <code>launchd</code>, <code>kernel_task</code>.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/04-brain.png" alt="brain.py с функциями spawn и wait, в терминале child 484, child_code 3 и цепочка parents" loading="lazy">
+          <figcaption><span class="mk">1</span> Функции <code>spawn</code> и <code>wait</code>. <span class="mk">2</span> Ребёнок — процесс 484, его код 3. <span class="mk">3</span> Цепочка родителей ребёнка: два <code>python3</code>, <code>bash</code>, два процесса VS Code и <code>sleep</code> — процесс 1 контейнера.</figcaption>
+        </figure>
+        <p>Первые два имени цепочки — ребёнок и сам мозг: ребёнка запустило ядро агента, загруженное в процесс мозга, поэтому родитель ребёнка — процесс Python с <code>brain.py</code>. Дальше идёт та же цепочка, что в главе 2.1: терминал, VS Code и процессы системы.</p>
+        <div data-os="mac"><p>Имена ребёнка и мозга разные: команда <code>python3</code> в этом терминале — короткий запускатель, который запускает интерпретатор <code>Python</code>. <code>sys.executable</code> указывает на сам интерпретатор <code>python3.9</code>, его и запускает ядро агента.</p></div>
+        <p class="step-done"><b>Что получилось.</b>Мозг запускает программу через ядро, находит её в списке процессов своим ребёнком и получает её код. Осталось отправить работу в репозиторий.</p>
+
+        <h2 id="s7"><span class="sec">§7</span>Шаг 6. Отправить в репозиторий</h2>
+        <p>В репозиторий уходят исходники: <code>core.h</code>, <code>core_spawn.c</code>, <code>run_child.c</code> и <code>brain.py</code>. В <code>agent/core/README.md</code> дописываем строку о <code>core_spawn.c</code> и сборке библиотеки из трёх файлов.</p>
+        <figure class="code">
+          <figcaption><span>терминал в папке sysprog-start</span><span>то же, что плюс, Commit и Sync Changes</span></figcaption>
+<pre>git add agent/core/core.h agent/core/core_spawn.c agent/core/run_child.c agent/core/README.md agent/brain/brain.py
+git commit -m "core: core_spawn и core_wait — запуск процесса, brain: spawn и wait"
+git push</pre>
+        </figure>
+        <p>Перед <code>git add</code> посмотрите <code>git status</code>: если в списке есть собранная <span data-os="win"><code>run_child.exe</code> или <code>run_child.lib</code></span><span data-os="mac linux"><code>run_child</code></span>, допишите её в <code>.gitignore</code>. После отправки «Проверки» собирают библиотеку из всех файлов <code>agent/core/*.c</code> без <code>main</code>, теперь вместе с <code>core_spawn.c</code>, и проверка 1 из главы 2.1 проходит на новой библиотеке.</p>
+        <p class="step-done"><b>Что получилось.</b>Ядро и мозг с запуском процессов в репозитории. Последняя часть — что проверять, если код запуска пишет помощник ИИ.</p>
+
+        <div class="part" role="separator"><span><b>3</b>Код от помощника ИИ</span></div>
+        <h2 id="s8"><span class="sec">§8</span>Запрос к помощнику ИИ</h2>
+        <p>Код запуска процесса помощник ИИ пишет быстро и обычно рабочий: программа запускается, код приходит. Ошибка проявляется через много запусков: система копит записи о процессах, которые никто не освободил. Запрос в режиме Р2 из главы 0.3, когда код целиком пишет помощник:</p>
+        <figure class="code">
+          <figcaption><span>запрос помощнику</span></figcaption>
+<pre>Вот core.h. Напиши core_spawn и core_wait для <span data-os="win">Windows</span><span data-os="mac">macOS</span><span data-os="linux">Linux</span>: запустить программу по argv,
+вернуть номер процесса, дождаться завершения с пределом времени и вернуть код завершения.</pre>
+        </figure>
+        <p>Проверить такой код помогает программа <code>leak.c</code>: она 20 раз запускает короткую программу через <code>core_spawn</code> и ни разу не вызывает <code>core_wait</code>. До и после запусков она печатает, сколько у неё <span data-os="win">открытых дескрипторов — функция <code>GetProcessHandleCount</code></span><span data-os="mac linux">детей-зомби. <span class="term">Зомби</span> — завершившийся процесс, код которого родитель ещё не забрал: от процесса осталась только запись в системе с номером и кодом. Программа считает их по выводу <code>ps</code>: у зомби в столбце состояния буква <code>Z</code></span>.</p>
+        <figure class="code" data-os="win mac linux">
+          <figcaption><span>agent/core/leak.c · все системы</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+#ifdef _WIN32
+<span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+#else
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+<span class="k">#endif</span>
+
+<span class="k">#define</span> N <span class="n">20</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">report</span>(<span class="k">const</span> <span class="k">char</span> *when) {
+#ifdef _WIN32
+    <span class="t">DWORD</span> handles = <span class="n">0</span>;
+    <span class="f">GetProcessHandleCount</span>(<span class="f">GetCurrentProcess</span>(), &amp;handles);
+    <span class="f">printf</span>(<span class="s">&quot;%s: handles %lu\n&quot;</span>, when, (<span class="k">unsigned</span> <span class="k">long</span>)handles);
+#else
+    <span class="k">int</span> ppid, zombies = <span class="n">0</span>;
+    <span class="k">char</span> stat[<span class="n">8</span>];
+    FILE *ps = <span class="f">popen</span>(<span class="s">&quot;ps -A -o ppid=,stat=&quot;</span>, <span class="s">&quot;r&quot;</span>);
+    while (ps != NULL &amp;&amp; <span class="f">fscanf</span>(ps, <span class="s">&quot;%d %7s&quot;</span>, &amp;ppid, stat) == <span class="n">2</span>)
+        <span class="k">if</span> (ppid == (<span class="k">int</span>)<span class="f">getpid</span>() &amp;&amp; stat[<span class="n">0</span>] == <span class="s">&#x27;Z&#x27;</span>)
+            zombies++;
+    <span class="k">if</span> (ps != NULL)
+        <span class="f">pclose</span>(ps);
+    <span class="f">printf</span>(<span class="s">&quot;%s: zombies %d\n&quot;</span>, when, zombies);
+<span class="k">#endif</span>
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+#ifdef _WIN32
+    <span class="k">char</span> *args[] = {<span class="s">&quot;cmd&quot;</span>, <span class="s">&quot;/c&quot;</span>, <span class="s">&quot;exit&quot;</span>, NULL};
+#else
+    <span class="k">char</span> *args[] = {<span class="s">&quot;true&quot;</span>, NULL};
+<span class="k">#endif</span>
+    <span class="k">struct</span> core_child child;
+
+    <span class="f">report</span>(<span class="s">&quot;before&quot;</span>);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; N; i++)
+        <span class="f">core_spawn</span>(args, &amp;child);
+#ifdef _WIN32
+    <span class="f">Sleep</span>(<span class="n">1000</span>);
+#else
+    <span class="f">sleep</span>(<span class="n">1</span>);
+<span class="k">#endif</span>
+    <span class="f">report</span>(<span class="s">&quot;after 20 core_spawn without core_wait&quot;</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 leak.c core_spawn.c
+leak.exe</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>clang -Wall -Wextra -o leak leak.c core_spawn.c
+./leak</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>gcc -Wall -Wextra -o leak leak.c core_spawn.c
+./leak</pre>
+        </figure>
+        <div data-os="win"><p>Для сравнения собрана вторая программа, <code>leak_ai.exe</code>, с ядром, где пропущена строка <code>CloseHandle(pi.hThread)</code> — частая ошибка в коде от помощника. Файл <code>ai_spawn.c</code> получен из <code>core_spawn.c</code> командой <code>findstr /v /c:"CloseHandle(pi.hThread)" core_spawn.c &gt; ai_spawn.c</code>: <code>findstr /v</code> оставляет все строки, кроме найденной.</p></div>
+        <figure class="shot" data-os="win">
+          <img src="img/win/05-leak.png" alt="терминал: leak.exe handles 44 и 72, leak_ai.exe handles 44 и 92" loading="lazy">
+          <figcaption><span class="mk">1</span> Ядро главы: было 44 дескриптора, стало 72. <span class="mk">2</span> Ядро без <code>CloseHandle(pi.hThread)</code>: было 44, стало 92.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/05-leak.png" alt="leak.c с циклом core_spawn, в терминале zombies 0 и zombies 20" loading="lazy">
+          <figcaption><span class="mk">1</span> 20 запусков без <code>core_wait</code>. <span class="mk">2</span> Зомби: было 0, стало 20.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/05-leak.png" alt="leak.c с циклом core_spawn, в терминале zombies 0 и zombies 20" loading="lazy">
+          <figcaption><span class="mk">1</span> 20 запусков без <code>core_wait</code>. <span class="mk">2</span> Зомби: было 0, стало 20.</figcaption>
+        </figure>
+        <p>Числа с кадров всех трёх систем сведены в таблицу:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Что остаётся после 20 запусков без core_wait</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th>Система</th><th>До</th><th>После</th><th>Что накопилось</th></tr></thead><tbody><tr><td>Windows, ядро главы</td><td>44 дескриптора</td><td class="is-bad">72</td><td>20 дескрипторов процессов и 8 других</td></tr><tr><td>Windows, без <code>CloseHandle(pi.hThread)</code></td><td>44 дескриптора</td><td class="is-bad">92</td><td>ещё 20 дескрипторов потоков</td></tr><tr><td>macOS</td><td>0 зомби</td><td class="is-bad">20</td><td>20 записей о завершившихся детях</td></tr><tr><td>Linux</td><td>0 зомби</td><td class="is-bad">20</td><td>20 записей о завершившихся детях</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note">Числа — из запусков <code>leak.c</code> на кадре: Windows 11 в ВМ, macOS 26, Linux в контейнере.</p>
+        </figure>
+        <p>Каждый запуск без ожидания оставляет в системе след. <span data-os="win">В Windows это открытый дескриптор процесса: 20 запусков — 20 дескрипторов процессов. Ещё 8 дескрипторов программа открыла по ходу работы для своих нужд. Если ядро вдобавок не закрывает дескриптор потока, на каждый запуск остаётся два дескриптора, и рост вдвое больше: 48 против 28.</span><span data-os="mac linux">В macOS и Linux это зомби: ребёнок завершился, а запись о нём остаётся до вызова <code>waitpid</code>. 20 запусков — 20 зомби.</span> Записи исчезают, только когда завершается сам родитель. Агент работает неделями, поэтому у него они копятся без конца.</p>
+        <ul class="checklist">
+          <li><span data-os="win">после <code>CreateProcessW</code> дескриптор потока закрывается, а дескриптор процесса — после того, как код прочитан;</span><span data-os="mac linux">после <code>posix_spawnp</code> на каждом пути кода есть <code>waitpid</code>, иначе ребёнок станет зомби;</span></li>
+          <li>ожидание идёт с пределом времени, и «время вышло» возвращается отдельным кодом, отличным от нуля;</li>
+          <li>код ребёнка разбирается: <span data-os="win"><code>GetExitCodeProcess</code> после <code>WaitForSingleObject</code></span><span data-os="mac linux">через <code>WIFEXITED</code> и <code>WEXITSTATUS</code>: в числе <code>status</code> код упакован вместе с другими сведениями</span>;</li>
+          <li><code>leak.c</code> после 20 запусков с <code>core_wait</code> показывает то же число, что до них.</li>
+        </ul>
+        <p>Первые три пункта проверяются чтением кода, последний — запуском.</p>
+
+        <div class="part" role="separator"><span><b>4</b>Справка</span></div>
+        <h2 id="s9"><span class="sec">§9</span>Справка: функции и команды</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Что нужно</th><th>Windows</th><th>macOS</th><th>Linux</th></tr></thead>
+            <tbody>
+              <tr><td>Запустить программу</td><td><code>CreateProcessW</code></td><td colspan="2"><code>posix_spawnp</code> (под ним копия процесса и <code>execve</code>)</td></tr>
+              <tr><td>Чем держат процесс</td><td>дескриптор процесса</td><td colspan="2">номер процесса</td></tr>
+              <tr><td>Дождаться</td><td><code>WaitForSingleObject</code></td><td colspan="2"><code>waitpid</code>, с <code>WNOHANG</code> — без ожидания</td></tr>
+              <tr><td>Код завершения</td><td><code>GetExitCodeProcess</code></td><td colspan="2"><code>WIFEXITED</code>, <code>WEXITSTATUS</code>; сигнал — <code>128 + WTERMSIG</code></td></tr>
+              <tr><td>Освободить запись</td><td><code>CloseHandle</code> дескриптора процесса</td><td colspan="2"><code>waitpid</code></td></tr>
+              <tr><td>«Время вышло»</td><td>258 <code>WAIT_TIMEOUT</code></td><td>60 <code>ETIMEDOUT</code></td><td>110 <code>ETIMEDOUT</code></td></tr>
+              <tr><td>«Программы нет»</td><td>2 <code>ERROR_FILE_NOT_FOUND</code></td><td colspan="2">2 <code>ENOENT</code></td></tr>
+              <tr><td>Собрать библиотеку</td><td><code>cl /LD core_info.c core_procs.c core_spawn.c</code></td><td><code>clang -shared -fPIC …</code></td><td><code>gcc -shared -fPIC …</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="part" role="separator"><span><b>5</b>Проверка себя</span></div>
+        <h2 id="s10"><span class="sec">§10</span>Частые вопросы</h2>
+        <div class="myths">
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Завершившийся процесс исчезает из системы сразу.</div>
+            <div class="myth__yes"><b>На самом деле</b>Запись о нём с кодом завершения остаётся, пока родитель её не освободит: закроет дескриптор в Windows или вызовет <code>waitpid</code> в macOS и Linux. В шаге <code>leak.c</code> таких записей набралось 20.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Если время ожидания вышло, ребёнок завершён.</div>
+            <div class="myth__yes"><b>На самом деле</b>Ребёнок продолжает работать. В шаге 4 <code>run_child</code> завершилась, а процесс с <span data-os="win"><code>ping</code></span><span data-os="mac linux"><code>sleep</code></span> работал дальше.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Код ошибки «время вышло» одинаков на всех системах.</div>
+            <div class="myth__yes"><b>На самом деле</b>258 в Windows, 60 в macOS, 110 в Linux. Одинаков на трёх системах только код 2, «нет такого файла».</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Чтобы запустить программу, ей передают одну строку команды.</div>
+            <div class="myth__yes"><b>На самом деле</b>В macOS и Linux программа получает список аргументов. В Windows — одну строку, и ядро агента склеивает её из списка, беря в кавычки аргументы с пробелами.</div>
+          </div>
+        </div>
+
+        <h2 id="s11"><span class="sec">§11</span>Проверьте себя</h2>
+        <details>
+          <summary>Какого размера <code>struct core_child</code> и что в её полях на каждой системе?</summary>
+          <p>16 байт: номер процесса и дескриптор, по 8 байт. В Windows <code>handle</code> — дескриптор процесса от <code>CreateProcessW</code>, в macOS и Linux — 0.</p>
+        </details>
+        <details>
+          <summary>Почему в Windows дескриптор потока закрывают сразу после запуска, а дескриптор процесса — нет?</summary>
+          <p>Поток ядру агента не нужен. Дескриптор процесса нужен <code>core_wait</code>: по нему ждут процесс и читают код завершения. Его закрывают после того, как код прочитан.</p>
+        </details>
+        <details>
+          <summary>Что делает флаг <code>WNOHANG</code> в <code>waitpid</code>?</summary>
+          <p>Вызов отвечает сразу: номер ребёнка, если он завершился, или 0, если ещё работает. Поэтому <code>core_wait</code> может ждать с пределом времени, спрашивая каждые 10 мс.</p>
+        </details>
+        <details>
+          <summary>Что вернёт <code>core_wait</code>, если ребёнка убили сигналом 9?</summary>
+          <p>0, а в <code>exit_code</code> — 137: процесс завершён сигналом, и ядро агента записывает <code>128 + 9</code>, как оболочки. Проверка — <code>run_child 2000 sh -c 'kill -9 $$'</code> в macOS или Linux.</p>
+        </details>
+        <details>
+          <summary>Что такое зомби и как его убрать?</summary>
+          <p>Завершившийся процесс, код которого родитель не забрал. Убирает его родитель вызовом <code>waitpid</code>. Если родитель завершился, зомби достаётся новому родителю, и тот его забирает.</p>
+        </details>
+        <details>
+          <summary>Почему первые два имени в цепочке родителей ребёнка — Python?</summary>
+          <p>Ребёнок — второй Python, а запустило его ядро агента, загруженное в процесс мозга. Ядро работает внутри Python, поэтому родитель ребёнка — процесс Python с <code>brain.py</code>.</p>
+        </details>
+
+        <h2 id="s12"><span class="sec">§12</span>Шпаргалка по главе</h2>
+        <div class="cheat">
+          <div><b>Запущенный процесс</b><span><code>struct core_child</code>: <code>pid</code>, <code>handle</code></span><span>16 байт</span></div>
+          <div><b>Запуск</b><span><code>core_spawn(argv, &amp;child)</code></span><span data-os="win"><code>CreateProcessW</code>, поток закрыть сразу</span><span data-os="mac linux"><code>posix_spawnp</code></span></div>
+          <div><b>Ожидание</b><span><code>core_wait(&amp;child, ms, &amp;code)</code></span><span data-os="win"><code>WaitForSingleObject</code> + <code>GetExitCodeProcess</code></span><span data-os="mac linux"><code>waitpid</code> с <code>WNOHANG</code></span></div>
+          <div><b>Коды</b><span>нет программы — 2</span><span>время вышло — <span data-os="win">258</span><span data-os="mac">60</span><span data-os="linux">110</span></span></div>
+          <div><b>Мозг</b><span><code>spawn([…])</code> — процесс</span><span><code>wait(child, 5000)</code> — код</span></div>
+          <div><b>Утечка</b><span>запуск без ожидания</span><span data-os="win">открытые дескрипторы</span><span data-os="mac linux">зомби</span></div>
+        </div>
+
+        <h3>Итог главы</h3>
+        <p>Ядро агента получило две функции. <code>core_spawn</code> запускает программу по списку аргументов: в Windows — <code>CreateProcessW</code> по командной строке, склеенной из списка, в macOS и Linux — <code>posix_spawnp</code>. <code>core_wait</code> ждёт ребёнка с пределом времени и возвращает его код: в Windows через дескриптор процесса, в macOS и Linux через <code>waitpid</code>. Программа <code>run_child.c</code> показала три исхода: код 7, «время вышло» с кодом <span data-os="win">258</span><span data-os="mac">60</span><span data-os="linux">110</span> и «программы нет» с кодом 2. Мозг запустил второй Python, увидел его своим ребёнком в списке процессов и получил код 3. Программа <code>leak.c</code> показала, что запуск без ожидания оставляет в системе след: <span data-os="win">20 дескрипторов процессов, а без <code>CloseHandle(pi.hThread)</code> — ещё 20 дескрипторов потоков</span><span data-os="mac linux">20 зомби</span>.</p>
+
+        <div class="sources">
+          <b>Откуда взяты факты</b>
+          <ol>
+            <li>Кадры и выводы: macOS 26.1, Apple clang 17, Python 3.9 из Command Line Tools; Linux — контейнер Debian 13, gcc 14.4, Python 3.13; Windows 11 ARM64 в VirtualBox, MSVC 19.44 (ядро и программы собраны для ARM64), Python 3.14 для ARM64; VS Code 1.144. Код также проверен на windows-latest в GitHub Actions (x64).</li>
+            <li><code>CreateProcessW</code>, порядок поиска программы, <code>PROCESS_INFORMATION</code> — <a href="https://learn.microsoft.com/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw">Microsoft Learn, CreateProcessW</a>; <code>WaitForSingleObject</code>, <code>GetExitCodeProcess</code>, <code>GetProcessHandleCount</code> — Microsoft Learn; коды 2, 87, 258 — <a href="https://learn.microsoft.com/windows/win32/debug/system-error-codes--0-499-">System Error Codes</a>.</li>
+            <li><code>posix_spawnp</code> — <a href="https://man7.org/linux/man-pages/man3/posix_spawn.3.html">man 3 posix_spawn</a>; <code>waitpid</code>, <code>WNOHANG</code>, <code>WIFEXITED</code>, зомби — <a href="https://man7.org/linux/man-pages/man2/wait.2.html">man 2 wait</a>.</li>
+            <li><code>ETIMEDOUT</code> 60 и 110 — <code>sys/errno.h</code> SDK macOS и <a href="https://man7.org/linux/man-pages/man3/errno.3.html">man 3 errno</a>.</li>
+          </ol>
+        </div>
+
+        <div class="pager">
+          <a href="../15-laboratornaya-5/index.html">← ЛР 5 Рождение процесса</a>
+          <a href="../../index.html">Оглавление</a>
+        </div>
+
+        <div class="colophon">
+          <span>Глава 2.2 · Запуск процесса · Справочник по системному программированию</span>
+          <span class="author-line">Автор: Макаров Максим Николаевич</span>
+        </div>
+
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+</body>
+</html>
