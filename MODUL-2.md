@@ -37,3 +37,28 @@ agent/core/*.c без main (`build_core`, общая с «Модуль 1 · agen
 в списке с ppid = os.getppid() и именем python; сверка с `ps -A -o pid=,ppid=` / Win32_Process: пропущенных и лишних ≤ max(5, 10%),
 ppid совпал у ≥ 95% общих. Прогнано: macOS (642/643), Linux gcc:14 (3/4), Windows — workflow checks1.yml в sysprog-win-shots (141/142);
 испорченный ppid ловится, ядро Linux на macOS — «пропущено». Дальше — пара 5 (ЛР 5, глава 2.2).
+
+## Пара 5 (в работе, 08.11.2026)
+
+Код главы 2.2 — `tools/src22`: `core.h` + `struct core_child {pid, handle}`, `core_spawn(argv, &child)` и `core_wait(&child, timeout_ms, &code)`;
+`win/core_spawn.c` (argv → командная строка UTF-16, аргумент с пробелом в кавычках, CreateProcessW, hThread закрывается сразу, hProcess — в
+handle до core_wait), `posix/core_spawn.c` (posix_spawnp + waitpid WNOHANG шагами по 10 мс; сигнал → 128 + номер), `run_child.c`, `py/brain.py`
+(spawn/wait, ребёнок-Python с кодом 3, цепочка родителей ребёнка). Проверено: macOS, Linux gcc:14, Windows (workflow m22.yml в sysprog-win-shots).
+Коды: «нет программы» 2 везде; «время вышло» 258 / 60 / 110; kill -9 → 137. Утечки для темы ИИ: Windows — не закрыт hThread/hProcess,
+POSIX — нет waitpid → зомби.
+ЛР 5 «Рождение процесса»: Process Monitor / fs_usage (sudo; на Mac автора правило /etc/sudoers.d/fs_usage только для /usr/bin/fs_usage — снять после съёмки) / strace.
+ЛР 5, план из 5 шагов (одинаков на трёх системах, программа — `hostname`: ping под strace теряет cap_net_raw и выходит с кодом 2):
+1 рождение (bash → clone → execve → exit_group → wait4), 2 библиотеки (openat: ld.so.cache, libc.so.6), 3 код 7 (`sh -c "exit 7"`),
+4 нет программы (`env nosuch`: execve по 10 папкам PATH, ENOENT, код 127), 5 Python subprocess (clone CLONE_VM|CLONE_VFORK, execve по PATH, wait4).
+Кадры Linux сняты 08.11 (`~/sysprog-shots/l5linux.txt` → raw/lab5/linux/01-birth…05-python; bash 3861 → hostname 3862; sh 3873 код 7; python 3883 → 3884).
+Windows: Process Monitor на ISO `~/sysprog-shots/win/procmon.iso` (Procmon64a.exe) — подключить к Win11-lab как DVD.
+Кадры Windows ЛР 5 сняты 08.11 (ВМ Win11-lab, Process Monitor 64a в C:\Users\user\ProcessMonitor, raw/lab5/win): 00-filter (Process Name is
+HOSTNAME.EXE / cmd.exe / python.exe + Event Class is Process), 01-birth (cmd 1988 Process Create → HOSTNAME 804, Process Start Parent PID 1988),
+01b-start (свойства Process Start: Parent PID, Command line, Current directory, Environment), 02-libs (18 Load Image, Process Exit 0),
+03-exit (cmd 1988 → cmd 7940, Exit Status 7), 04-path (`nosuch`: 11 QueryDirectory NO SUCH FILE, без Process Create; код cmd 9009 — 04-cmd),
+05-python (python 8364 Process Create → hostname 1492). После сна Mac на кадрах появилась надпись «Активация Windows» (с 04-path) — важные строки выше неё.
+Фильтр Procmon с клавиатуры: Ctrl+L, Tab Tab → столбец (набрать «Proc»), Tab Tab → значение, Alt+A; отношение — набрать первую букву после Shift+Tab.
+ЛР 5 (09.11): страница `temy/15-laboratornaya-5` (генератор `tools/lab5.py`, рамки `tools/src_lab5/mark5.py` + `marks5.json`), шаг 1 Windows —
+три кадра (lab_build.shot принимает список). Тексты macOS — «Заполняется после съёмки кадра», кадры macOS — места `todo:`.
+Шаблон (не закоммичен): labs/05-process-birth (README, report.md, 5 заглушек), строка в labs/README.md, LABS в run_checks.py, SNAPS в snaps.py.
+Осталось: кадры macOS (fs_usage, ждёт правила sudoers от пользователя), ссылка в index.html, глава 2.2 (`temy/16-zapusk-processa`), вычитка, коммиты.

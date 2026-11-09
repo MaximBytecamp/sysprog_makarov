@@ -25,6 +25,8 @@ def block(v, render):
 
 
 def shot(s, os_):
+    if isinstance(s, (list, tuple)):
+        return ''.join(shot(one, os_) for one in s)
     if s.startswith('todo:'):
         return f'<div class="shot-todo"><b>Место под кадр · {dict(win="Windows", mac="macOS", linux="Linux")[os_]}</b><p>{s[5:]}</p></div>'
     return f'<img src="img/{os_}/{s}" alt="" loading="lazy">'

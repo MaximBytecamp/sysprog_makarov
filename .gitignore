@@ -6,3 +6,8 @@ tools/src21/agent/
 *.dll
 # кадры проверки ВМ
 tools/win/
+tools/src22/**/core_info.c
+tools/src22/agent/
+tools/src22/lin/
+tools/src22/mac/run_child
+tools/src_lab5/mac5.ids

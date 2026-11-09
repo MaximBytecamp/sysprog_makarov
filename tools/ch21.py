@@ -425,6 +425,7 @@ S.append(f'''
         <div class="pager">
           <a href="../13-laboratornaya-4/index.html">← ЛР 4 Дерево процессов</a>
           <a href="../../index.html">Оглавление</a>
+          <a href="../15-laboratornaya-5/index.html">ЛР 5 Рождение процесса →</a>
         </div>
 
         <div class="colophon">

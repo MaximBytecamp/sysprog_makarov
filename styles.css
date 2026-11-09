@@ -757,6 +757,7 @@ table.labmap td:nth-child(2) b { font-size: 15px; }
 .lab__do code, .lab__do kbd { background: rgba(255,255,255,.12); color: #fff; padding: 1px 5px; font-family: var(--mono); font-size: .92em; }
 .lab__shot { margin: 0; padding: 14px 16px 0; }
 .lab__shot img { display: block; width: 100%; height: auto; border: 2px solid var(--ink); cursor: zoom-in; }
+.lab__shot img + img { margin-top: 12px; }
 .lab__shot .shot-todo { margin: 0; }
 .lab__notes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; margin: 14px 16px 16px; border: 2px solid var(--rule); }
 .lab__notes > div { padding: 10px 12px; font-size: 14.5px; line-height: 1.55; }
