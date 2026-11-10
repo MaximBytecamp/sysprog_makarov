@@ -76,3 +76,53 @@ linux: python3, python3, bash, code, code, sleep; win: python.exe ×2, cmd.exe, 
 **Пара 5 закрыта 09.11:** ЛР 5 (04aec18), глава 2.2 `temy/16-zapusk-processa` (ea119ec, вычитана), шаблон — labs/05-process-birth (b80351f),
 конспект 2.2 и agent/README (0c4962e). Проверки шаблона на ядре 2.2 проходят (build_core берёт core_spawn.c, run_child.c и leak.c с main пропускает).
 Дальше — пара 6: ЛР 6 «Кто загружает процессор», глава 2.3 «Процессорное время», проверка 2 «Процесс загружает процессор больше 80%».
+
+## Пара 6 (в работе, 09.11.2026)
+
+Код главы 2.3 — `tools/src23`: `struct core_cpu {user_us, kernel_us}`, `core_proc_cpu(pid, &out)`: Windows — OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)
++ GetProcessTimes (FILETIME по 100 нс → /10); macOS — proc_pidinfo(PROC_PIDTASKINFO), pti_total_* в тиках Mach × numer/denom (без перевода
+нагрузка 2% вместо 99%); Linux — /proc/PID/stat поля 14–15 в тиках CLK_TCK = 100 (шаг 10 мс). Ошибки «нет процесса»: 87 / 3 ESRCH / 2 ENOENT;
+macOS — чужой процесс 1 → 1 EPERM. `cpu_top.c` — программа проверки; brain.py: proc_cpu, cpu_load(interval) — два снимка, % одного ядра;
+ребёнок-нагрузка 99 / 99 / 98%. Проверка 2 (`check_agent2`, в шаблоне не закоммичена, OPENED пока 1): нагрузка и спящий Python, замер 3 с,
+нагрузка ≥ 80% и ≤ 120%, спящий ≤ 10%, номер 2147483646 → ошибка; прогон checks1.yml: Linux 100, macOS 97, Windows 88 (2 ядра).
+Находка: в Windows Popen держит дескриптор завершённого процесса — GetProcessTimes по нему работает (как в главе 2.2).
+ЛР 6 кадры (09.11): Linux — ВМ Ubuntu (2 ядра, htop нет — top и `1`; gnome-system-monitor: вкладка Resources — Alt+2, ключ -r окна не открывает;
+после трёх нагрузок на 2 ядрах ядро ВМ залипло — процессы в D на synchronize_rcu_norm, помог только poweroff): raw/lab6/linux 01-top (python3 100%),
+02-graph (нагрузка прыгает CPU1↔CPU2), 03-two, 04-taskset (Cpu0 99,5%, Cpu1 ~0, по 49,8%), 05-time (ps TIME 10→13 с за ~5 с), 06-stop.
+Windows — ВМ (4 ядра): 01-tm (Диспетчер задач, Python 25,2%), 02-resmon (Монитор ресурсов: ЦП 25, потоков 3, график ЦП 0 рваный),
+03-tm (график 27% → 54%), 04-affinity (start /affinity 1: по 12–13%, ЦП 0 = 100%, всего 26%), 05-time (Get-Process CPU 85,02 → 87,48 за 5 с),
+06-stop (ЦП 0 обрывается). Графики по логическим процессорам в Диспетчере с клавиатуры не включаются — поэтому resmon.
+macOS: taskpolicy -b — цикл 10,4 млн против 54,7 млн оборотов за 3 с (E-ядра; 4 P + 6 E).
+ЛР 6 macOS (09.11, 10:00): съёмка остановлена — пользователь работал в VS Code на полноэкранном столе, окна Мониторинга и Терминала уходили
+на другой стол (screencapture -l: could not create image), а вставка Cmd+V из front_am попала в поле чата VS Code. Не снимать macOS с
+Мониторингом, пока пользователь не освободит рабочий стол; скрипт — tools/src_lab6_mac.py (setup, front_am, flat, pair, history; повтор поиска окна).
+Владелец окон Мониторинга в CGWindowList — «Мониторинг систе» (обрезано), сравнивать по началу.
+ЛР 6 macOS снята 11.11 (raw/lab6/mac): 01-am (Python 98,5%), 02-history (Терминал + «История ЦП»: нагрузка ходит по ядрам
+производительности 7–10; 6 ядер эффективности + 4 производительности), 03-two (два Python по 98%), 04-taskpolicy (`taskpolicy -b`,
+по графику видно плохо) и 04b-count (цикл за 3 с: 57 815 873 обычно против 12 831 263 с `taskpolicy -b`), 05-time (`ps -o pid,time,%cpu,comm -p $!`:
+0:03.96 → 0:09.02 за ~5 с), 06-stop (`kill %1`, ядра затихают). Особенности съёмки: VS Code на отдельном столе — перед каждым снимком
+`open -a "Activity Monitor"`; окно «История ЦП» — слой 3, фильтр по слою 0 его не видит, искать по имени во всех окнах; управляющий
+скрипт не передавать через `python3 -c` со строкой «while True» — `pkill -f` убивает и его.
+ЛР 6 написана 11.11 (не закоммичено): `tools/lab6.py` → `temy/17-laboratornaya-6`, рамки — `tools/src_lab6/mark6.py` + marks6.json
+(Linux/Windows — координаты копии шириной 1200, macOS — пиксели кадра). Шесть шагов: одна нагрузка, графики по ядрам, вторая нагрузка,
+одно ядро (taskset -c 0 / start /b /affinity 1 / macOS taskpolicy -b и счёт оборотов), процессорное время двумя замерами, остановка.
+Три схемы: отрезки двух процессов на ядре 0, загрузка = прирост времени / интервал (числа Windows 85,02 → 87,48), шкалы мониторов.
+Снимки отчёта — SNAPS['06-cpu-load'] (шаги 1, 3, 4, 5). Шаблон: labs/06-cpu-load (README, report.md, 4 заглушки), строка в labs/README.md,
+LABS в run_checks.py (там же незакоммиченная check_agent2). Ссылки: оглавление (ЛР 6 «делать»), пейджер 2.2 → ЛР 6, пейджер ЛР 6 → 2.3
+(`temy/18-processornoe-vremya`, ещё нет). Вычитка проведена. Дальше — глава 2.3 по коду tools/src23, затем проверка 2 в шаблоне.
+Глава 2.3 — кадры сняты 11.11 (`~/sysprog-shots/m23`: shoot23.py mac|linux через CDP, рамки mark.py + marks.json; Windows — win23.py,
+ВМ 800×600 без окна (startvm --type headless, ввод keyboardputstring), файлы и start23.cmd на ISO `win/m23.iso` (SATA порт 2, E:), рамки winmark23.py).
+cpu_top.c переделан: без аргумента запускает нагрузку через core_spawn (python -c, 2 с), замеры через 300 мс и ещё через 1 с, печатает load;
+с номером — один замер. Часть ИИ — единицы времени: ai_cpu.c отличается одной строкой (mac — без × numer/denom, Linux — hz = 1000, Windows — / 10000).
+Числа: 02 — mac pid 45564 user 280351→1274554, kernel 10775→12516, 995944 = 99%; linux 321: 270000→1280000, kernel 10000→10000, 1010000 = 101%
+(шаг 10 мс); win 3636: 265625→1250000, kernel 31250, 984375 = 98% (шаг 15 625 мкс). 03 — нет процесса: mac 3, linux 2, win 87;
+процесс 1/4: mac 1 (EPERM), linux pid 1 читается (user 10000, kernel 10000, код 0), win `cpu_top 4` → 5. 04 — child mac 46413 python3.9 99,
+Telegram 27, incy 7 (cpus 10); linux 503 python3 99, code 1, sleep 0; win 296 python.exe 100, Taskmgr.exe 2, Code.exe 2.
+05 — mac 999176 = 99% / ai 24097 = 2%; linux 1000000 = 100% / ai 100000 = 10%; win 953125 = 95% / ai 1000 = 0%.
+Старое окно VS Code съёмки 2.2 держало порт 9367 — закрывать `pkill -f user-data-dir=/private/tmp/vsc-sp22/data`.
+Глава 2.3 написана 11.11 (не закоммичено): `tools/ch23.py` + `walk23.py` → `temy/18-processornoe-vremya` (вычитана: обороты, схема проверки 2 в §7,
+таблица единиц укорочена). styles.css: на ширине ≤ 760 px `.scheme__body` прокручивается, `.vtab` не рвёт слова — касается всех глав.
+Оглавление: 2.3 «Процессорное время» — читать. Шаблон (не закоммичен): конспект lectures/chapter-2-3-cpu-time.md (lectures.py 2.3),
+agent/README.md — core_cpu.c, cpu_top.c, struct core_cpu, proc_cpu/cpu_load; checks/run_checks.py — OPENED = 2, check_agent2, LABS + 06-cpu-load.
+Проверка 2 на macOS локально: ядро главы — пройдена (100% / 0%), ядро без numer/denom — не пройдена (2%, «проверьте единицы времени»).
+Дальше: коммиты книги и шаблона (по просьбе), затем пара 7 — ЛР 7 «Потоки Python и GIL», глава 2.4.

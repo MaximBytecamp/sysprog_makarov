@@ -966,6 +966,11 @@ details.catchup figure.code { margin: 12px 0; }
 .scheme__body > * + * { margin-top: 18px; }
 .vmem .bytes > span.w { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
 .vtab td, .vtab th { overflow-wrap: anywhere; }
+/* На узком экране таблица схемы не рвёт слова по буквам: она шире рамки и прокручивается внутри неё. */
+@media (max-width: 760px) {
+  .scheme__body { overflow-x: auto; }
+  .vtab td, .vtab th { overflow-wrap: normal; }
+}
 .vmem .bytes > span.w > small { overflow-wrap: anywhere; }
 .vsplit.is-rows { grid-template-columns: minmax(0, 1fr); }
 /* Пометка в шаге лабораторной: снимок этого окна кладётся в отчёт (список — tools/snaps.py). */

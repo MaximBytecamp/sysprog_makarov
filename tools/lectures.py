@@ -15,6 +15,7 @@ CHAPTERS = {
     '1.3': ('temy/08-n8n-i-ollama', 'chapter-1-3-n8n-and-ollama.md'),
     '2.1': ('temy/14-spisok-processov', 'chapter-2-1-process-list.md'),
     '2.2': ('temy/16-zapusk-processa', 'chapter-2-2-process-start.md'),
+    '2.3': ('temy/18-processornoe-vremya', 'chapter-2-3-cpu-time.md'),
 }
 OSNAME = {'win': 'Windows', 'mac': 'macOS', 'linux': 'Linux', 'mac linux': 'macOS и Linux', 'win mac linux': ''}
 
