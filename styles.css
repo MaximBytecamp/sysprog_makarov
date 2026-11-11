@@ -1017,3 +1017,5 @@ details.catchup figure.code { margin: 12px 0; }
 /* Пометка в шаге лабораторной: снимок этого окна кладётся в отчёт (список — tools/snaps.py). */
 .lab-snap { margin: 0 16px 16px; padding: 9px 12px; border-left: 5px solid var(--clay); background: var(--clay-pale); font-size: 14.5px; }
 .lab-snap b { color: var(--clay); margin-right: 6px; }
+/* Длинные команды и строки вывода внутри текста шага ЛР переносятся, чтобы страница не прокручивалась вбок на телефоне. */
+.lab__do code, .lab__notes code { overflow-wrap: anywhere; }
