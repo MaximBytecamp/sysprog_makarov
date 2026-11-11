@@ -63,6 +63,7 @@
 
         <h2 id="s1"><span class="sec">§1</span>Задача главы</h2>
         <p>В ЛР 7 потоки процесса считали мониторы: <span data-os="win">Монитор ресурсов и PowerShell</span><span data-os="mac">Мониторинг системы и <code>ps -M</code></span><span data-os="linux"><code>top</code></span>. В этой главе ядро агента получает функцию <code>core_proc_threads</code>: она возвращает число потоков процесса по его номеру. Чтобы её проверить, программа на C сама запускает потоки — функцией <span data-os="win"><code>CreateThread</code></span><span data-os="mac linux"><code>pthread_create</code></span>. Мозг находит процессы, у которых потоков больше всего.</p>
+        <p>Напомним, из чего состоит агент. <b>Ядро</b> на C — «руки»: достаёт числа у системы. <b>Мозг</b> на Python — «голова»: решает, что с этими числами делать. Сегодня руки учатся доставать новое число, а голова — им пользоваться.</p>
         <p>Путь вопроса от мозга до системы и обратно:</p>
         <figure class="scheme">
           <p class="scheme__head">Путь вопроса «сколько потоков»</p>
@@ -85,6 +86,7 @@
 
         <div class="part" role="separator"><span><b>1</b>Ядро: число потоков</span></div>
         <h2 id="s2"><span class="sec">§2</span>Шаг 1. Объявить функцию в core.h</h2>
+        <p class="purpose"><b>Зачем этот шаг</b><code>core.h</code> — меню ядра: список того, что оно умеет. Мозг на Python может позвать только то, что записано в меню. Добавляем туда пункт «сколько потоков у процесса».</p>
         <p>Ответ функции — одно число, поэтому новая структура не нужна: ядро запишет число потоков по адресу <code>count</code>. Тип — <code>int32_t</code>: потоков у процесса бывают тысячи, но не миллиарды.</p>
         <div class="code-pair">
           <figure class="code code--was" data-read>
@@ -113,6 +115,7 @@
         <p class="step-done"><b>Что получилось.</b>В <code>core.h</code> объявлена функция числа потоков. Теперь её нужно написать для своей системы.</p>
 
         <h2 id="s3"><span class="sec">§3</span>Шаг 2. Написать core_threads.c</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Пункт в меню есть, а того, кто его готовит, ещё нет. Пишем, как ядро добывает ответ у системы — у каждой системы по-своему.</p>
         <p>Функция — в новом файле <code>agent/core/core_threads.c</code>. Число потоков каждая система уже хранит в записи о процессе, и источники знакомы по прошлым главам:</p>
         <figure class="scheme">
           <p class="scheme__head">Где система хранит число потоков процесса</p>
@@ -208,8 +211,8 @@
           <summary>Разбор core_threads.c по строкам</summary>
         <div class="trace" data-os="win">
           <p class="trace__head"><span>Разбор core_threads.c по шагам</span><span>Windows</span></p>
-          <p class="trace__goal"><b>Зачем эта программа.</b> Узнать, сколько потоков у процесса с данным номером.</p>
-          <div class="trace__flow" aria-label="Для чего программа"><span><b>снимок</b><small>все процессы</small></span><span><b>pid</b><small>поиск записи</small></span><span><b>cntThreads</b><small>число потоков</small></span></div>
+          <p class="trace__goal"><b>Зачем эта программа.</b> По номеру процесса узнать, сколько у него потоков. Сами мы их не считаем — Windows уже знает ответ, нужно только спросить.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>номер процесса</b><small>что спрашиваем</small></span><span><b>фото всех процессов</b><small>ищем строчку</small></span><span><b>число потоков</b><small>ответ</small></span></div>
           <div class="trace__grid">
 <pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
 <span class="k">#include</span> &lt;tlhelp32.h&gt;
@@ -235,11 +238,11 @@
 }</pre>
             <div class="trace__panel">
             <ol class="trace__steps">
-              <li data-lines="1-3"><b>Подключить заголовочные файлы</b><p><code>tlhelp32.h</code> — снимок процессов Toolhelp32, тот же, что дал список процессов в главе 2.1.</p></li>
-              <li data-lines="5-9"><b>Начать функцию и проверить параметры</b><p><code>PROCESSENTRY32W pe</code> — запись о процессе в снимке. Без места для ответа или с отрицательным номером — код 87.</p></li>
-              <li data-lines="10-12"><b>Снять снимок процессов</b><p><code>CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)</code> записывает состояние всех процессов на этот момент. В записи о каждом процессе есть поле <code>cntThreads</code> — число его потоков.</p></li>
-              <li data-lines="13-16"><b>Найти процесс по номеру</b><p><code>dwSize</code> сообщает Windows размер записи, без него <code>Process32FirstW</code> откажет. Цикл перебирает записи, пока номер не совпадёт или записи не кончатся: тогда <code>ok</code> станет <code>FALSE</code>.</p></li>
-              <li data-lines="17-21"><b>Закрыть снимок и ответить</b><p>Снимок — объект системы, его дескриптор закрывается до ответа. Процесса в снимке нет — код 87, как у <code>core_proc_cpu</code>. Иначе в <code>count</code> записывается <code>cntThreads</code>.</p></li>
+              <li data-lines="1-3"><b>Взять нужные инструменты</b><p>Подключаем готовые описания Windows — в том числе «фотоаппарат», которым снимали список процессов в главе 2.1.</p><p class="tech"><b>В коде:</b> <code>tlhelp32.h</code> — снимок процессов Toolhelp32.</p></li>
+              <li data-lines="5-9"><b>Проверить, что вопрос задан нормально</b><p>Если не дали места, куда положить ответ, или номер процесса отрицательный — отвечать нечего. Сразу возвращаем код ошибки.</p><p class="tech"><b>В коде:</b> <code>count == NULL || pid &lt; 0</code> → 87.</p></li>
+              <li data-lines="10-12"><b>Сфотографировать все процессы</b><p>Windows делает «фотографию» всех процессов на эту секунду. В ней на каждый процесс — строчка, и в строчке уже написано, сколько у него потоков.</p><p class="tech"><b>В коде:</b> <code>CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)</code>, поле <code>cntThreads</code>.</p></li>
+              <li data-lines="13-16"><b>Найти на фото свой процесс</b><p>Идём по строчкам сверху вниз, пока не встретим нужный номер. Кончились строчки — значит, такого процесса нет.</p><p class="tech"><b>В коде:</b> <code>Process32FirstW</code> / <code>Process32NextW</code>; <code>dwSize</code> — размер строчки, без него Windows откажет.</p></li>
+              <li data-lines="17-21"><b>Убрать фото и ответить</b><p>Фотографию выбрасываем — она занимает место в системе. Нашли процесс — переписываем его число потоков в ответ. Не нашли — код ошибки.</p><p class="tech"><b>В коде:</b> <code>CloseHandle(snap)</code>; <code>*count = pe.cntThreads</code>; нет процесса — 87.</p></li>
             </ol>
             <div class="trace__nav"></div>
             </div>
@@ -247,8 +250,8 @@
         </div>
         <div class="trace" data-os="mac">
           <p class="trace__head"><span>Разбор core_threads.c по шагам</span><span>macOS</span></p>
-          <p class="trace__goal"><b>Зачем эта программа.</b> Узнать, сколько потоков у процесса с данным номером.</p>
-          <div class="trace__flow" aria-label="Для чего программа"><span><b>pid</b><small>номер</small></span><span><b>proc_pidinfo</b><small>proc_taskinfo</small></span><span><b>pti_threadnum</b><small>число потоков</small></span></div>
+          <p class="trace__goal"><b>Зачем эта программа.</b> По номеру процесса узнать, сколько у него потоков. Сами мы их не считаем — macOS уже знает ответ, нужно только спросить.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>номер процесса</b><small>что спрашиваем</small></span><span><b>карточка процесса</b><small>выдаёт macOS</small></span><span><b>число потоков</b><small>ответ</small></span></div>
           <div class="trace__grid">
 <pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
 <span class="k">#include</span> <span class="s">&lt;libproc.h&gt;</span>
@@ -269,10 +272,10 @@
 }</pre>
             <div class="trace__panel">
             <ol class="trace__steps">
-              <li data-lines="1-3"><b>Подключить заголовочные файлы</b><p><code>libproc.h</code> — <code>proc_pidinfo</code>, как в главе 2.3.</p></li>
-              <li data-lines="5-9"><b>Начать функцию и проверить параметры</b><p>Без места для ответа или с отрицательным номером — код 22, <code>EINVAL</code>.</p></li>
-              <li data-lines="10-14"><b>Прочитать сведения о процессе</b><p>Тот же вызов <code>proc_pidinfo</code> с <code>PROC_PIDTASKINFO</code>, что в главе 2.3. Ошибки те же: 3 — процесса нет, 1 — процесс чужой.</p></li>
-              <li data-lines="15-16"><b>Взять число потоков</b><p>В той же структуре <code>proc_taskinfo</code>, где лежит процессорное время, есть поле <code>pti_threadnum</code> — сколько потоков у процесса сейчас.</p></li>
+              <li data-lines="1-3"><b>Взять нужные инструменты</b><p>Подключаем описание функции, которая выдаёт сведения о процессе. Ею же в главе 2.3 узнавали процессорное время.</p><p class="tech"><b>В коде:</b> <code>libproc.h</code> — <code>proc_pidinfo</code>.</p></li>
+              <li data-lines="5-9"><b>Проверить, что вопрос задан нормально</b><p>Нет места для ответа или номер отрицательный — сразу код ошибки.</p><p class="tech"><b>В коде:</b> <code>EINVAL</code> = 22.</p></li>
+              <li data-lines="10-14"><b>Попросить у системы карточку процесса</b><p>macOS заполняет карточку процесса: время, память, потоки. Если карточку не дали — процесса нет (3) или он чужой (1).</p><p class="tech"><b>В коде:</b> <code>proc_pidinfo(pid, PROC_PIDTASKINFO, …)</code> → <code>struct proc_taskinfo</code>.</p></li>
+              <li data-lines="15-16"><b>Переписать число потоков</b><p>Из карточки берём одну строку — «сколько потоков сейчас» — и кладём в ответ.</p><p class="tech"><b>В коде:</b> <code>*count = ti.pti_threadnum</code>.</p></li>
             </ol>
             <div class="trace__nav"></div>
             </div>
@@ -280,8 +283,8 @@
         </div>
         <div class="trace" data-os="linux">
           <p class="trace__head"><span>Разбор core_threads.c по шагам</span><span>Linux</span></p>
-          <p class="trace__goal"><b>Зачем эта программа.</b> Узнать, сколько потоков у процесса с данным номером.</p>
-          <div class="trace__flow" aria-label="Для чего программа"><span><b>pid</b><small>номер</small></span><span><b>/proc/PID/stat</b><small>строка</small></span><span><b>поле 20</b><small>число потоков</small></span></div>
+          <p class="trace__goal"><b>Зачем эта программа.</b> По номеру процесса узнать, сколько у него потоков. Сами мы их не считаем — Linux уже знает ответ, нужно только спросить.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>номер процесса</b><small>что спрашиваем</small></span><span><b>файл /proc/PID/stat</b><small>строка чисел</small></span><span><b>20-е число</b><small>ответ</small></span></div>
           <div class="trace__grid">
 <pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
 <span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
@@ -312,11 +315,11 @@
 }</pre>
             <div class="trace__panel">
             <ol class="trace__steps">
-              <li data-lines="1-4"><b>Подключить заголовочные файлы</b><p>Те же, что у <code>core_cpu.c</code> в главе 2.3, кроме <code>unistd.h</code>: единицы переводить не нужно.</p></li>
-              <li data-lines="6-11"><b>Начать функцию и проверить параметры</b><p><code>threads</code> — число потоков из файла. Без места для ответа или с отрицательным номером — код 22, <code>EINVAL</code>.</p></li>
-              <li data-lines="12-18"><b>Прочитать /proc/PID/stat</b><p>Тот же файл, что в главе 2.3. Процесса нет — нет файла, код 2.</p></li>
-              <li data-lines="20-24"><b>Взять поле 20</b><p>После последней скобки пропускаются поля с 3-го по 19-е: состояние, 5 полей <code>%*d</code>, 7 полей <code>%*u</code> — среди них время из главы 2.3 — и ещё 4 поля <code>%*d</code>. Двадцатое поле, <code>num_threads</code>, читается в <code>threads</code>.</p></li>
-              <li data-lines="25-26"><b>Записать ответ</b><p>Число потоков переводится в <code>int32_t</code>, как в договоре.</p></li>
+              <li data-lines="1-4"><b>Взять нужные инструменты</b><p>Подключаем чтение файлов и разбор строк — те же, что в главе 2.3.</p><p class="tech"><b>В коде:</b> <code>stdio.h</code>, <code>string.h</code>, <code>errno.h</code>.</p></li>
+              <li data-lines="6-11"><b>Проверить, что вопрос задан нормально</b><p>Нет места для ответа или номер отрицательный — сразу код ошибки.</p><p class="tech"><b>В коде:</b> <code>EINVAL</code> = 22.</p></li>
+              <li data-lines="12-18"><b>Открыть файл процесса</b><p>Linux показывает сведения о каждом процессе как обычный текстовый файл. Нет файла — нет процесса.</p><p class="tech"><b>В коде:</b> <code>/proc/PID/stat</code>; не открылся — код 2.</p></li>
+              <li data-lines="20-24"><b>Найти в строке двадцатое число</b><p>Файл — одна длинная строка значений через пробел. Второе значение — имя процесса в скобках, а в имени бывают пробелы, поэтому счёт ведём от последней скобки. Пропускаем лишнее и берём двадцатое значение: это и есть число потоков.</p><p class="tech"><b>В коде:</b> <code>strrchr(line, ')')</code>; <code>sscanf</code> с <code>%*d</code> / <code>%*u</code> — «прочитать и выбросить»; поле 20 <code>num_threads</code>.</p></li>
+              <li data-lines="25-26"><b>Записать ответ</b><p>Кладём найденное число в ответ.</p><p class="tech"><b>В коде:</b> <code>*count = (int32_t)threads</code>.</p></li>
             </ol>
             <div class="trace__nav"></div>
             </div>
@@ -326,6 +329,7 @@
         <p class="step-done"><b>Что получилось.</b>Функция написана для своей системы. Чтобы проверить её, нужен процесс, у которого число потоков меняется на глазах.</p>
 
         <h2 id="s4"><span class="sec">§4</span>Шаг 3. Запустить потоки из C</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Функции пока нельзя верить на слово. Проверяем её на процессе, про который ответ известен заранее: сами запускаем 4 потока и смотрим, покажет ли она 1 → 5 → 1.</p>
         <p>Программа <code>agent/core/count_threads.c</code> сама меняет число своих потоков. Она спрашивает ядро о своём процессе трижды: до запуска потоков, пока четыре потока работают и после того, как все они завершились.</p>
         <figure class="code" data-os="win mac linux">
           <figcaption><span>agent/core/count_threads.c · все системы</span></figcaption>
@@ -399,8 +403,8 @@
           <summary>Разбор count_threads.c по строкам</summary>
         <div class="trace" data-os="win mac linux">
           <p class="trace__head"><span>Разбор count_threads.c по шагам</span><span>все системы</span></p>
-          <p class="trace__goal"><b>Зачем эта программа.</b> Проверить ядро на своём процессе: запустить четыре потока и посмотреть, как меняется их число до запуска, во время работы и после.</p>
-          <div class="trace__flow" aria-label="Для чего программа"><span><b>show</b><small>1 поток</small></span><span><b>создать × 4</b><small>5 потоков</small></span><span><b>join × 4</b><small>1 поток</small></span></div>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Проверить, что функция не врёт. Делаем процесс, про который мы точно знаем ответ: сначала 1 поток, потом 5, потом снова 1 — и смотрим, совпадёт ли.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>до</b><small>1 поток</small></span><span><b>наняли 4</b><small>5 потоков</small></span><span><b>дождались</b><small>1 поток</small></span></div>
           <div class="trace__grid">
 <pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;inttypes.h&gt;</span>
 <span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
@@ -469,12 +473,12 @@
 }</pre>
             <div class="trace__panel">
             <ol class="trace__steps">
-              <li data-lines="5-12"><b>Работа потока в Windows</b><p>Функция потока в Windows получает один параметр <code>LPVOID</code> — адрес любых данных — и возвращает <code>DWORD</code>. <code>WINAPI</code> — договор о вызове, которого ждёт <code>CreateThread</code>. Поток спит секунду и завершается. <code>pid_self</code> — номер своего процесса: <code>GetCurrentProcessId</code>.</p></li>
-              <li data-lines="13-22"><b>Работа потока в macOS и Linux</b><p>Функция потока POSIX получает и возвращает <code>void *</code> — адрес любых данных. Поток тоже спит секунду. Номер своего процесса — <code>getpid</code>.</p></li>
-              <li data-lines="26-33"><b>Показать число потоков</b><p><code>show</code> спрашивает ядро о своём процессе и печатает ответ с подписью: <code>start</code>, <code>running</code> или <code>joined</code>.</p></li>
-              <li data-lines="37-49"><b>Запустить и дождаться потоков в Windows</b><p><code>CreateThread</code> создаёт поток и сразу его запускает. Параметры: права доступа по умолчанию, размер стека по умолчанию (0), функция, её параметр, флаги и куда записать номер потока. Ответ — дескриптор потока; <code>NULL</code> — ошибка. <code>WaitForMultipleObjects(…, TRUE, INFINITE)</code> ждёт все четыре потока сразу, затем дескрипторы закрываются.</p></li>
-              <li data-lines="50-61"><b>Запустить и дождаться потоков в macOS и Linux</b><p><code>pthread_create</code> записывает номер потока в <code>t[i]</code> и запускает в нём <code>worker</code>. Ошибку функция возвращает сама, как <code>posix_spawnp</code> в главе 2.2. <code>pthread_join</code> ждёт поток и освобождает запись о нём — то же, что <code>waitpid</code> для процесса.</p><p class="like">Бригадир раздаёт задания четырём рабочим и уходит со смены, только когда каждый сдал работу.</p></li>
-              <li data-lines="63"><b>Число потоков после</b><p>После <code>join</code> потоки завершены, и у процесса снова один поток — главный.</p></li>
+              <li data-lines="5-12"><b>Что будет делать рабочий (Windows)</b><p>Задание рабочему простое — поспать секунду. Нам не важна работа, нам важно, чтобы рабочие успели «посчитаться», пока живы.</p><p class="tech"><b>В коде:</b> функция <code>worker</code> с <code>Sleep(1000)</code>; <code>pid_self</code> — свой номер, <code>GetCurrentProcessId</code>.</p></li>
+              <li data-lines="13-22"><b>Что будет делать рабочий (macOS и Linux)</b><p>То же задание — поспать секунду.</p><p class="tech"><b>В коде:</b> функция <code>worker</code> с <code>sleep(1)</code>; свой номер — <code>getpid</code>.</p></li>
+              <li data-lines="26-33"><b>Спросить «сколько нас сейчас?»</b><p>Маленькая помощница: спрашивает у нашей новой функции, сколько потоков в этом процессе, и печатает ответ с подписью — до, во время или после.</p><p class="tech"><b>В коде:</b> <code>show("start" | "running" | "joined")</code> → <code>core_proc_threads</code>.</p></li>
+              <li data-lines="37-49"><b>Нанять четырёх рабочих и дождаться (Windows)</b><p>Нанимаем четверых — каждый сразу берётся за задание. Спрашиваем «сколько нас» — должно быть пять. Потом ждём, пока все четверо закончат, и прощаемся с ними.</p><p class="tech"><b>В коде:</b> <code>CreateThread</code> × 4 → <code>WaitForMultipleObjects</code> → <code>CloseHandle</code>.</p></li>
+              <li data-lines="50-61"><b>Нанять четырёх рабочих и дождаться (macOS и Linux)</b><p>То же самое: нанять четверых, спросить «сколько нас», дождаться каждого.</p><p class="tech"><b>В коде:</b> <code>pthread_create</code> × 4 → <code>pthread_join</code> × 4 (как <code>waitpid</code> для процесса).</p><p class="like">Бригадир уходит со смены, только когда каждый рабочий сдал работу. Иначе рабочие так и числятся на смене — это утечка.</p></li>
+              <li data-lines="63"><b>Спросить ещё раз</b><p>Все ушли — должен остаться один, главный.</p><p class="tech"><b>В коде:</b> <code>show("joined")</code>.</p></li>
             </ol>
             <div class="trace__nav"></div>
             </div>
@@ -529,6 +533,7 @@ count_threads.exe</pre>
 
         <div class="part" role="separator"><span><b>2</b>Мозг: у кого больше всего потоков</span></div>
         <h2 id="s5"><span class="sec">§5</span>Шаг 4. Число потоков в Python</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Ради этого всё и делали: агент-сторож должен замечать процессы с подозрительно большим числом потоков. Даём мозгу эту возможность.</p>
         <p>Библиотека ядра теперь собирается из пяти файлов:</p>
         <figure class="code" data-os="win">
           <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
@@ -566,8 +571,8 @@ core.core_proc_threads.restype = ctypes.c_int
           <summary>Разбор новых частей brain.py по строкам</summary>
         <div class="trace" data-os="win mac linux">
           <p class="trace__head"><span>Разбор brain.py · новые части по шагам</span><span>все системы</span></p>
-          <p class="trace__goal"><b>Зачем эта программа.</b> Дать мозгу две функции: <code>proc_threads</code> — число потоков одного процесса, <code>most_threads</code> — процессы, у которых потоков больше всего.</p>
-          <div class="trace__flow" aria-label="Для чего программа"><span><b>list_procs</b><small>номера</small></span><span><b>proc_threads</b><small>потоки каждого</small></span><span><b>sorted</b><small>больше всего</small></span></div>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Научить мозг на Python пользоваться новой функцией ядра: узнать потоки одного процесса и найти тех, у кого их больше всего.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>все процессы</b><small>список номеров</small></span><span><b>потоки каждого</b><small>спросить ядро</small></span><span><b>первые три</b><small>самые многопоточные</small></span></div>
           <div class="trace__grid">
 <pre class="trace__code">core.core_proc_threads.argtypes = [ctypes.c_int64, ctypes.<span class="f">POINTER</span>(ctypes.c_int32)]
 core.core_proc_threads.restype = ctypes.c_int
@@ -587,9 +592,9 @@ core.core_proc_threads.restype = ctypes.c_int
     <span class="k">return</span> <span class="f">sorted</span>(found, key=lambda x: x[<span class="s">&quot;threads&quot;</span>], reverse=<span class="k">True</span>)[:n]</pre>
             <div class="trace__panel">
             <ol class="trace__steps">
-              <li data-lines="1-2"><b>Описать функцию ядра</b><p>Номер процесса — <code>c_int64</code>, ответ — адрес <code>c_int32</code>.</p></li>
-              <li data-lines="4-8"><b>proc_threads: число потоков</b><p><code>ctypes.c_int32()</code> — место для ответа, <code>byref</code> передаёт его адрес. Если процесс не читается, функция возвращает <code>None</code>, как <code>proc_cpu</code> в главе 2.3.</p></li>
-              <li data-lines="10-17"><b>most_threads: самые многопоточные</b><p>Для каждого процесса из <code>list_procs</code> берётся число потоков; недоступные пропускаются. Список сортируется по убыванию, срез <code>[:n]</code> оставляет первые <code>n</code>.</p></li>
+              <li data-lines="1-2"><b>Объяснить Python, как звать функцию на C</b><p>Python не читает <code>core.h</code>, поэтому говорим ему сами: на вход — номер процесса, на выход — место под одно число.</p><p class="tech"><b>В коде:</b> <code>argtypes = [c_int64, POINTER(c_int32)]</code>.</p></li>
+              <li data-lines="4-8"><b>Узнать потоки одного процесса</b><p>Готовим «пустую ячейку», отдаём её ядру, ядро вписывает число. Не вышло (процесс чужой или исчез) — отвечаем «не знаю».</p><p class="tech"><b>В коде:</b> <code>c_int32()</code>, <code>byref</code>; ошибка → <code>None</code>.</p></li>
+              <li data-lines="10-17"><b>Найти самых многопоточных</b><p>Обходим все процессы, у каждого узнаём число потоков, сортируем от большего к меньшему и берём первые три.</p><p class="tech"><b>В коде:</b> <code>list_procs</code> → <code>proc_threads</code> → <code>sorted(…, reverse=True)[:n]</code>.</p></li>
             </ol>
             <div class="trace__nav"></div>
             </div>
@@ -644,6 +649,7 @@ python3 brain.py</pre>
         <p class="step-done"><b>Что получилось.</b>Мозг знает число потоков любого доступного процесса и находит самые многопоточные. Осталось отправить работу в репозиторий.</p>
 
         <h2 id="s6"><span class="sec">§6</span>Шаг 5. Отправить в репозиторий</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Работа должна попасть на GitHub: там её автоматически собирают и проверяют «Проверки».</p>
         <p>В репозиторий уходят исходники: <code>core.h</code>, <code>core_threads.c</code>, <code>count_threads.c</code> и <code>brain.py</code>. В <code>agent/core/README.md</code> дописываем строку о <code>core_threads.c</code> и сборке библиотеки из пяти файлов.</p>
         <figure class="code">
           <figcaption><span>терминал в папке sysprog-start</span><span>то же, что плюс, Commit и Sync Changes</span></figcaption>
@@ -656,6 +662,7 @@ git push</pre>
 
         <div class="part" role="separator"><span><b>3</b>Код от помощника ИИ</span></div>
         <h2 id="s7"><span class="sec">§7</span>Запрос к помощнику ИИ</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Код с потоками вы чаще всего будете получать от ИИ. Здесь — его самая частая ошибка: с одного запуска её не видно. Учимся её узнавать и ловить.</p>
         <p>Код с потоками помощник пишет быстро, и он даже работает. Ошибка прячется в общей переменной, которую меняют сразу несколько потоков. Запрос в режиме Р2 из главы 0.3:</p>
         <figure class="code">
           <figcaption><span>запрос помощнику</span></figcaption>
@@ -722,8 +729,8 @@ git push</pre>
           <summary>Разбор race.c по строкам</summary>
         <div class="trace" data-os="win mac linux">
           <p class="trace__head"><span>Разбор race.c по шагам</span><span>все системы</span></p>
-          <p class="trace__goal"><b>Зачем эта программа.</b> Четыре потока по миллиону раз прибавляют единицу к общему счётчику. Должно получиться 4 000 000.</p>
-          <div class="trace__flow" aria-label="Для чего программа"><span><b>4 потока</b><small>общий counter</small></span><span><b>ADD × 1 000 000</b><small>в каждом</small></span><span><b>итог</b><small>4 000 000</small></span></div>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Показать правильный способ, когда несколько потоков меняют одно число. Четверо по миллиону раз прибавляют единицу — должно выйти ровно 4 000 000.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>4 потока</b><small>одно число</small></span><span><b>миллион нажатий</b><small>у каждого</small></span><span><b>итог</b><small>4 000 000</small></span></div>
           <div class="trace__grid">
 <pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
 
@@ -771,11 +778,11 @@ git push</pre>
 }</pre>
             <div class="trace__panel">
             <ol class="trace__steps">
-              <li data-lines="3-13"><b>Атомарная прибавка и функция потока</b><p><code>ADD</code> прибавляет единицу так, что другой поток не вклинится посередине: <code>InterlockedIncrement64</code> в Windows, <code>__atomic_fetch_add</code> в clang и gcc. <code>THREAD_FN</code> и <code>THREAD_END</code> скрывают разницу между функциями потоков двух систем, чтобы <code>worker</code> была написана один раз.</p></li>
-              <li data-lines="15-18"><b>Общий счётчик</b><p><code>counter</code> объявлен вне функций: он один на весь процесс, и все потоки работают с ним. 4 потока по 1 000 000 шагов должны дать 4 000 000.</p></li>
-              <li data-lines="20-25"><b>Работа потока</b><p>Миллион раз <code>ADD(&amp;counter)</code>.</p></li>
-              <li data-lines="27-41"><b>Запустить и дождаться потоков</b><p>Так же, как в <code>count_threads.c</code>, только без проверки ошибок: программа короткая и служит только для опыта.</p></li>
-              <li data-lines="42"><b>Сверить итог</b><p>Печатается счётчик и ожидаемое значение.</p></li>
+              <li data-lines="3-13"><b>Безопасная прибавка</b><p>Заводим «кликер»: нажал — число выросло на один, и никто не может влезть посередине нажатия. Плюс пара коротких имён, чтобы одна программа подходила и Windows, и macOS с Linux.</p><p class="tech"><b>В коде:</b> <code>ADD</code> = <code>InterlockedIncrement64</code> / <code>__atomic_fetch_add</code>; <code>THREAD_FN</code>, <code>THREAD_END</code>.</p></li>
+              <li data-lines="15-18"><b>Одно общее число на всех</b><p>Счётчик лежит вне функций — значит, он один на весь процесс, и все четыре потока прибавляют к одному и тому же.</p><p class="tech"><b>В коде:</b> <code>static long long counter = 0</code>; 4 × 1 000 000.</p></li>
+              <li data-lines="20-25"><b>Работа каждого потока</b><p>Миллион раз нажать на кликер.</p><p class="tech"><b>В коде:</b> <code>ADD(&amp;counter)</code> в цикле.</p></li>
+              <li data-lines="27-41"><b>Нанять четверых и дождаться</b><p>Как в <code>count_threads.c</code>.</p><p class="tech"><b>В коде:</b> <code>CreateThread</code> / <code>pthread_create</code> и ожидание.</p></li>
+              <li data-lines="42"><b>Сверить</b><p>Печатаем, что вышло и что должно было выйти.</p><p class="tech"><b>В коде:</b> <code>printf("counter = …, expected …")</code>.</p></li>
             </ol>
             <div class="trace__nav"></div>
             </div>

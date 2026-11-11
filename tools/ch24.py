@@ -128,6 +128,7 @@ S = []
 S.append(f'''
         <h2 id="s1"><span class="sec">§1</span>Задача главы</h2>
         <p>В ЛР 7 потоки процесса считали мониторы: <span data-os="win">Монитор ресурсов и PowerShell</span><span data-os="mac">Мониторинг системы и <code>ps -M</code></span><span data-os="linux"><code>top</code></span>. В этой главе ядро агента получает функцию <code>core_proc_threads</code>: она возвращает число потоков процесса по его номеру. Чтобы её проверить, программа на C сама запускает потоки — функцией <span data-os="win"><code>CreateThread</code></span><span data-os="mac linux"><code>pthread_create</code></span>. Мозг находит процессы, у которых потоков больше всего.</p>
+        <p>Напомним, из чего состоит агент. <b>Ядро</b> на C — «руки»: достаёт числа у системы. <b>Мозг</b> на Python — «голова»: решает, что с этими числами делать. Сегодня руки учатся доставать новое число, а голова — им пользоваться.</p>
         <p>Путь вопроса от мозга до системы и обратно:</p>
 {PIC_FLOW}
         <p>Путь короче, чем в главе 2.3: система отдаёт готовое число, ядру остаётся его передать. <span class="term">Поток</span> — ход выполнения кода внутри процесса, как в ЛР 7.</p>
@@ -150,6 +151,7 @@ CORE_NOW = '''CORE_API <span class="k">int</span> <span class="f">core_proc_cpu<
 S.append(f'''
         <div class="part" role="separator"><span><b>1</b>Ядро: число потоков</span></div>
         <h2 id="s2"><span class="sec">§2</span>Шаг 1. Объявить функцию в core.h</h2>
+        <p class="purpose"><b>Зачем этот шаг</b><code>core.h</code> — меню ядра: список того, что оно умеет. Мозг на Python может позвать только то, что записано в меню. Добавляем туда пункт «сколько потоков у процесса».</p>
         <p>Ответ функции — одно число, поэтому новая структура не нужна: ядро запишет число потоков по адресу <code>count</code>. Тип — <code>int32_t</code>: потоков у процесса бывают тысячи, но не миллиарды.</p>
         <div class="code-pair">
           <figure class="code code--was" data-read>
@@ -171,6 +173,7 @@ S.append(f'''
 
 S.append(f'''
         <h2 id="s3"><span class="sec">§3</span>Шаг 2. Написать core_threads.c</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Пункт в меню есть, а того, кто его готовит, ещё нет. Пишем, как ядро добывает ответ у системы — у каждой системы по-своему.</p>
         <p>Функция — в новом файле <code>agent/core/core_threads.c</code>. Число потоков каждая система уже хранит в записи о процессе, и источники знакомы по прошлым главам:</p>
 {PIC_SRC}
         <p>В каждой строке таблицы — откуда взять число и в каком поле оно лежит. Последний столбец — ответ, когда процесса нет: коды те же, что у <code>core_proc_cpu</code>. Поэтому файл короче <code>core_cpu.c</code>: найти процесс, взять поле, вернуть.</p>
@@ -184,6 +187,7 @@ S.append(f'''
 
 S.append(f'''
         <h2 id="s4"><span class="sec">§4</span>Шаг 3. Запустить потоки из C</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Функции пока нельзя верить на слово. Проверяем её на процессе, про который ответ известен заранее: сами запускаем 4 потока и смотрим, покажет ли она 1 → 5 → 1.</p>
         <p>Программа <code>agent/core/count_threads.c</code> сама меняет число своих потоков. Она спрашивает ядро о своём процессе трижды: до запуска потоков, пока четыре потока работают и после того, как все они завершились.</p>
 {cfile('count', 'win mac linux', 'agent/core/count_threads.c · все системы')}
 {more('Разбор count_threads.c по строкам', WK['count'])}
@@ -207,6 +211,7 @@ S.append(f'''
 S.append(f'''
         <div class="part" role="separator"><span><b>2</b>Мозг: у кого больше всего потоков</span></div>
         <h2 id="s5"><span class="sec">§5</span>Шаг 4. Число потоков в Python</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Ради этого всё и делали: агент-сторож должен замечать процессы с подозрительно большим числом потоков. Даём мозгу эту возможность.</p>
         <p>Библиотека ядра теперь собирается из пяти файлов:</p>
 {cmd('cl /nologo /W4 /LD core_info.c core_procs.c core_spawn.c core_cpu.c core_threads.c /Fe:sentry_core.dll',
      'clang -Wall -Wextra -shared -fPIC -o libsentry_core.dylib core_info.c core_procs.c core_spawn.c core_cpu.c core_threads.c',
@@ -236,6 +241,7 @@ S.append(f'''
 
 S.append(f'''
         <h2 id="s6"><span class="sec">§6</span>Шаг 5. Отправить в репозиторий</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Работа должна попасть на GitHub: там её автоматически собирают и проверяют «Проверки».</p>
         <p>В репозиторий уходят исходники: <code>core.h</code>, <code>core_threads.c</code>, <code>count_threads.c</code> и <code>brain.py</code>. В <code>agent/core/README.md</code> дописываем строку о <code>core_threads.c</code> и сборке библиотеки из пяти файлов.</p>
         <figure class="code">
           <figcaption><span>терминал в папке sysprog-start</span><span>то же, что плюс, Commit и Sync Changes</span></figcaption>
@@ -250,6 +256,7 @@ git push</pre>
 S.append(f'''
         <div class="part" role="separator"><span><b>3</b>Код от помощника ИИ</span></div>
         <h2 id="s7"><span class="sec">§7</span>Запрос к помощнику ИИ</h2>
+        <p class="purpose"><b>Зачем этот шаг</b>Код с потоками вы чаще всего будете получать от ИИ. Здесь — его самая частая ошибка: с одного запуска её не видно. Учимся её узнавать и ловить.</p>
         <p>Код с потоками помощник пишет быстро, и он даже работает. Ошибка прячется в общей переменной, которую меняют сразу несколько потоков. Запрос в режиме Р2 из главы 0.3:</p>
         <figure class="code">
           <figcaption><span>запрос помощнику</span></figcaption>
