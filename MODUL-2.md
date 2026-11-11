@@ -126,3 +126,38 @@ Telegram 27, incy 7 (cpus 10); linux 503 python3 99, code 1, sleep 0; win 296 py
 agent/README.md — core_cpu.c, cpu_top.c, struct core_cpu, proc_cpu/cpu_load; checks/run_checks.py — OPENED = 2, check_agent2, LABS + 06-cpu-load.
 Проверка 2 на macOS локально: ядро главы — пройдена (100% / 0%), ядро без numer/denom — не пройдена (2%, «проверьте единицы времени»).
 Дальше: коммиты книги и шаблона (по просьбе), затем пара 7 — ЛР 7 «Потоки Python и GIL», глава 2.4.
+
+## Пара 7 (в работе, 11.11.2026)
+
+Python без GIL — сборка 3.14t; на Mac поставлена `uv python install 3.14t` (cpython-3.14.2+freethreaded, путь — `uv python find 3.14t`).
+Для студентов предложено ставить так же через uv на трёх системах (решение ещё не подтверждено пользователем).
+Программы ЛР 7 — `tools/src_lab7`: `spin.py` (4 потока с пустым циклом 15 с, печатает pid), `threads.py` (работа 200 млн шагов на 1/2/4 потока, печатает время).
+Опыт macOS (11.11): threads.py — Python 3.14.6 с GIL 1,55 / 1,56 / 1,56 с; 3.14t без GIL 1,66 / 0,84 / 0,51 с; 3.14t с PYTHON_GIL=1 — 1,64 / 1,62 / 1,65 с.
+spin.py: с GIL процесс 99,6%, `ps -M -p PID` — 4 потока по 22–26% в состоянии S; без GIL процесс 396,6%, потоки по 99–100% в состоянии R.
+План шагов ЛР 7: 1) spin.py в обычном Python — монитор ~100% (Windows 25%), потоков 5; 2) потоки процесса — `ps -M -p` / `top -H -p` или `ps -L` /
+PowerShell `(Get-Process -Id PID).Threads`; 3) spin.py в 3.14t — ~400% (Windows 100%); 4) threads.py в обоих — таблица 1/2/4; 5) PYTHON_GIL=1 —
+ускорение пропадает; 6) потоки, которые ждут (time.sleep), ускоряются и с GIL. Глава 2.4 — потоки в ядре на C (CreateThread / pthread_create);
+ctypes отпускает GIL на время вызова функции C — проверено 11.11 на macOS: burn.c (пустой цикл 2 млрд шагов) через ctypes.CDLL в Python 3.14.6 с GIL — 1 поток 0,51 с, 4 потока 0,18 с (src_lab7/burn.c, cburn.py).
+Подготовка кадров: Linux ВМ — uv и 3.14t (нужна сеть ВМ); Windows ВМ без сети — сборка python-build-standalone freethreaded для aarch64-pc-windows-msvc на ISO.
+ЛР 7 Linux снята 11.11 (raw/lab7/linux, ВМ Ubuntu-lab-01, 2 ядра; uv через `wget -qO- https://astral.sh/uv/install.sh | sh` — curl в Live нет;
+`uv python install 3.14 3.14t` → Python 3.14.10): 01-gil (top -p: python3.14 100,5%, %Cpu(s) 50,8 us), 02-threads (H: 5 потоков —
+Thread-1 (spin) R 40,5, Thread-2 S 26,5, Thread-4 22,0, Thread-3 12,0, главный 0; имена потоков Python 3.14 видны в top), 03-nogil (python3.14t 200,0%,
+%Cpu(s) 100), 03b-threads (4 потока R по 50,0), 04-time (GIL 1,65/1,63/1,68; без GIL 1,73/0,89/0,90 — 2 ядра), 05-gil1 (PYTHON_GIL=1: 1,73/1,76/1,75),
+06-wait (1 и 4 потока по sleep 2 с: 2,00 и 2,00). Файлы — с Mac по http://10.0.2.2:8811 (http.server в tools/src_lab7).
+ЛР 7 Windows снята 11.11 (raw/lab7/win, ВМ Win11-lab 4 ядра, ISO `win/l7.iso` с python-3.14.2t-arm64.zip с python.org и start7.cmd:
+распаковка в C:\py314t, программы в Documents\lab07; обычный Python 3.14.0 ARM64): 01-tm (resmon: python.exe 1244, потоков 8, ЦП 25, ср. 21,06, всего 27%),
+02-threads (PowerShell Threads: 8 потоков — 4 служебных Wait EventPairLow/UserRequest и 4 рабочих: один Running, три Wait, по 1,9–2,2 с),
+03-tm (python3.14t.exe 4724, потоков 8, ЦП 99, ср. 80,20; график ЦП всего 100%, заголовок «0%» не обновился), 03b-threads (рабочие Running/Ready по 8,1–8,3 с),
+04-time (GIL 2,15/2,15/2,15; без GIL 2,26/1,34/0,74), 05-gil1 (2,26/2,25/2,27), 06-wait (2,00/2,00). У uv нет сборки 3.14t для Windows ARM64 — для
+ARM64 Windows путь студента: Python install manager `py install 3.14t` (zip python-3.14.2t-arm64.zip). Осталось: кадры macOS (рабочий стол пользователя), lab7.py, рамки.
+ЛР 7 macOS снята 11.11 (raw/lab7/mac, склейки m6.glue, папка /private/tmp/lab07, PATH с ~/.local/bin): 01-am (Python 8642: 97,7%, потоков 5),
+02-threads (ps -M 11737 — другой запуск: 23,3 S, 26,5 R, 22,9 S, 27,3 S), 03-am (python3.14t 12219: 399,9%, потоков 5; пользователь 45,03%),
+03b-threads (ps -M 9177: 98,4 / 98,2 / 99,1 / 98,5, все R), 04-time (GIL 1,54/1,55/1,56; без GIL 1,60/0,83/0,48), 05-gil1 (PYTHON_GIL=1 —
+1,72/1,70/1,67; команды на кадре нет, только вывод «Python 3.14.2, GIL on»), 06-wait (2,01/2,01). Команда с PYTHON_GIL из скрипта съёмки дважды
+не дошла до Терминала, вручную через m.term прошла. Все кадры ЛР 7 сняты; дальше tools/lab7.py, рамки src_lab7/mark7.py, SNAPS '07-python-threads', вычитка.
+ЛР 7 написана 11.11 (не закоммичено): `tools/lab7.py` → `temy/19-laboratornaya-7`, рамки `tools/src_lab7/mark7.py` + marks7.json
+(Linux — копия 1200, Windows и macOS — пиксели кадра), SNAPS '07-python-threads' (шаги 1–4), две схемы (отрезки 4 потоков с GIL и без,
+что покажет монитор). Шаг 3 — по два кадра (монитор и потоки). Windows: 8 потоков = 4 рабочих + главный (Wait UserRequest) + 3 служебных.
+Шаблон: labs/07-python-threads (README, report.md, spin.py, threads.py, wait.py, 4 заглушки), строка в labs/README.md, LABS в run_checks.py.
+Оглавление: ЛР 7 «делать»; пейджер 2.3 → ЛР 7, ЛР 7 → 2.4 (`temy/20-potoki`, ещё нет). Вычитка: антитезы убраны, схемы проверены на 390 px.
+Дальше — глава 2.4 «Потоки»: ядро на C запускает потоки (CreateThread / pthread_create), ctypes отпускает GIL (src_lab7/burn.c, cburn.py).
