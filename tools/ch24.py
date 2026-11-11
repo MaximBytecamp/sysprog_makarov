@@ -388,6 +388,7 @@ S.append(f'''
         <div class="pager">
           <a href="../19-laboratornaya-7/index.html">← ЛР 7 Потоки Python и GIL</a>
           <a href="../../index.html">Оглавление</a>
+          <a href="../21-laboratornaya-8/index.html">ЛР 8 Карта памяти →</a>
         </div>
 
         <div class="colophon">

@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>Лабораторная работа 8. Карта памяти · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 2 · Лабораторная работа 8</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 2 · лабораторная работа</p>
+          <p class="running__folio">ЛР 8</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">ЛР 8</span>
+          <h1>Карта<br>памяти</h1>
+          <p class="lead">Программа на Python просит у системы 300 МБ, а занятая память не растёт ни на килобайт — пока программа в эти мегабайты ничего не запишет. В работе видно, чем память, которую система пообещала процессу, отличается от памяти, которую он действительно занимает, как выглядит карта памяти процесса и как по ряду замеров находят утечку.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Пара</dt><dd>8</dd></div>
+          <div><dt>Время</dt><dd>35–40 минут</dd></div>
+          <div><dt>Программы</dt><dd><span data-os="win">VMMap, PowerShell, командная строка</span><span data-os="mac"><code>ps</code>, <code>vmmap</code>, Терминал</span><span data-os="linux"><code>ps</code>, <code>pmap</code>, терминал</span>, Python 3.14</dd></div>
+          <div><dt>Сдать</dt><dd><code>report.md</code> и 4 снимка в <code>screenshots/</code> в папке <code>labs/08-memory-map</code> репозитория <code>sysprog-start</code></dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>В этой работе</b>
+          <ol>
+            <li><a href="#s1">Подготовка</a></li>
+            <li><a href="#s2">Обещанная и занятая память</a></li>
+            <li><a href="#s3">Ход работы</a></li>
+            <li><a href="#s4">Что получилось</a></li>
+            <li><a href="#s5">Отчёт</a></li>
+            <li><a href="#s6">Проверьте себя</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Подготовка</h2>
+
+        <p>Нужен Python 3.14 из ЛР 7. <span data-os="win">Карту памяти показывает VMMap из набора Sysinternals: скачайте <code>VMMap.zip</code> с сайта Microsoft Learn и распакуйте в свою папку. На компьютере с процессором ARM запускается <code>vmmap64a.exe</code>, с x64 — <code>vmmap64.exe</code>; папку добавьте в <code>PATH</code> или запускайте программу по полному пути.</span><span data-os="mac"><code>ps</code> и <code>vmmap</code> входят в macOS.</span><span data-os="linux"><code>ps</code> и <code>pmap</code> входят в Ubuntu.</span> В шаблоне в папке <code>labs/08-memory-map</code> лежат бланк <code>report.md</code>, папка <code>screenshots/</code> и две программы. Первая — <code>mem.py</code>:</p>
+        <figure class="code"><figcaption><span>labs/08-memory-map/mem.py</span></figcaption>
+<pre><span class="k">import</span> mmap
+<span class="k">import</span> os
+<span class="k">import</span> time
+
+MB = <span class="n">1024</span> * <span class="n">1024</span>
+STAGE = <span class="n">20</span>
+<span class="f">print</span>(<span class="s">&quot;pid&quot;</span>, os.<span class="f">getpid</span>(), flush=<span class="k">True</span>)
+<span class="f">print</span>(<span class="s">&quot;1. start&quot;</span>, flush=<span class="k">True</span>)
+time.<span class="f">sleep</span>(STAGE)
+data = mmap.<span class="f">mmap</span>(-<span class="n">1</span>, <span class="n">300</span> * MB)
+<span class="f">print</span>(<span class="s">&quot;2. got 300 MB&quot;</span>, flush=<span class="k">True</span>)
+time.<span class="f">sleep</span>(STAGE)
+<span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(<span class="n">0</span>, <span class="f">len</span>(data), mmap.PAGESIZE):
+    data[i] = <span class="n">1</span>
+<span class="f">print</span>(<span class="s">&quot;3. wrote to every page&quot;</span>, flush=<span class="k">True</span>)
+time.<span class="f">sleep</span>(STAGE)
+data.<span class="f">close</span>()
+<span class="f">print</span>(<span class="s">&quot;4. freed&quot;</span>, flush=<span class="k">True</span>)
+time.<span class="f">sleep</span>(STAGE)</pre>
+        </figure>
+        <p>Программа проходит четыре этапа и на каждом ждёт 20 секунд. За это время нужно успеть выполнить команду шага. <code>mmap.mmap(-1, 300 * MB)</code> просит у системы 300 МБ памяти, не связанной с файлом. Цикл записывает единицу в каждую страницу: <code>mmap.PAGESIZE</code> — размер страницы. <code>close</code> возвращает память системе. Вторая программа, <code>leak.py</code>, каждую секунду добавляет в список ещё 10 МБ и ничего не освобождает.</p>
+        <figure class="code"><figcaption><span>labs/08-memory-map/leak.py</span></figcaption>
+<pre><span class="k">import</span> os
+<span class="k">import</span> time
+
+<span class="f">print</span>(<span class="s">&quot;pid&quot;</span>, os.<span class="f">getpid</span>(), flush=<span class="k">True</span>)
+kept = []
+<span class="k">for</span> second <span class="k">in</span> <span class="f">range</span>(<span class="n">60</span>):
+    kept.<span class="f">append</span>(<span class="f">bytearray</span>(<span class="n">10</span> * <span class="n">1024</span> * <span class="n">1024</span>))
+    time.<span class="f">sleep</span>(<span class="n">1</span>)</pre>
+        </figure>
+
+        <div class="margin-note">
+          <b>Как читать шаг</b>
+          <p>Вверху шага — действие. Ниже — кадр экрана после действия; красные рамки отмечают места, о которых идёт речь. Слева под кадром — что на нём видно, справа — что изменилось. Строка «В отчёт» — что записать в <code>report.md</code>. Номера процессов и размеры у вас будут другими. Если не успели выполнить команду за 20 секунд этапа, остановите программу (<span data-os="win"><code>taskkill /im python.exe /f</code></span><span data-os="mac linux"><code>kill %1</code></span>) и запустите её снова.</p>
+        </div>
+
+        <h2 id="s2"><span class="sec">§2</span>Обещанная и занятая память</h2>
+
+        <p>Каждый процесс видит свою память как длинный ряд адресов — <span class="term">виртуальную память</span>. Система раздаёт её кусками — <span class="term">страницами</span>. Получить адреса и получить настоящую память — разные события. Адреса процесс получает, когда просит. Страницу в оперативной памяти он получает, когда первый раз в неё пишет. Страницы процесса, которые лежат в оперативной памяти, — <span class="term">резидентная память</span>.</p>
+
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>Гостиница принимает бронь на сотню номеров одной строкой в журнале. Убирать и стелить начинают, только когда гость заселяется.</p>
+          <p class="miss">Гость заселяется в номер целиком. Процесс «заселяет» страницу, даже если записал в неё один байт.</p>
+        </div></div>
+        <figure class="scheme">
+          <p class="scheme__head">Две цифры памяти процесса</p>
+          <div class="scheme__body">
+<div class="vsplit"><div><h6>Виртуальная — обещано</h6><div class="vkv"><div><span>что это</span><span>адреса, которые система выдала процессу</span></div><div><span>стоит</span><span>почти ничего</span></div><div><span>растёт</span><span>когда процесс просит память</span></div></div></div><div><h6>Резидентная — занято</h6><div class="vkv"><div><span>что это</span><span>страницы, которые лежат в оперативной памяти</span></div><div><span>стоит</span><span>настоящие мегабайты</span></div><div><span>растёт</span><span>когда процесс пишет в страницу</span></div></div></div></div>
+          </div>
+          <p class="scheme__note">Страница — кусок памяти, которым система её раздаёт: 4 КБ в Windows и Linux, 16 КБ в macOS на процессорах Apple.</p>
+        </figure>
+        <p>Левая половина — обещание, правая — настоящие затраты. Мониторы показывают обе цифры, но называют их по-разному:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Как эти цифры называют программы</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th></th><th>Виртуальная</th><th>Резидентная (занятая)</th></tr></thead><tbody><tr><td>Linux, <code>ps</code></td><td><code>VSZ</code></td><td><code>RSS</code></td></tr><tr><td>Windows, Get-Process</td><td><code>VirtualMemorySize64</code></td><td><code>WorkingSet64</code> — рабочий набор</td></tr><tr><td>Windows, VMMap</td><td>Size, Committed</td><td>Working Set</td></tr><tr><td>macOS, <code>ps</code> и <code>vmmap</code></td><td><code>VSZ</code>, VIRTUAL SIZE</td><td><code>RSS</code>; честнее — Physical footprint</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note"><code>ps</code> печатает размеры в килобайтах, Get-Process — в байтах.</p>
+        </figure>
+        <p>Отсюда ожидание для <code>mem.py</code> — ход работы его проверит:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Что должно происходить на этапах mem.py</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th>Этап</th><th>Виртуальная</th><th>Резидентная</th></tr></thead><tbody><tr><td>1. старт</td><td>как у пустого Python</td><td>как у пустого Python</td></tr><tr><td>2. получил 300 МБ</td><td class="is-ok">+300 МБ</td><td>не меняется</td></tr><tr><td>3. записал в каждую страницу</td><td>+300 МБ</td><td class="is-bad">+300 МБ</td></tr><tr><td>4. освободил</td><td>обратно</td><td>обратно</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note">Ожидание, которое проверяет работа. Зелёное — обещание, розовое — настоящие затраты.</p>
+        </figure>
+        <details class="simple">
+          <summary>Что такое виртуальная и занятая память</summary>
+          <p>Представь гостиницу. Процесс звонит и говорит: «забронируйте мне 300 номеров». Гостиница записывает бронь в журнал — это виртуальная память. Номера при этом пустые, бельё не стелили, уборщицы не бегали. Бронь стоит гостинице одну строчку в журнале.</p>
+          <p>Настоящие расходы начинаются, когда гость заселяется в номер: застелить, включить свет. Это резидентная память — номера, где реально кто-то живёт. Процесс «заселяется» в страницу, когда первый раз в неё пишет.</p>
+<div class="vsteps"><div class="vcard is-sys"><h5>этап 2</h5><b>бронь на 300 номеров</b><small>виртуальная +300 МБ</small></div><div class="varr">гость пишет</div><div class="vcard is-c"><h5>этап 3</h5><b>заселились все 300</b><small>резидентная +300 МБ</small></div><div class="varr">выехал</div><div class="vcard is-sys"><h5>этап 4</h5><b>бронь снята</b><small>обе цифры вернулись</small></div></div>
+          <p class="simple__map"><b>Что есть что.</b> Гостиница — система. Журнал броней — виртуальная память процесса. Заселённый номер — страница в оперативной памяти. <code>mmap.mmap(-1, 300 * MB)</code> — бронь, <code>data[i] = 1</code> — заселение, <code>close</code> — выезд.</p>
+        </details>
+
+        <h2 id="s3"><span class="sec">§3</span>Ход работы</h2>
+
+        <ol class="lab">
+        <li>
+<div class="lab__do" data-os="win"><b>Запустите mem.py и посмотрите размеры</b><span>В командной строке в папке <code>labs\08-memory-map</code> выполните <code>start /b python mem.py</code>. Программа печатает номер процесса и этап и ждёт 20 секунд до следующего этапа. Сразу выполните<br><code>powershell -c "Get-Process python | ft Id,WorkingSet64,PrivateMemorySize64,VirtualMemorySize64"</code><br>Столбцы: рабочий набор (занятая память), личная память и виртуальная — в байтах.</span></div><div class="lab__do" data-os="mac"><b>Запустите mem.py и посмотрите размеры</b><span>В Терминале в папке <code>labs/08-memory-map</code> выполните <code>python3.14 mem.py &amp;</code>. Программа печатает номер процесса и этап и ждёт 20 секунд до следующего этапа. Сразу выполните<br><code>ps -o pid,vsz,rss,comm -p $!; vmmap -summary $! | grep 'Physical footprint:'</code><br><code>vmmap -summary</code> печатает сводку памяти процесса, <code>grep</code> оставляет строку с физическим следом.</span></div><div class="lab__do" data-os="linux"><b>Запустите mem.py и посмотрите размеры</b><span>В терминале в папке <code>labs/08-memory-map</code> выполните <code>python3.14 mem.py &amp;</code>. Программа печатает номер процесса и этап и ждёт 20 секунд до следующего этапа. Сразу выполните <code>ps -o pid,vsz,rss,comm -p $!</code>: <code>vsz</code> — виртуальная память, <code>rss</code> — резидентная, в килобайтах.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/01-start.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/01-start.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/01-start.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p><span class="mk">1</span> — процесс 8168: рабочий набор 12 521 472 байта (12 МБ), личная 6 062 080 (6 МБ), виртуальная 4 397 719 552 (около 4,1 ГБ).</p></div><div><b>Что изменилось</b><p>Пустой Python занимает 12 МБ, а адресов у него больше 4 ГБ. Виртуальная память Windows включает зарезервированные области, которые процесс ещё не использует.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p><span class="mk">1</span> — процесс 14932: <code>VSZ</code> 435 266 992 КБ, <code>RSS</code> 8608 КБ. <span class="mk">2</span> — физический след 6944 КБ.</p></div><div><b>Что изменилось</b><p>Пустой Python занимает около 7–9 МБ, а адресов у него — 415 ГБ. В macOS каждый процесс сразу получает огромное адресное пространство, и <code>VSZ</code> здесь почти ничего не говорит.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — процесс 4365: <code>VSZ</code> 42 896 КБ, <code>RSS</code> 15 416 КБ.</p></div><div><b>Что изменилось</b><p>Пустой Python обещал себе 42 МБ адресов, а занимает 15 МБ. Разница — части библиотек и областей, в которые процесс ещё не заглядывал.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> виртуальная и занятая память процесса на старте.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Откройте карту памяти</b><span>Выполните <code>start vmmap64a -accepteula -p python</code> (на компьютере с x64 — <code>vmmap64</code>). VMMap откроется на процессе <code>python</code>. Посмотрите полосы сверху и таблицу по типам памяти. Закройте окно.</span></div><div class="lab__do" data-os="mac"><b>Откройте карту памяти</b><span>Выполните<br><code>vmmap -summary $! | grep -E 'VIRTUAL|REGION TYPE|MALLOC_SMALL  |MALLOC_TINY|^Stack |VM_ALLOCATE|^__TEXT|^__DATA  |^TOTAL '</code><br>Команда печатает сводку по видам областей памяти; <code>grep</code> оставляет главные строки.</span></div><div class="lab__do" data-os="linux"><b>Откройте карту памяти</b><span>Выполните <code>pmap -x $!</code>: <code>pmap</code> печатает каждую область памяти процесса с адресом, размером и тем, что в ней лежит.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/02-map.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/02-map.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/02-map.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p><span class="mk">1</span> — Committed: 37 956 K — память, которую система обязалась дать. <span class="mk">2</span> — Working Set: 12 240 K. <span class="mk">3</span> — строка <b>Shareable</b>: 1 452 K.</p></div><div><b>Что изменилось</b><p>Таблица делит память по видам: Image — файлы программ и библиотек, Heap — куча, Stack — стеки потоков, Private Data — личные данные. Цвета полос сверху — те же виды.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>TOTAL</code>: 1.1G виртуальной, 207.7M резидентной.</p></div><div><b>Что изменилось</b><p>Строки — виды областей: <code>__TEXT</code> — код Python и библиотек (282.2M), <code>__DATA</code> — их данные, <code>MALLOC_*</code> — куча, <code>Stack</code> — стек. Резидентная сумма больше <code>RSS</code>: в неё входит общий кэш библиотек, который делят все процессы.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — области самого <code>python3.14</code>: код (<code>r-x--</code>), данные только для чтения и для записи. <span class="mk">2</span> — итог: 42 896 КБ виртуальной, 15 416 резидентной.</p></div><div><b>Что изменилось</b><p>Ниже — <code>[ anon ]</code> — анонимная память, данные Python без файла; <code>libc.so.6</code> — библиотека C из ЛР 3; <code>[ stack ]</code> — стек главного потока. Столбец <code>Mode</code> — права: чтение, запись, выполнение.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> из каких частей состоит память процесса и сколько её всего.</p>
+<p class="lab-snap"><b>Снимок в отчёт · 01</b> Сохраните окно как <code>screenshots/01_memory_map.png</code>. На снимке должно быть видно: карта памяти процесса mem.py на старте и её итог.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Получите 300 МБ</b><span>Дождитесь строки <code>2. got 300 MB</code> и сразу повторите команду шага 1, затем снова откройте VMMap: <code>start vmmap64a -p python</code>.</span></div><div class="lab__do" data-os="mac"><b>Получите 300 МБ</b><span>Дождитесь строки <code>2. got 300 MB</code> и выполните команды шагов 1 и 2 одной строкой: <code>clear; ps -o pid,vsz,rss,comm -p $!; vmmap -summary $! | grep 'Physical footprint:'; vmmap -summary $! | grep -E 'VIRTUAL|REGION TYPE|MALLOC_SMALL  |MALLOC_TINY|^Stack |VM_ALLOCATE|^__TEXT|^__DATA  |^TOTAL '</code>.</span></div><div class="lab__do" data-os="linux"><b>Получите 300 МБ</b><span>Дождитесь строки <code>2. got 300 MB</code> и выполните <code>clear; ps -o pid,vsz,rss,comm -p $!; pmap -x $! | sort -n -k2 | tail -2</code>: <code>sort -n -k2</code> сортирует области по размеру, <code>tail -2</code> оставляет две самые большие.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/03-mapped.png" alt="" loading="lazy"><img src="img/win/03b-map.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/03-mapped.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/03-mapped.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Первый кадр: <span class="mk">1</span> — рабочий набор 12 574 720, личная 6 680 576, виртуальная 4 712 292 352 байта — на 300 МБ больше. Второй: <span class="mk">1</span> — Committed 345 156 K; <span class="mk">2</span> — Working Set 12 248 K; <span class="mk">3</span> — Shareable: 308 652 K размер, 307 644 K committed, 264 K в рабочем наборе.</p></div><div><b>Что изменилось</b><p>Система обещала 300 МБ — виртуальная и Committed выросли, — но рабочий набор прежний: страницы не тронуты. Python в Windows получает такую память как общий раздел, поэтому она в строке Shareable и в личную память не попала.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p>Процесс на кадре — 11330. <span class="mk">1</span> — физический след 6960 КБ. <span class="mk">2</span> — строка <code>VM_ALLOCATE (reserved)</code>: 300.0M виртуальной, 0K резидентной, «reserved VM address space (unallocated)».</p></div><div><b>Что изменилось</b><p>Область 300 МБ появилась, но macOS прямо пишет: адреса зарезервированы, память не выделена. След не изменился.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>VSZ</code> 350 096 КБ (+300 МБ), <code>RSS</code> 15 416 КБ — прежний. <span class="mk">2</span> — новая область 307 200 КБ, в ней резидентно 0.</p></div><div><b>Что изменилось</b><p>Обещание выросло на 300 МБ, а занятая память не изменилась ни на килобайт. Подпись <code>zero (deleted)</code> — так Linux называет общую анонимную память, которую создаёт <code>mmap</code> в Python.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> виртуальная и занятая память после получения 300 МБ.</p>
+<p class="lab-snap"><b>Снимок в отчёт · 02</b> Сохраните окно как <code>screenshots/02_reserved.png</code>. На снимке должно быть видно: виртуальная память выросла на 300 МБ, занятая — нет.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Запишите в каждую страницу</b><span>Дождитесь строки <code>3. wrote to every page</code>: программа записала единицу в каждую страницу. Повторите команду шага 1 и откройте VMMap.</span></div><div class="lab__do" data-os="mac linux"><b>Запишите в каждую страницу</b><span>Дождитесь строки <code>3. wrote to every page</code>: программа записала единицу в каждую страницу. Повторите команду шага 3.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/04-touched.png" alt="" loading="lazy"><img src="img/win/04b-map.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/04-touched.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/04-touched.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Первый кадр: <span class="mk">1</span> — рабочий набор 327 147 520 байт (312 МБ). Второй: <span class="mk">1</span> — Committed прежний, 345 156 K; <span class="mk">2</span> — Working Set 319 448 K; <span class="mk">3</span> — Shareable в рабочем наборе 307 464 K.</p></div><div><b>Что изменилось</b><p>Виртуальная память не изменилась — обещание то же. Рабочий набор вырос на 300 МБ: каждая страница, в которую записали, стала настоящей памятью.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>RSS</code> 11 744 КБ. <span class="mk">2</span> — физический след 306.8M. <span class="mk">3</span> — <code>VM_ALLOCATE</code>: 303.0M виртуальной, 2640K резидентной, 299.9M в столбце SWAPPED.</p></div><div><b>Что изменилось</b><p>Страницы стали настоящими — след вырос на 300 МБ. Но macOS сразу сжала их: они почти сплошь из нулей. Поэтому <code>RSS</code> почти не вырос, а 299.9M лежат в сжатом виде. Для утечек в macOS смотрят физический след — его же показывает столбец «Память» в Мониторинге системы.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>RSS</code> 322 616 КБ. <span class="mk">2</span> — в области 307 200 КБ резидентно 307 200.</p></div><div><b>Что изменилось</b><p>Обещание прежнее, а занятая память выросла на 300 МБ: система выдавала страницу при первой записи в неё. Ровно столько, сколько страниц тронули.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> виртуальная и занятая память после записи в каждую страницу.</p>
+<p class="lab-snap"><b>Снимок в отчёт · 03</b> Сохраните окно как <code>screenshots/03_touched.png</code>. На снимке должно быть видно: занятая память (в macOS — физический след) после записи в каждую страницу.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Освободите память</b><span>Дождитесь строки <code>4. freed</code> и повторите команду шага 1.</span></div><div class="lab__do" data-os="mac"><b>Освободите память</b><span>Дождитесь строки <code>4. freed</code> и выполните <code>clear; ps -o pid,vsz,rss,comm -p $!; vmmap -summary $! | grep 'Physical footprint:'</code>.</span></div><div class="lab__do" data-os="linux"><b>Освободите память</b><span>Дождитесь строки <code>4. freed</code> и выполните <code>clear; ps -o pid,vsz,rss,comm -p $!</code>.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/05-freed.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/05-freed.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/05-freed.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p><span class="mk">1</span> — рабочий набор 12 574 720, личная 6 062 080, виртуальная 4 397 719 552 байта — как на старте.</p></div><div><b>Что изменилось</b><p><code>close</code> вернул и обещание, и страницы системе.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>RSS</code> 9328 КБ, физический след 6848 КБ.</p></div><div><b>Что изменилось</b><p>След вернулся к стартовому. <code>close</code> вернул память системе.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>VSZ</code> 42 896, <code>RSS</code> 15 416 КБ — числа шага 1.</p></div><div><b>Что изменилось</b><p><code>close</code> вернул и обещание, и страницы системе: процесс снова такой, каким был на старте.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> память после освобождения.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Найдите утечку по замерам</b><span>Выполните <code>start /b python leak.py</code>, затем<br><code>for /l %i in (1,1,5) do @(powershell -c "(Get-Process python).WorkingSet64" &amp; timeout /t 2 &gt;nul)</code><br>Цикл пять раз с паузой 2 секунды печатает рабочий набор.</span></div><div class="lab__do" data-os="mac"><b>Найдите утечку по замерам</b><span>Выполните <code>python3.14 leak.py &amp;</code>, затем<br><code>for i in 1 2 3 4 5; do vmmap -summary $! | grep 'Physical footprint:'; sleep 2; done</code><br>Цикл пять раз с паузой 2 секунды печатает физический след.</span></div><div class="lab__do" data-os="linux"><b>Найдите утечку по замерам</b><span>Выполните <code>python3.14 leak.py &amp;</code>, затем <code>for i in 1 2 3 4 5; do ps -o rss= -p $!; sleep 2; done</code>: цикл пять раз с паузой 2 секунды печатает <code>RSS</code>. После замеров остановите программу: <code>kill %1</code>.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/06-leak.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/06-leak.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/06-leak.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p><span class="mk">1</span> — 75 415 552 → 96 395 264 → 117 374 976 → 138 354 688 → 159 338 496 байт.</p></div><div><b>Что изменилось</b><p>Каждые 2 секунды +21 МБ — две новые порции по 10 МБ. Число только растёт.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p><span class="mk">1</span> — 36.6M → 56.7M → 86.8M → 106.9M → 137.0M.</p></div><div><b>Что изменилось</b><p>След растёт на 20–30 МБ каждые 2 секунды. <code>RSS</code> здесь не годится: macOS сжимает страницы, и он то растёт, то падает, хотя программа только копит.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — 55 676 → 76 164 → 96 652 → 117 140 → 137 628 КБ.</p></div><div><b>Что изменилось</b><p>Каждые 2 секунды ровно +20 480 КБ — две порции по 10 МБ. Число только растёт: так и выглядит утечка.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> пять замеров и на сколько память росла за 2 секунды.</p>
+<p class="lab-snap"><b>Снимок в отчёт · 04</b> Сохраните окно как <code>screenshots/04_leak.png</code>. На снимке должно быть видно: пять замеров памяти leak.py.</p>
+</li>
+        </ol>
+        <details class="simple">
+          <summary>Почему у macOS RSS почти не вырос</summary>
+          <p>macOS экономит место: если в номере почти ничего нет, она сворачивает его вещи вакуумным пакетом и убирает в кладовку. Наши 300 МБ — сплошные нули с редкими единицами, они сжимаются отлично.</p>
+          <p><code>ps</code> считает только номера, где вещи лежат развёрнутыми, поэтому показывает 11 МБ. Physical footprint считает всё, что процесс занимает, вместе с кладовкой: 306,8 МБ. Для вопроса «сколько памяти съел процесс» нужен второй счёт.</p>
+<div class="vsteps"><div class="vcard is-c"><h5>после записи</h5><b>300 МБ нулей</b></div><div class="varr">сжатие</div><div class="vcard is-sys"><h5>RSS</h5><b>11,7 МБ</b><small>развёрнутые страницы</small></div><div class="varr"></div><div class="vcard is-py"><h5>Physical footprint</h5><b>306,8 МБ</b><small>всё, вместе со сжатым</small></div></div>
+          <p class="simple__map"><b>Что есть что.</b> Вакуумный пакет — сжатая память macOS, в <code>vmmap</code> — столбец SWAPPED у строки <code>VM_ALLOCATE</code>: 299,9 МБ.</p>
+        </details>
+        <details class="simple">
+          <summary>Как выглядит утечка</summary>
+          <p>Постоялец каждую секунду приносит в номер новую коробку и ничего не выбрасывает. Через минуту номер забит. <code>leak.py</code> так же каждую секунду кладёт в список 10 МБ и держит их.</p>
+          <p>Одна цифра ничего не говорит: 137 МБ — может, процессу так и нужно. Утечку выдаёт ряд замеров, где число только растёт.</p>
+<div class="vsteps"><div class="vcard is-sys"><h5>замер 1</h5><b>55 МБ</b></div><div class="varr">2 с</div><div class="vcard is-sys"><h5>замер 2</h5><b>76 МБ</b></div><div class="varr">2 с</div><div class="vcard is-c"><h5>замер 3</h5><b>97 МБ</b></div><div class="varr">…</div><div class="vcard is-c"><h5>замер 5</h5><b>138 МБ</b><small>всё время вверх</small></div></div>
+          <p class="simple__map"><b>Что есть что.</b> Коробка — <code>bytearray(10 * 1024 * 1024)</code>, номер — список <code>kept</code>. Числа — Linux, шаг 6.</p>
+        </details>
+
+        <h2 id="s4"><span class="sec">§4</span>Что получилось</h2>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Этап</th><th>Windows: виртуальная / рабочий набор</th><th>macOS: RSS / физический след</th><th>Linux: VSZ / RSS</th></tr></thead>
+            <tbody>
+              <tr><td>Старт</td><td>4,10 ГБ / 12 МБ</td><td>8,4 / 6,8 МБ</td><td>42 / 15 МБ</td></tr>
+              <tr><td>Получил 300 МБ</td><td>4,39 ГБ / 12 МБ</td><td>след 6,8 МБ, область «reserved»</td><td>342 / 15 МБ</td></tr>
+              <tr><td>Записал в каждую страницу</td><td>4,39 ГБ / 312 МБ</td><td>11,5 / 306,8 МБ</td><td>342 / 315 МБ</td></tr>
+              <tr><td>Освободил</td><td>4,10 ГБ / 12 МБ</td><td>9,1 / 6,7 МБ</td><td>42 / 15 МБ</td></tr>
+              <tr><td>Утечка, 5 замеров за 8 с</td><td>72 → 152 МБ</td><td>след 36,6 → 137,0 МБ</td><td>54 → 134 МБ</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>На трёх системах просьба о памяти увеличила только обещание, а занятая память выросла лишь после записи. Освобождение вернуло обе цифры. Утечку выдаёт ряд замеров, где память только растёт; одно число её не показывает. Мерить нужно правильную цифру: в Windows и Linux — рабочий набор и <code>RSS</code>, в macOS — физический след, потому что macOS сжимает страницы и <code>RSS</code> там обманывает.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>Отчёт</h2>
+
+        <p>Бланк — в <code>labs/08-memory-map/report.md</code>. Замените каждый пропуск <code>___</code> данными со своего экрана, снимки положите в <code>screenshots/</code>. Коммит — <code>labs 08: карта памяти, отчёт</code>.</p>
+
+        <pre class="report"># ЛР 8. Карта памяти
+
+Система: <span class="blank">___</span>
+Чем мерил (виртуальная и занятая): <span class="blank">___</span>
+
+## Этапы mem.py
+Старт: <span class="blank">___</span>
+Получил 300 МБ: <span class="blank">___</span>
+Записал в каждую страницу: <span class="blank">___</span>
+Освободил: <span class="blank">___</span>
+Почему занятая память выросла только на третьем этапе: <span class="blank">___</span>
+
+## Карта памяти
+Из каких частей состоит память процесса: <span class="blank">___</span>
+
+## Утечка
+Пять замеров leak.py: <span class="blank">___</span>
+На сколько росла память за 2 секунды: <span class="blank">___</span>
+
+Не получилось: <span class="blank">___</span>
+
+## Снимки экрана
+![1. Карта памяти](screenshots/01_memory_map.png)
+![2. Получено 300 МБ](screenshots/02_reserved.png)
+![3. Страницы заняты](screenshots/03_touched.png)
+![4. Утечка](screenshots/04_leak.png)</pre>
+
+        <p>Кроме чисел в отчёт кладутся 4 снимков экрана. В папке <code>labs/08-memory-map/screenshots</code> уже лежат заглушки с нужными именами, а в <code>report.md</code> — ссылки на них с подписями. Сделайте снимок окна после шага из таблицы и сохраните его поверх заглушки с тем же именем: подпись и ссылку менять не нужно, на GitHub отчёт сразу покажет ваш снимок. В каждом шаге такой снимок отмечен оранжевой строкой «Снимок в отчёт».</p>
+        <p>Как снять окно: <span data-os="win"><kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> → «Окно», затем сохранить из «Ножниц» как PNG</span><span data-os="mac"><kbd>⌘</kbd>+<kbd>⇧</kbd>+<kbd>4</kbd>, затем <kbd>Пробел</kbd> и щелчок по окну — PNG появится на Рабочем столе</span><span data-os="linux"><kbd>PrtSc</kbd> → «Окно», PNG сохраняется в папку «Изображения/Снимки экрана»</span>. Снимок — всё окно программы, без обрезки; имя файла — строго из таблицы.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>№</th><th>После шага</th><th>Файл</th><th>Что должно быть видно</th></tr></thead>
+            <tbody>
+              <tr><td class="num-cell">01</td><td>2</td><td><code>01_memory_map.png</code></td><td>карта памяти процесса mem.py на старте и её итог</td></tr>
+              <tr><td class="num-cell">02</td><td>3</td><td><code>02_reserved.png</code></td><td>виртуальная память выросла на 300 МБ, занятая — нет</td></tr>
+              <tr><td class="num-cell">03</td><td>4</td><td><code>03_touched.png</code></td><td>занятая память (в macOS — физический след) после записи в каждую страницу</td></tr>
+              <tr><td class="num-cell">04</td><td>6</td><td><code>04_leak.png</code></td><td>пять замеров памяти leak.py</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="s6"><span class="sec">§6</span>Проверьте себя</h2>
+
+        <details>
+          <summary>Почему после <code>mmap</code> на 300 МБ занятая память не изменилась?</summary>
+          <p>Система выдала процессу адреса, но страницы в оперативной памяти даёт только при первой записи. Пока страницу не трогали, она ничего не стоит.</p>
+        </details>
+        <details>
+          <summary>Какая цифра показывает, сколько памяти процесс действительно занимает?</summary>
+          <p>Резидентная: <code>RSS</code> в Linux, рабочий набор в Windows. В macOS — физический след: он учитывает и сжатые страницы.</p>
+        </details>
+        <details>
+          <summary>Почему в macOS <code>RSS</code> после записи почти не вырос?</summary>
+          <p>Страницы почти сплошь из нулей, и macOS сразу их сжала. Сжатые страницы не входят в <code>RSS</code>, но входят в физический след — 306,8 МБ.</p>
+        </details>
+        <details>
+          <summary>Как отличить утечку от программы, которой просто нужно много памяти?</summary>
+          <p>По ряду замеров. Программе, которой нужно много, память растёт до какого-то уровня и останавливается. При утечке она растёт без остановки.</p>
+        </details>
+        <details>
+          <summary>Что такое страница?</summary>
+          <p>Кусок памяти, которым система её выдаёт: 4 КБ в Windows и Linux, 16 КБ в macOS на процессорах Apple. Записав один байт, процесс получает всю страницу.</p>
+        </details>
+
+        <div class="pager">
+          <a href="../20-potoki/index.html">← 2.4 Потоки</a>
+          <a href="../../index.html">Оглавление</a>
+          <a href="../22-laboratornaya-9/index.html">ЛР 9 Разбор падения →</a>
+        </div>
+
+        <div class="colophon">
+          <span>Справочник по системному программированию</span>
+          <span class="author-line">© Макаров Максим Николаевич</span>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+</body>
+</html>

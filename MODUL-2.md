@@ -182,3 +182,40 @@ Python в Windows, как в ЛР 7), most_threads System 162, Code.exe 59, msed
 жизнь count_threads 1→5→1, гонка counter++ по шагам, итоги race/ai_race). Новой проверки в паре 7 нет. Шаблон: конспект
 lectures/chapter-2-4-threads.md, agent/README.md (core_threads.c, count_threads.c, proc_threads, most_threads). Оглавление: 2.4 «Потоки».
 **Пара 7 закрыта 11.11.** Дальше — пара 8: ЛР 8 «Карта памяти», глава 2.5 «Память процесса», проверка 3 «Память процесса растёт без остановки».
+
+## Пара 8 (в работе, 11.11.2026)
+
+Блоки «По-простому» (details.simple) — во всех новых главах (одобрено 11.11, образец 2.4, коммит 25c6a3c); старые главы — по отдельной просьбе.
+ЛР 8 «Карта памяти» — программы `tools/src_lab8`: `mem.py` (этапы по 15 с: старт → mmap 300 МБ → запись в каждую страницу → close),
+`leak.py` (+10 МБ bytearray в список каждую секунду, 60 с). bytearray не годится для опыта «выделено, но не занято»: в Linux он сразу
+заполняет нули (RSS 307 МБ до касания) — поэтому анонимный mmap. Опыт: Linux VSZ 13 → 313 → 313 → 13 МБ, RSS 7 → 7 → 307 → 7;
+macOS RSS 14 → 14 → 239 → 9 (сжатие памяти), VSZ +300. Карта: macOS `vmmap -summary PID` (область VM_ALLOCATE 304 МБ, занято 303),
+Linux `pmap -x PID` (anon 307200 кБ), Windows — VMMap ARM64 `vmmap64a.exe` (~/sysprog-shots/win/dl/VMMap.zip) и Get-Process
+(WorkingSet64, PrivateMemorySize64, VirtualMemorySize64). План шагов: 1) mem.py — размеры в мониторе; 2) карта памяти на старте;
+3) после mmap — виртуальная +300, резидентная нет; 4) после записи — резидентная +300; 5) после close — обратно; 6) leak.py — рост по замерам.
+ЛР 8 Linux снята 11.11 (raw/lab8/linux; ВМ Ubuntu после аварийного восстановления загружена заново, uv и Python 3.14.10 поставлены снова):
+01-start (ps: VSZ 42 896, RSS 15 416 КБ), 02-map (pmap -x: python3.14, [anon], locale-archive, libc.so.6, [stack]; total 42896/15416/13608),
+03-mapped (VSZ 350 096, RSS 15 416; область 307 200 КБ, RSS 0, `rw-s- zero (deleted)` — mmap -1 в Python общий анонимный),
+04-touched (RSS 322 616; область RSS 307 200), 05-freed (42 896 / 15 416), 06-leak (RSS 55 676 → 76 164 → 96 652 → 117 140 → 137 628 через 2 с).
+mem.py: STAGE поднят до 20 с (для Windows и VMMap), на кадрах Linux длина этапа не видна.
+ЛР 8 Windows снята 11.11 (raw/lab8/win; ISO win/l8.iso: mem.py, leak.py, VMMap.zip → C:\vmmap, start8.cmd; Get-Process python и
+`vmmap64a -accepteula -p python`): Get-Process WS / Private / Virtual, байты — старт 12 521 472 / 6 062 080 / 4 397 719 552;
+после mmap 12 574 720 / 6 680 576 / 4 712 292 352 (+300 МБ виртуальной); после записи 327 147 520 / 6 680 576 / 4 712 292 352;
+после close 12 574 720 / 6 062 080 / 4 397 719 552. VMMap: Committed 37 956 → 345 156 K, Working Set 12 240 → 12 248 → 319 448 K;
+строка Shareable 1 452 → 308 652 K (committed 307 644 K, WS 264 → 307 464 K) — mmap -1 в Windows — общий раздел файла подкачки,
+в Private Bytes (5 620 K) не попадает. 06-leak: WS 75 415 552 → 96 395 264 → 117 374 976 → 138 354 688 → 159 338 496.
+На кадрах 03/04/05 вывод mem.py («3. wrote to every page») врезается в строку команды — фоновая программа печатает в ту же консоль.
+Осталось: кадры macOS (рабочий стол пользователя), lab8.py, рамки, SNAPS, шаблон, вычитка.
+ЛР 8 macOS снята 11.11 (raw/lab8/mac, окно Терминала 1180×610, склейка m6.glue; ps + `vmmap -summary $! | grep 'Physical footprint:'`):
+01-start pid 14932 VSZ 435 266 992, RSS 8608, footprint 6944K; 02-map (vmmap -summary: MALLOC_SMALL 24.0M, MALLOC_TINY 4096K, Stack 16.0M,
+VM_ALLOCATE 3088K, __DATA 5005K, __TEXT 282.2M, TOTAL 1.1G / резидентно 207.7M); 03-mapped (pid 11330: footprint 6960K,
+строка «VM_ALLOCATE (reserved) 300.0M, resident 0K — reserved VM address space (unallocated)»); 04-touched (RSS 11 744 КБ, footprint 306.8M,
+VM_ALLOCATE 303.0M, resident 2640K, SWAPPED 299.9M — **macOS сразу сжал страницы, заполненные почти нулями: RSS почти не вырос,
+а «физический след» — 306,8 МБ**; Мониторинг системы показывает в столбце «Память» именно footprint); 05-freed (RSS 9328, footprint 6848K);
+06-leak footprint 36.6 → 56.7 → 86.8 → 106.9 → 137.0M (RSS в macOS скачет из-за сжатия — первый вариант кадра: 45 488 → 31 216 → 20 208).
+Номера процессов 01/02 и 03–05 разные (кадры 01–02 пересняты отдельно). Дальше: lab8.py, рамки src_lab8/mark8.py, SNAPS, шаблон, вычитка.
+**Решение 11.11 (пользователь): пар осталось мало — дальше только лабораторные (ЛР 8, ЛР 9).** Главы 2.5, 2.6 и проверка 3 не делаются;
+пейджер ЛР 8 ведёт на ЛР 9, оглавление — без 2.5/2.6.
+ЛР 8 написана и вычитана 11.11: `tools/lab8.py` → `temy/21-laboratornaya-8` (6 шагов, 3 схемы, 3 блока «По-простому»: гостиница и бронь,
+вакуумный пакет macOS, постоялец с коробками), рамки src_lab8/mark8.py, SNAPS '08-memory-map' (шаги 2, 3, 4, 6), шаблон labs/08-memory-map.
+Оглавление: ЛР 8, строки 2.5/2.6 убраны; пейджер 2.4 → ЛР 8, ЛР 8 → ЛР 9 (`temy/22-laboratornaya-9`). Дальше — ЛР 9 «Разбор падения».
