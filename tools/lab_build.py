@@ -39,6 +39,8 @@ def attr(o):
 def step(st, note=''):
     out = ['        <li>']
     out.append(block(st['do'], lambda v, o: f'<div class="lab__do"{attr(o)}><b>{v[0]}</b><span>{v[1]}</span></div>'))
+    if st.get('why'):
+        out.append(f'<p class="purpose"><b>Зачем этот шаг</b>{st["why"]}</p>')
     shots = per_os(st['shot'])
     for o in OS:
         out.append(f'<figure class="lab__shot shot" data-os="{o}">{shot(shots[o], o)}</figure>')
@@ -54,3 +56,13 @@ def step(st, note=''):
 def steps(lst, lab=None):
     """lab — папка работы в шаблоне студента: шаги со снимком для отчёта получают пометку из snaps.py."""
     return '        <ol class="lab">\n' + '\n'.join(step(s, snaps.step_note(lab, i) if lab else '') for i, s in enumerate(lst, 1)) + '\n        </ol>'
+
+
+def gist(cards, do):
+    """Блок «Суть за две минуты» под паспортом: cards — [(заголовок, текст, приписка)], do — что сделаете за работу."""
+    items = ''.join(f'<div><b data-n="{i}">{h}</b><p>{a}</p>{f"<p>{b}</p>" if b else ""}</div>' for i, (h, a, b) in enumerate(cards, 1))
+    return f'''        <section class="gist" aria-label="Суть работы">
+          <p class="gist__head">Суть за две минуты</p>
+          <div class="gist__cards">{items}</div>
+          <p class="gist__do"><b>В работе:</b>{do}</p>
+        </section>'''

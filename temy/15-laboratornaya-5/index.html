@@ -24,7 +24,7 @@
         <header class="chapter-head">
           <span class="chapter-num">ЛР 5</span>
           <h1>Рождение<br>процесса</h1>
-          <p class="lead">Команда в терминале выполняется за миг, но за этот миг родитель просит ядро создать процесс, ядро загружает программу и библиотеки, программа работает и оставляет код завершения, а родитель его забирает. В работе каждый из этих шагов записывается программой, которая следит за обращениями процессов к ядру. После работы в главе 2.2 ядро агента научится запускать процессы своим кодом.</p>
+          <p class="lead">Любая команда в терминале — это короткая цепочка: родитель просит ядро создать процесс, ядро загружает программу, программа оставляет код завершения. Каждое звено вы увидите в записи.</p>
         </header>
 
         <dl class="passport">
@@ -33,6 +33,12 @@
           <div><dt>Программы</dt><dd><span data-os="win">Process Monitor, командная строка</span><span data-os="mac"><code>fs_usage</code>, Терминал</span><span data-os="linux"><code>strace</code>, терминал</span>, Python</dd></div>
           <div><dt>Сдать</dt><dd><code>report.md</code> и 5 снимков в <code>screenshots/</code> в папке <code>labs/05-process-birth</code> репозитория <code>sysprog-start</code></dd></div>
         </dl>
+
+        <section class="gist" aria-label="Суть работы">
+          <p class="gist__head">Суть за две минуты</p>
+          <div class="gist__cards"><div><b data-n="1">Процесс заводит ядро</b><p>Новый процесс создаёт ядро системы, родитель только подаёт заявку. Так руководитель просит отдел кадров принять сотрудника: номер, место и пропуск выдаёт отдел кадров.</p><p>Ядро даёт процессу номер и память и загружает программу.</p></div><div><b data-n="2">Копия, потом другая программа</b><p>В macOS и Linux ядро сначала делает копию родителя, а потом заменяет в копии программу на нужную. В Windows всё одним вызовом.</p><p>Номер процесса при замене не меняется.</p></div><div><b data-n="3">В конце — код завершения</b><p>Ребёнок оставляет число: 0 значит успех, другое — ошибку. Родитель его забирает — как отметку «сделано» или «не сделано».</p><p>Если программы нет, система перебирает папки PATH и отвечает ошибкой.</p></div></div>
+          <p class="gist__do"><b>В работе:</b>запись рождения процесса → библиотеки → код завершения → программа, которой нет → запуск из Python.</p>
+        </section>
 
         <nav class="contents">
           <b>В этой работе</b>
@@ -57,15 +63,9 @@
 
         <h2 id="s2"><span class="sec">§2</span>Как рождается процесс</h2>
 
-        <p>В ЛР 4 было видно, что у каждого процесса есть родитель. Теперь посмотрим, как родитель создаёт ребёнка. Сам он процесс не строит: он просит ядро системным вызовом.</p>
+        <p>У каждого процесса есть родитель (ЛР 4). Ребёнка создаёт ядро по просьбе родителя — системному вызову. Это заявка в отдел кадров из «Сути».</p>
 
-        <div class="analogy"><div>
-          <b>Сравнение из жизни</b>
-          <p>Руководитель отдела не оформляет нового сотрудника сам: он подаёт заявку в отдел кадров. Отдел кадров выдаёт табельный номер, рабочее место и пропуск, а руководитель потом узнаёт, как сотрудник отработал испытательный срок.</p>
-          <p class="miss">Отдел кадров оформляет сразу нового человека. В macOS и Linux ядро сначала делает копию родителя и только потом загружает в неё другую программу.</p>
-        </div></div>
-
-        <p>Ядро выделяет новому процессу номер и память и загружает в неё файл программы. Затем <span class="term">загрузчик</span> подключает к программе библиотеки — тот список, который в ЛР 3 печатал <span data-os="win"><code>dumpbin</code></span><span data-os="mac"><code>otool -L</code></span><span data-os="linux"><code>ldd</code></span>. Загрузчик — часть системы, которая подключает к программе её библиотеки до того, как начнёт работать её собственный код.</p>
+        <p>Ядро даёт новому процессу номер и память и загружает файл программы. Затем <span class="term">загрузчик</span> — часть системы, которая подключает библиотеки до начала работы программы, — берёт тот список, который в ЛР 3 печатал <span data-os="win"><code>dumpbin</code></span><span data-os="mac"><code>otool -L</code></span><span data-os="linux"><code>ldd</code></span>.</p>
         <figure class="scheme">
           <p class="scheme__head">Как родитель запускает программу</p>
           <div class="scheme__body">
@@ -73,7 +73,10 @@
           </div>
           <p class="scheme__note"><span data-os="win">В Windows рождение — один вызов: ядро создаёт процесс и сразу загружает в него программу.</span><span data-os="mac linux">В <span data-os="mac">macOS</span><span data-os="linux">Linux</span> рождение — два вызова: сначала копия родителя, потом в копию загружается новая программа. Номер процесса появляется на первом шаге и после второго не меняется.</span></p>
         </figure>
-        <p>Слева на схеме — родитель, справа — работающий ребёнок. <span data-os="win">В Windows между ними один вызов: <code>CreateProcessW</code> создаёт процесс и загружает в него программу. Загрузчик живёт в <code>ntdll.dll</code>, которую ядро кладёт в каждый процесс.</span><span data-os="mac linux">Здесь между ними два вызова. Первый, <span data-os="linux"><code>clone</code></span><span data-os="mac"><code>fork</code></span>, делает копию родителя с новым номером. Второй, <code>execve</code>, заменяет программу в копии на новую: код родителя пропадает, номер остаётся. Загрузчик — <span data-os="linux"><code>ld-linux</code></span><span data-os="mac"><code>dyld</code></span>.</span></p>
+        <p data-os="win">Слева на схеме — родитель, справа — работающий ребёнок. В Windows между ними один вызов: ядро создаёт процесс и сразу загружает в него программу.</p>
+        <p data-os="win" class="tech"><b>В коде:</b> <code>CreateProcessW</code>; загрузчик — в <code>ntdll.dll</code>, которую ядро кладёт в каждый процесс.</p>
+        <p data-os="mac linux">Слева на схеме — родитель, справа — работающий ребёнок. Между ними два вызова: сначала ядро делает копию родителя с новым номером, потом заменяет в копии программу на новую. Код родителя пропадает, номер остаётся.</p>
+        <p data-os="mac linux" class="tech"><b>В коде:</b> <span data-os="linux"><code>clone</code></span><span data-os="mac"><code>fork</code></span> — копия, <code>execve</code> — замена программы; загрузчик — <span data-os="linux"><code>ld-linux</code></span><span data-os="mac"><code>dyld</code></span>.</p>
 
         <p>Работа программы кончается <span class="term">кодом завершения</span> — числом, которое процесс оставляет ядру. Его забирает родитель:</p>
         <figure class="scheme">
@@ -83,7 +86,7 @@
           </div>
           <p class="scheme__note"><span data-os="win">Командная строка ждёт ребёнка функцией WaitForSingleObject и читает код функцией GetExitCodeProcess.</span><span data-os="mac linux">Оболочка ждёт ребёнка вызовом <code>wait4</code>: он возвращает номер завершившегося процесса и его код.</span></p>
         </figure>
-        <p>Схема читается слева направо: ребёнок оставил 7, ядро хранит это число в записи о процессе, родитель ждёт ребёнка и получает число. Пока родитель код не забрал, запись о завершившемся процессе остаётся в ядре и занимает место. Поэтому программа, которая запускает процессы, обязана забирать их коды.</p>
+        <p>Ребёнок оставил 7, ядро хранит число в записи о процессе, родитель ждёт и получает его. Пока код не забран, запись остаётся в ядре и занимает место. Поэтому программа, которая запускает процессы, обязана забирать их коды.</p>
 
         <p>Вызовы записывает программа, которой ядро сообщает об обращениях процессов:</p>
 
@@ -102,7 +105,8 @@
 
         <ol class="lab">
         <li>
-<div class="lab__do" data-os="win"><b>Запишите рождение процесса</b><span>Запустите Process Monitor (<code>Procmon64.exe</code>, на компьютере с ARM — <code>Procmon64a.exe</code>) и примите лицензию. Запись начнётся сразу: остановите её <kbd>Ctrl</kbd>+<kbd>E</kbd> и очистите список <kbd>Ctrl</kbd>+<kbd>X</kbd>. Откройте фильтр <kbd>Ctrl</kbd>+<kbd>L</kbd>: выберите <b>Process Name</b>, <b>is</b>, введите <code>HOSTNAME.EXE</code>, оставьте <b>Include</b> и нажмите <b>Add</b>. Так же добавьте <code>cmd.exe</code>, <code>python.exe</code> и условие <b>Event Class is Process</b>, затем <b>OK</b>. Включите запись <kbd>Ctrl</kbd>+<kbd>E</kbd>, в командной строке выполните <code>hostname</code>, вернитесь в Process Monitor и остановите запись. Дважды щёлкните по строке <code>Process Start</code>.</span></div><div class="lab__do" data-os="mac"><b>Запишите рождение процесса</b><span>Откройте два окна Терминала: верхнее широкое — для записи, нижнее — для команд. В нижнем выполните <code>bash</code>: <code>fs_usage</code> по умолчанию скрывает события оболочек <code>zsh</code> и <code>sh</code>. Оболочки <code>bash</code> в этом списке нет, поэтому команды работы выполняются в ней. В верхнем окне выполните <code>sudo fs_usage -f exec</code> и введите пароль: <code>fs_usage</code> печатает обращения процессов к ядру, <code>-f exec</code> оставляет только запуск программ. В нижнем окне выполните <code>echo $$; hostname</code>: <code>$$</code> — номер самой оболочки. В верхнем остановите запись <kbd>Ctrl</kbd>+<kbd>C</kbd>.</span></div><div class="lab__do" data-os="linux"><b>Запишите рождение процесса</b><span>Откройте терминал и разверните окно. Выполните <code>strace -f -e trace=process bash -c 'hostname; echo code $?'</code>. <code>strace</code> запускает программу и печатает каждый её системный вызов. <code>-f</code> следит и за дочерними процессами, <code>-e trace=process</code> оставляет только вызовы, которые создают, запускают и ждут процессы. <code>bash -c</code> запускает оболочку, которая выполнит <code>hostname</code> и напечатает код завершения.</span></div>
+<div class="lab__do" data-os="win"><b>Запишите рождение процесса</b><span>Запустите Process Monitor (<code>Procmon64.exe</code>, на компьютере с ARM — <code>Procmon64a.exe</code>) и примите лицензию. Запись начнётся сразу: остановите её <kbd>Ctrl</kbd>+<kbd>E</kbd> и очистите список <kbd>Ctrl</kbd>+<kbd>X</kbd>. Откройте фильтр <kbd>Ctrl</kbd>+<kbd>L</kbd>: выберите <b>Process Name</b>, <b>is</b>, введите <code>HOSTNAME.EXE</code>, оставьте <b>Include</b> и нажмите <b>Add</b>. Так же добавьте <code>cmd.exe</code>, <code>python.exe</code> и условие <b>Event Class is Process</b>, затем <b>OK</b>. Включите запись <kbd>Ctrl</kbd>+<kbd>E</kbd>, в командной строке выполните <code>hostname</code>, вернитесь в Process Monitor и остановите запись. Дважды щёлкните по строке <code>Process Start</code>.</span></div><div class="lab__do" data-os="mac"><b>Запишите рождение процесса</b><span>Откройте два окна Терминала: верхнее широкое — для записи, нижнее — для команд. В нижнем выполните <code>bash</code>: <code>fs_usage</code> по умолчанию скрывает события оболочек <code>zsh</code> и <code>sh</code>. Оболочки <code>bash</code> в этом списке нет, поэтому команды работы выполняются в ней. В верхнем окне выполните <code>sudo fs_usage -f exec</code> и введите пароль: <code>fs_usage</code> печатает обращения процессов к ядру, <code>-f exec</code> оставляет только запуск программ. В нижнем окне выполните <code>echo $$; hostname</code>: <code>$$</code> — номер самой оболочки. В верхнем остановите запись <kbd>Ctrl</kbd>+<kbd>C</kbd>.</span></div><div class="lab__do" data-os="linux"><b>Запишите рождение процесса</b><span>Откройте терминал и разверните окно. Выполните <code>strace -f -e trace=process bash -c 'hostname; echo code $?'</code>. <code>strace</code> запускает программу и показывает каждое её обращение к ядру — системный вызов. Нам нужны только вызовы, которые создают, запускают и ждут процессы, в том числе дочерние. Оболочка <code>bash</code> выполнит <code>hostname</code> и напечатает код завершения.<br>Ключи: <code>-f</code> — следить за детьми, <code>-e trace=process</code> — оставить вызовы про процессы, <code>bash -c</code> — выполнить строку.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Сначала смотрим на сам момент рождения: кто просит создать процесс, что для этого делает ядро и как это выглядит в записи.</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/00-filter.png" alt="" loading="lazy"><img src="img/win/01-birth.png" alt="" loading="lazy"><img src="img/win/01b-start.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/01-birth.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/01-birth.png" alt="" loading="lazy"></figure>
@@ -112,6 +116,7 @@
 </li>
         <li>
 <div class="lab__do" data-os="win"><b>Посмотрите библиотеки нового процесса</b><span>Закройте окно свойств и прокрутите запись в конец (<kbd>End</kbd>).</span></div><div class="lab__do" data-os="mac"><b>Посмотрите библиотеки нового процесса</b><span>В верхнем окне выполните <code>sudo fs_usage -f pathname | grep hostname</code>. <code>-f pathname</code> оставляет обращения к файлам по имени, а <code>grep hostname</code> — только строки, где встречается <code>hostname</code>: в последнем столбце стоит имя процесса. В нижнем окне выполните <code>hostname</code>, подождите несколько секунд и остановите запись.</span></div><div class="lab__do" data-os="linux"><b>Посмотрите библиотеки нового процесса</b><span>Выполните <code>strace -e trace=openat hostname</code>. <code>openat</code> — вызов, которым процесс открывает файл; <code>-f</code> здесь не нужен, потому что <code>hostname</code> детей не запускает.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Программа hostname крошечная, но без библиотек она не работает. Смотрим, кто подключает их, пока сама программа ещё не начала работу.</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/02-libs.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/02-libs.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/02-libs.png" alt="" loading="lazy"></figure>
@@ -121,6 +126,7 @@
 </li>
         <li>
 <div class="lab__do" data-os="win"><b>Получите код завершения</b><span>Очистите запись <kbd>Ctrl</kbd>+<kbd>X</kbd> и включите её <kbd>Ctrl</kbd>+<kbd>E</kbd>. В командной строке выполните <code>cmd /c exit 7</code>: вторая командная строка сразу завершится с кодом 7. Затем выполните <code>echo code %errorlevel%</code>: переменная <code>errorlevel</code> хранит код последней команды. Остановите запись и прокрутите её в конец.</span></div><div class="lab__do" data-os="mac"><b>Получите код завершения</b><span>В верхнем окне снова выполните <code>sudo fs_usage -f exec</code>. В нижнем выполните <code>bash -c 'exit 7'; echo code $?</code>: вторая оболочка <code>bash</code> сразу завершится с кодом 7, а <code>$?</code> — код последней команды. Остановите запись.</span></div><div class="lab__do" data-os="linux"><b>Получите код завершения</b><span>Выполните <code>strace -f -e trace=process bash -c 'sh -c "exit 7"; echo code $?'</code>. Оболочка <code>bash</code> запустит вторую оболочку <code>sh</code>, та сразу завершится с кодом 7, а <code>$?</code> — код последней команды.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Процесс закончил работу. Как родитель узнаёт, получилось ли у ребёнка? По числу — коду завершения. Смотрим на него со стороны ребёнка и со стороны родителя.</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/03-exit.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/03-exit.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/03-exit.png" alt="" loading="lazy"></figure>
@@ -130,6 +136,7 @@
 </li>
         <li>
 <div class="lab__do" data-os="win"><b>Запустите программу, которой нет</b><span>Откройте фильтр <kbd>Ctrl</kbd>+<kbd>L</kbd>, снимите галочку у условия <b>Event Class</b> и добавьте условие <b>Path contains nosuch</b>, затем <b>OK</b>. Очистите запись и включите её. В командной строке выполните <code>nosuch</code>, затем <code>echo code %errorlevel%</code>. Остановите запись и прокрутите её в начало (<kbd>Home</kbd>).</span></div><div class="lab__do" data-os="mac"><b>Запустите программу, которой нет</b><span>В верхнем окне выполните <code>sudo fs_usage -f exec</code>. В нижнем выполните <code>env nosuch; echo code $?</code>: программа <code>env</code> запускает другую программу по имени и ищет её так же, как функции запуска процесса. Остановите запись.</span></div><div class="lab__do" data-os="linux"><b>Запустите программу, которой нет</b><span>Выполните <code>strace -f -e trace=execve env nosuch</code>. Программа <code>env</code> запускает другую программу по имени и ищет её так же, как функции запуска процесса. <code>-e trace=execve</code> оставляет только вызовы загрузки программы.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Что будет, если программы нет? Увидим, как система ищет её по папкам и откуда берётся ошибка «не найдено».</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/04-path.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/04-path.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/04-path.png" alt="" loading="lazy"></figure>
@@ -138,7 +145,8 @@
 <p class="lab-snap"><b>Снимок в отчёт · 04</b> Сохраните окно как <code>screenshots/04_no_program.png</code>. На снимке должно быть видно: поиск <code>nosuch</code> по папкам из PATH и ошибка «не найдено».</p>
 </li>
         <li>
-<div class="lab__do" data-os="win"><b>Запустите программу из Python</b><span>Откройте фильтр, снимите галочки у обоих условий <b>Path</b> и верните галочку <b>Event Class</b>. Очистите запись и включите её. В командной строке выполните<br><code>python -c "import subprocess; r = subprocess.run(['hostname'], capture_output=True); print('code', r.returncode)"</code><br><code>subprocess.run</code> запускает программу и ждёт её завершения, <code>capture_output=True</code> забирает её вывод себе, <code>r.returncode</code> — код завершения. Остановите запись и найдите строку <code>python.exe</code> с операцией <code>Process Create</code>.</span></div><div class="lab__do" data-os="mac"><b>Запустите программу из Python</b><span>В верхнем окне выполните <code>sudo fs_usage -f exec</code>. В нижнем выполните<br><code>python3 -c "import subprocess; r = subprocess.run(['hostname'], capture_output=True); print('code', r.returncode)"</code><br><code>subprocess.run</code> запускает программу и ждёт её завершения, <code>capture_output=True</code> забирает её вывод себе, <code>r.returncode</code> — код завершения. Остановите запись.</span></div><div class="lab__do" data-os="linux"><b>Запустите программу из Python</b><span>Выполните<br><code>strace -f -e trace=process python3 -c "import subprocess; r = subprocess.run(['hostname'], capture_output=True); print('code', r.returncode)"</code><br><code>subprocess.run</code> запускает программу и ждёт её завершения, <code>capture_output=True</code> забирает её вывод себе, <code>r.returncode</code> — код завершения.</span></div>
+<div class="lab__do" data-os="win"><b>Запустите программу из Python</b><span>Откройте фильтр, снимите галочки у обоих условий <b>Path</b> и верните галочку <b>Event Class</b>. Очистите запись и включите её. В командной строке выполните<br><code>python -c "import subprocess; r = subprocess.run(['hostname'], capture_output=True); print('code', r.returncode)"</code><br>Python запустит <code>hostname</code> как дочернюю программу, дождётся её, заберёт её вывод и напечатает код завершения.<br>Ключи: <code>subprocess.run</code> — запуск с ожиданием, <code>capture_output=True</code> — забрать вывод, <code>r.returncode</code> — код. Остановите запись и найдите строку <code>python.exe</code> с операцией <code>Process Create</code>.</span></div><div class="lab__do" data-os="mac"><b>Запустите программу из Python</b><span>В верхнем окне выполните <code>sudo fs_usage -f exec</code>. В нижнем выполните<br><code>python3 -c "import subprocess; r = subprocess.run(['hostname'], capture_output=True); print('code', r.returncode)"</code><br>Python запустит <code>hostname</code> как дочернюю программу, дождётся её, заберёт её вывод и напечатает код завершения.<br>Ключи: <code>subprocess.run</code> — запуск с ожиданием, <code>capture_output=True</code> — забрать вывод, <code>r.returncode</code> — код. Остановите запись.</span></div><div class="lab__do" data-os="linux"><b>Запустите программу из Python</b><span>Выполните<br><code>strace -f -e trace=process python3 -c "import subprocess; r = subprocess.run(['hostname'], capture_output=True); print('code', r.returncode)"</code><br>Python запустит <code>hostname</code> как дочернюю программу, дождётся её, заберёт её вывод и напечатает код завершения.<br>Ключи: <code>subprocess.run</code> — запуск с ожиданием, <code>capture_output=True</code> — забрать вывод, <code>r.returncode</code> — код.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Остаётся проверить, что другие программы запускают процессы так же. Берём Python и сравниваем с оболочкой из шага 1.</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/05-python.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/05-python.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/05-python.png" alt="" loading="lazy"></figure>
@@ -163,7 +171,12 @@
           </table>
         </div>
 
-        <p>Во всех пяти шагах путь один: родитель просит ядро создать процесс, ядро загружает программу, загрузчик — библиотеки, программа завершается с кодом, родитель код забирает. Python в шаге 5 прошёл тот же путь, что и командная оболочка. В главе 2.2 его пройдёт ядро агента: функция на C запустит программу, дождётся её и вернёт мозгу код завершения.</p>
+        <ul>
+          <li>Во всех пяти шагах путь один: родитель просит ядро, ядро загружает программу, загрузчик — библиотеки.</li>
+          <li>Программа завершается с кодом, родитель его забирает.</li>
+          <li>Python в шаге 5 прошёл тот же путь, что и командная оболочка.</li>
+          <li>В главе 2.2 этот путь пройдёт ядро агента: функция на C запустит программу, дождётся её и вернёт мозгу код завершения.</li>
+        </ul>
 
         <h2 id="s5"><span class="sec">§5</span>Отчёт</h2>
 
@@ -213,6 +226,8 @@
         </div>
 
         <h2 id="s6"><span class="sec">§6</span>Проверьте себя</h2>
+        <details class="more">
+          <summary>Пять вопросов с ответами</summary>
 
         <details>
           <summary>Кто создаёт процесс: родитель или ядро?</summary>
@@ -233,6 +248,7 @@
         <details>
           <summary>Почему при запуске несуществующей программы в записи несколько попыток?</summary>
           <p>Имя без пути ищется по очереди во всех папках переменной <code>PATH</code>. Ошибка «нет такого файла» приходит из каждой папки, и только после последней запуск признаётся неудачным.</p>
+        </details>
         </details>
 
         <div class="pager">

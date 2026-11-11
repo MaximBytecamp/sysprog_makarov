@@ -24,7 +24,7 @@
         <header class="chapter-head">
           <span class="chapter-num">ЛР 7</span>
           <h1>Потоки Python<br>и GIL</h1>
-          <p class="lead">Программа на Python запускает четыре потока, каждый крутит пустой цикл, а монитор показывает загрузку одного ядра. В работе видно почему: обычный Python пускает выполнять свой код только один поток за раз. Тот же код в Python 3.14 без этого замка занимает все ядра, а потоки, которые ждут, ускоряются и в обычном Python. После работы в главе 2.4 ядро агента запускает потоки своим кодом на C.</p>
+          <p class="lead">Четыре потока Python, а занято одно ядро. Разбираемся почему — и запускаем тот же код в Python без замка.</p>
         </header>
 
         <dl class="passport">
@@ -33,6 +33,12 @@
           <div><dt>Программы</dt><dd><span data-os="win">Монитор ресурсов, командная строка, PowerShell</span><span data-os="mac">Мониторинг системы, Терминал</span><span data-os="linux"><code>top</code>, терминал</span>, Python 3.14 с GIL и без</dd></div>
           <div><dt>Сдать</dt><dd><code>report.md</code> и 4 снимка в <code>screenshots/</code> в папке <code>labs/07-python-threads</code> репозитория <code>sysprog-start</code></dd></div>
         </dl>
+
+        <section class="gist" aria-label="Суть работы">
+          <p class="gist__head">Суть за две минуты</p>
+          <div class="gist__cards"><div><b data-n="1">Поток — ещё одни руки</b><p>Процесс может делать несколько дел сразу — это потоки. Четыре потока на четырёх ядрах могли бы работать вчетверо быстрее.</p></div><div><b data-n="2">В Python один микрофон</b><p>Обычный Python пускает выполнять код только поток, у которого замок — GIL. Как собрание с одним микрофоном: участников четверо, говорит один.</p><p>Итог: четыре потока занимают одно ядро.</p></div><div><b data-n="3">Python 3.14t — без замка</b><p>Отдельная сборка Python без GIL: все потоки работают сразу. На кадрах четыре потока справляются с работой до 3,3 раза быстрее одного.</p><p>Потоки, которые ждут сеть или диск, отдают микрофон — им замок не мешает и в обычном Python.</p></div></div>
+          <p class="gist__do"><b>В работе:</b>четыре потока в обычном Python и без GIL → монитор → секундомер → замок обратно → потоки, которые ждут.</p>
+        </section>
 
         <nav class="contents">
           <b>В этой работе</b>
@@ -69,7 +75,9 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
 <span class="k">for</span> t <span class="k">in</span> threads:
     t.<span class="f">join</span>()</pre>
         </figure>
-        <p>Функция <code>spin</code> 15 секунд крутит пустой цикл. <code>threading.Thread(target=spin)</code> создаёт поток, который выполнит эту функцию, <code>start</code> запускает его, <code>join</code> ждёт его окончания. Потоков четыре, и все выполняют одну функцию. <code>threads.py</code> делит одну работу на 1, 2 и 4 потока и замеряет время, <code>wait.py</code> запускает потоки, которые спят.</p>
+        <p>По-человечески программа делает вот что: нанимает четырёх рабочих, каждому даёт одно задание — 15 секунд «бегать на месте», то есть крутить пустой цикл и занимать процессор, — и ждёт, пока все закончат. Полезной работы нет: нам нужно только, чтобы процессор был занят и это было видно в мониторе.</p>
+        <p class="tech"><b>В коде:</b> <code>spin</code> — задание; <code>threading.Thread(target=spin)</code> — нанять рабочего; <code>start</code> — отправить работать; <code>join</code> — дождаться.</p>
+        <p>Ещё две программы: <code>threads.py</code> делит одну и ту же работу на 1, 2 и 4 потока и засекает время, <code>wait.py</code> запускает потоки, которые просто спят — как будто ждут сеть.</p>
 
         <div class="margin-note">
           <b>Как читать шаг</b>
@@ -80,13 +88,7 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
 
         <p>В ЛР 6 каждый процесс был одним ходом выполнения кода. Процесс может вести несколько таких ходов сразу — это <span class="term">потоки</span>. Потоки одного процесса работают с общей памятью, а планировщик раздаёт ядра процессора потокам. Поэтому процесс с четырьмя занятыми потоками может занять четыре ядра.</p>
 
-        <div class="analogy"><div>
-          <b>Сравнение из жизни</b>
-          <p>На собрании говорит только тот, у кого микрофон. Участников четверо, микрофон один, и он переходит из рук в руки. Сколько бы людей ни пришло, за час прозвучит час речи.</p>
-          <p class="miss">Тот, кто молчит и ждёт ответа на письмо, отдаёт микрофон. Поэтому ожидание у четырёх участников идёт одновременно, а речь — по очереди.</p>
-        </div></div>
-
-        <p>Микрофон в обычном Python — <span class="term">GIL</span>, глобальная блокировка интерпретатора. Это замок внутри Python: код Python выполняет только тот поток, который держит замок. Он защищает данные интерпретатора, например счётчики ссылок объектов, от одновременной записи из двух потоков. С версии 3.13 у Python есть сборка без GIL — <code>python3.14t</code>: её данные защищены по-другому, и потоки выполняют код Python одновременно. Разницу показывает схема:</p>
+        <p>Микрофон из «Сути» в обычном Python называется <span class="term">GIL</span> — глобальная блокировка интерпретатора. Код Python выполняет только поток, который держит замок. Зачем он нужен: чтобы два потока одновременно не испортили внутренние данные самого Python. С версии 3.13 есть сборка без GIL — <code>python3.14t</code>: там данные защищены по-другому, и потоки работают одновременно.</p>
         <figure class="scheme">
           <p class="scheme__head">Четыре потока на четырёх ядрах: с GIL и без</p>
           <div class="scheme__body">
@@ -94,7 +96,7 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
           </div>
           <p class="scheme__note">Строки — потоки одного процесса, столбцы — отрезки времени. Зелёный — поток выполняет код Python, розовый — ждёт замка. Отрезки условные.</p>
         </figure>
-        <p>Слева четыре потока по очереди получают замок: в каждом отрезке времени зелёная клетка одна, а три потока ждут. Ядер четыре, но работает одно. Справа замка нет, и все четыре потока идут одновременно, каждый на своём ядре. Из этого следует, что мониторы покажут:</p>
+        <p>Слева в каждый момент зелёная клетка одна: ядер четыре, а работает один поток. Справа зелёное всё — каждый поток на своём ядре. Значит, в мониторе ждём такое:</p>
         <figure class="scheme">
           <p class="scheme__head">Что показывает монитор у процесса с четырьмя занятыми потоками</p>
           <div class="scheme__body">
@@ -102,13 +104,14 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
           </div>
           <p class="scheme__note">Предел без GIL — число ядер: в ВМ Linux их 2, и четыре потока там получают по половине ядра.</p>
         </figure>
-        <p>Таблица — ожидание, а ход работы его проверит: шаги 1 и 2 — левый столбец, шаги 3 и 4 — правый. Шаги 5 и 6 показывают, что дело в замке: включённый обратно замок отнимает ускорение, а ожидание не мешает и с замком.</p>
+        <p>Это пока догадка. Шаги 1–2 проверяют левый столбец, шаги 3–4 — правый, шаги 5–6 доказывают, что всё дело именно в замке.</p>
 
         <h2 id="s3"><span class="sec">§3</span>Ход работы</h2>
 
         <ol class="lab">
         <li>
 <div class="lab__do" data-os="win"><b>Запустите четыре потока в обычном Python</b><span>В командной строке в папке <code>labs\07-python-threads</code> выполните <code>start /b python spin.py</code>: программа запустит четыре потока с пустым циклом на 15 секунд и напечатает свой номер. Нажмите <kbd>Win</kbd>+<kbd>R</kbd>, введите <code>resmon</code> и откройте вкладку <b>ЦП</b> Монитора ресурсов.</span></div><div class="lab__do" data-os="mac"><b>Запустите четыре потока в обычном Python</b><span>В Терминале в папке <code>labs/07-python-threads</code> выполните <code>python3.14 spin.py &amp;</code>: программа запустит четыре потока с пустым циклом на 15 секунд и напечатает свой номер. Откройте Мониторинг системы, вкладку <b>ЦП</b>, и введите в поиске <code>python</code>.</span></div><div class="lab__do" data-os="linux"><b>Запустите четыре потока в обычном Python</b><span>В терминале в папке <code>labs/07-python-threads</code> выполните <code>python3.14 spin.py &amp;</code>: программа запустит четыре потока с пустым циклом на 15 секунд и напечатает свой номер. Сразу выполните <code>top -d 2 -p $!</code>: <code>-p</code> оставляет в списке один процесс, <code>$!</code> — номер последнего процесса, запущенного в фоне.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Сначала обычный Python: дали ему четыре потока работы — сколько ядер он на самом деле займёт?</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/01-tm.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/01-am.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/01-gil.png" alt="" loading="lazy"></figure>
@@ -118,6 +121,7 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
 </li>
         <li>
 <div class="lab__do" data-os="win"><b>Посмотрите потоки процесса</b><span>Если программа шага 1 уже завершилась, снова выполните <code>start /b python spin.py</code>. Затем выполните<br><code>powershell -c "(Get-Process python).Threads | ft Id,ThreadState,WaitReason,TotalProcessorTime"</code><br>PowerShell выведет потоки процесса <code>python</code>: номер, состояние, причину ожидания и процессорное время.</span></div><div class="lab__do" data-os="mac"><b>Посмотрите потоки процесса</b><span>Если программа шага 1 уже завершилась, снова выполните <code>python3.14 spin.py &amp;</code>. Затем выполните <code>ps -M -p $!</code>: ключ <code>-M</code> выводит по строке на каждый поток процесса.</span></div><div class="lab__do" data-os="linux"><b>Посмотрите потоки процесса</b><span>В <code>top</code> нажмите <kbd>Shift</kbd>+<kbd>H</kbd>: вместо процессов появятся потоки, у каждого свой номер. Выйдите клавишей <kbd>Q</kbd>.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Процент процесса — это сумма. Заглядываем внутрь: четыре потока работают вместе или по очереди?</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/02-threads.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/02-threads.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/02-threads.png" alt="" loading="lazy"></figure>
@@ -127,6 +131,7 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
 </li>
         <li>
 <div class="lab__do" data-os="win"><b>Запустите то же в Python без GIL</b><span>Выполните <code>start /b python3.14t spin.py</code> и снова откройте Монитор ресурсов. Через несколько секунд выполните ту же команду PowerShell, заменив имя процесса: <code>(Get-Process python3.14t).Threads</code>.</span></div><div class="lab__do" data-os="mac"><b>Запустите то же в Python без GIL</b><span>Выполните <code>python3.14t spin.py &amp;</code> и посмотрите на строку в Мониторинге системы. Затем выполните <code>ps -M -p $!</code>.</span></div><div class="lab__do" data-os="linux"><b>Запустите то же в Python без GIL</b><span>Выполните <code>python3.14t spin.py &amp;</code>, затем <code>top -d 2 -p $!</code>. Через несколько секунд нажмите <kbd>Shift</kbd>+<kbd>H</kbd>.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Тот же код, но в Python без замка. Если всё дело в замке, потоки займут все ядра.</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/03-tm.png" alt="" loading="lazy"><img src="img/win/03b-threads.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/03-am.png" alt="" loading="lazy"><img src="img/mac/03b-threads.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/03-nogil.png" alt="" loading="lazy"><img src="img/linux/03b-threads.png" alt="" loading="lazy"></figure>
@@ -136,6 +141,7 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
 </li>
         <li>
 <div class="lab__do" data-os="win"><b>Сравните время работы</b><span>Выполните <code>python threads.py &amp; python3.14t threads.py</code>. Программа делит одну и ту же работу — 200 миллионов шагов цикла — на 1, 2 и 4 потока и печатает время для каждого случая.</span></div><div class="lab__do" data-os="mac linux"><b>Сравните время работы</b><span>Выполните <code>python3.14 threads.py; python3.14t threads.py</code>. Программа делит одну и ту же работу — 200 миллионов шагов цикла — на 1, 2 и 4 потока и печатает время для каждого случая.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Проценты в мониторе — только намёк. Секундомер честнее: становится ли работа быстрее от лишних потоков?</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/04-time.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/04-time.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/04-time.png" alt="" loading="lazy"></figure>
@@ -145,6 +151,7 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
 </li>
         <li>
 <div class="lab__do" data-os="win"><b>Включите GIL обратно</b><span>Выполните <code>set PYTHON_GIL=1&amp; python3.14t threads.py&amp; set PYTHON_GIL=</code>. Переменная окружения <code>PYTHON_GIL=1</code> велит Python без GIL снова включить замок. Последняя команда убирает переменную.</span></div><div class="lab__do" data-os="mac linux"><b>Включите GIL обратно</b><span>Выполните <code>PYTHON_GIL=1 python3.14t threads.py</code>. Переменная окружения <code>PYTHON_GIL=1</code> велит Python без GIL снова включить замок; записанная перед командой, она действует только на эту команду.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Убеждаемся, что ускорение дало именно отсутствие замка, а не другая версия Python: включаем замок обратно в той же сборке.</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/05-gil1.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/05-gil1.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/05-gil1.png" alt="" loading="lazy"></figure>
@@ -153,6 +160,7 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
 </li>
         <li>
 <div class="lab__do" data-os="win"><b>Запустите потоки, которые ждут</b><span>Выполните <code>python wait.py</code>. В этой программе каждый поток спит 2 секунды — так поток ждёт ответа сети или диска. Программа запускает 1 и 4 таких потока.</span></div><div class="lab__do" data-os="mac linux"><b>Запустите потоки, которые ждут</b><span>Выполните <code>python3.14 wait.py</code>. В этой программе каждый поток спит 2 секунды — так поток ждёт ответа сети или диска. Программа запускает 1 и 4 таких потока.</span></div>
+<p class="purpose"><b>Зачем этот шаг</b>Чаще поток не считает, а ждёт — ответа сети или диска. Проверяем, мешает ли замок ожиданию.</p>
 <figure class="lab__shot shot" data-os="win"><img src="img/win/06-wait.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="mac"><img src="img/mac/06-wait.png" alt="" loading="lazy"></figure>
 <figure class="lab__shot shot" data-os="linux"><img src="img/linux/06-wait.png" alt="" loading="lazy"></figure>
@@ -178,7 +186,12 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
           </table>
         </div>
 
-        <p>Ожидание из §2 подтвердилось на трёх системах. С GIL четыре потока, занятые вычислением на Python, получают одно ядро на всех и не ускоряют работу. Без GIL они занимают столько ядер, сколько есть, и работа ускоряется во столько же раз. Потоки, которые ждут, ускоряются и с GIL. Замок держит только код Python: функция на C, которую Python вызывает, может работать без него. В главе 2.4 ядро агента запускает потоки своим кодом на C, и замок им не мешает.</p>
+        <ul>
+          <li>С GIL четыре считающих потока делят одно ядро — быстрее не становится.</li>
+          <li>Без GIL каждый поток получает своё ядро, пока ядер хватает: 4 потока быстрее одного в 3–3,3 раза, а на 2 ядрах ВМ Linux — почти вдвое.</li>
+          <li>Потоки, которые ждут, ускоряются и с GIL: ожидающий отдаёт замок.</li>
+          <li>Замок держит только код Python — потоки на C, как в главе 2.4, он не трогает.</li>
+        </ul>
 
         <h2 id="s5"><span class="sec">§5</span>Отчёт</h2>
 
@@ -227,6 +240,8 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
         </div>
 
         <h2 id="s6"><span class="sec">§6</span>Проверьте себя</h2>
+        <details class="more">
+          <summary>Пять вопросов с ответами</summary>
 
         <details>
           <summary>Почему четыре занятых потока в обычном Python загружают одно ядро?</summary>
@@ -247,6 +262,7 @@ threads = [threading.<span class="f">Thread</span>(target=spin) <span class="k">
         <details>
           <summary>Почему один поток без GIL работает чуть медленнее, чем с GIL?</summary>
           <p>Без общего замка интерпретатор защищает свои данные по отдельности, и на каждую операцию уходит немного больше времени. На кадрах — 1,60 с против 1,54 с в macOS.</p>
+        </details>
         </details>
 
         <div class="pager">
