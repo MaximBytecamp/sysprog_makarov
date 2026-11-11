@@ -104,25 +104,39 @@ SIMPLE_RACE = V.simple('Почему теряются прибавки',
             V.card('поток B', 'пишет 42', '<small>вместо 43 на доске 42</small>', 'sys')),
     f'<b>Что есть что.</b> Доска — переменная <code>counter</code> в памяти. Посмотреть — чтение, написать — запись. Кликер — {OS_ADD}.')
 
+
+def more(title, body):
+    """Свёрнутый блок «Подробнее»: разборы, справка и вопросы не мешают читать главу с первого взгляда."""
+    return f'''        <details class="more">
+          <summary>{title}</summary>
+{body}
+        </details>'''
+
+
+GIST = f'''        <section class="gist" aria-label="Суть главы">
+          <p class="gist__head">Суть за две минуты</p>
+          <div class="gist__cards">
+            <div><b data-n="1">Поток — рабочий в бригаде</b><p>Процесс — бригада, потоки — её рабочие. Они делают дело одновременно и пользуются одним общим складом — памятью процесса.</p><p>Бригадир есть всегда: это главный поток, с него начинается <code>main</code>.</p></div>
+            <div><b data-n="2">Считать людей не нужно</b><p>Система, как отдел кадров, держит на каждый процесс карточку, и там написано, сколько в нём потоков. Наша функция просто читает эту цифру.</p><p>Рабочих наняли и не отпустили — цифра растёт. Это утечка потоков.</p></div>
+            <div><b data-n="3">Общая доска — ловушка</b><p>Четверо по миллиону раз пишут «+1» на одной доске. Двое смотрят одновременно, оба видят 41, оба пишут 42 — одна прибавка пропала.</p><p>Итог вместо 4 000 000 — от 1 до 3 млн. Спасает «кликер» — атомарная прибавка.</p></div>
+          </div>
+          <p class="gist__do"><b>За пару:</b>функция <code>core_proc_threads</code> → программа, у которой видно 1 → 5 → 1 поток → мозг находит самые многопоточные процессы → гонка в коде от помощника ИИ.</p>
+        </section>'''
+
 S = []
 
 S.append(f'''
         <h2 id="s1"><span class="sec">§1</span>Задача главы</h2>
         <p>В ЛР 7 потоки процесса считали мониторы: <span data-os="win">Монитор ресурсов и PowerShell</span><span data-os="mac">Мониторинг системы и <code>ps -M</code></span><span data-os="linux"><code>top</code></span>. В этой главе ядро агента получает функцию <code>core_proc_threads</code>: она возвращает число потоков процесса по его номеру. Чтобы её проверить, программа на C сама запускает потоки — функцией <span data-os="win"><code>CreateThread</code></span><span data-os="mac linux"><code>pthread_create</code></span>. Мозг находит процессы, у которых потоков больше всего.</p>
-        <div class="analogy"><div>
-          <b>Сравнение из жизни</b>
-          <p>В цехе работает бригада. Начальник смены смотрит в табель: сколько человек сейчас на смене. Если в обычный день их десять, а сегодня двести, что-то пошло не так — работников набрали и забыли отпустить.</p>
-          <p class="miss">Рабочие в цехе берут инструменты по очереди. Потоки процесса работают с одной памятью одновременно, и без договорённости портят общие данные — это видно в части 3.</p>
-        </div></div>
-        <p>Схема показывает путь вопроса от мозга до системы и обратно.</p>
+        <p>Путь вопроса от мозга до системы и обратно:</p>
 {PIC_FLOW}
-        <p>По схеме видно, что путь короче, чем в главе 2.3: система отдаёт готовое число, и ядру остаётся его передать. <span class="term">Поток</span> — ход выполнения кода внутри процесса, как в ЛР 7. У процесса есть хотя бы один поток — главный, с него начинается <code>main</code>. Остальные потоки программа запускает сама или их запускают библиотеки.</p>
+        <p>Путь короче, чем в главе 2.3: система отдаёт готовое число, ядру остаётся его передать. <span class="term">Поток</span> — ход выполнения кода внутри процесса, как в ЛР 7.</p>
         <div class="why">
           <p class="why__head">Зачем это нужно в работе</p>
           <ul class="why__list">
-            <li><b>Находить утечку потоков.</b> Служба, которая запускает поток на каждый запрос и не завершает его, копит потоки, пока не упрётся в предел системы.</li>
-            <li><b>Понимать загрузку.</b> 400% у процесса в ЛР 7 получились, потому что у него четыре занятых потока. Число потоков объясняет, сколько ядер процесс может занять.</li>
-            <li><b>Проверять код с потоками.</b> Ошибки потоков не видны на одном запуске. Программа, которая запускает потоки и сверяет итог, ловит их раньше пользователей.</li>
+            <li><b>Найти утечку.</b> Число потоков растёт и не падает — служба запускает потоки и забывает завершать.</li>
+            <li><b>Понять загрузку.</b> 400% в ЛР 7 — это четыре занятых потока.</li>
+            <li><b>Поймать гонку.</b> Ошибки потоков не видны с одного запуска — их ловит проверка итога.</li>
           </ul>
         </div>
         <p>Глава продолжает репозиторий <code>sysprog-start</code> после главы 2.3: в <code>agent/core</code> лежат <code>core.h</code>, <code>core_info.c</code>, <code>core_procs.c</code>, <code>core_spawn.c</code> и <code>core_cpu.c</code>, в <code>agent/brain</code> — <code>brain.py</code> с подсчётом загрузки. <span data-os="win">Команды выполняются во встроенном терминале VS Code, запущенного из окна <b>x64 Native Tools Command Prompt for VS 2022</b>.</span><span data-os="mac linux">Команды выполняются во встроенном терминале VS Code в папке <code>agent/core</code>.</span></p>
@@ -163,10 +177,8 @@ S.append(f'''
 {cfile('win', 'win', 'agent/core/core_threads.c · Windows')}
 {cfile('mac', 'mac', 'agent/core/core_threads.c · macOS')}
 {cfile('linux', 'linux', 'agent/core/core_threads.c · Linux')}
-{WK['win']}
-{WK['mac']}
-{WK['linux']}
 {SIMPLE_COUNT}
+{more('Разбор core_threads.c по строкам', WK['win'] + chr(10) + WK['mac'] + chr(10) + WK['linux'])}
         <p class="step-done"><b>Что получилось.</b>Функция написана для своей системы. Чтобы проверить её, нужен процесс, у которого число потоков меняется на глазах.</p>
 ''')
 
@@ -174,7 +186,7 @@ S.append(f'''
         <h2 id="s4"><span class="sec">§4</span>Шаг 3. Запустить потоки из C</h2>
         <p>Программа <code>agent/core/count_threads.c</code> сама меняет число своих потоков. Она спрашивает ядро о своём процессе трижды: до запуска потоков, пока четыре потока работают и после того, как все они завершились.</p>
 {cfile('count', 'win mac linux', 'agent/core/count_threads.c · все системы')}
-{WK['count']}
+{more('Разбор count_threads.c по строкам', WK['count'])}
         <p>Собираем программу из двух файлов<span data-os="linux">; ключ <code>-pthread</code> подключает библиотеку потоков</span>:</p>
 {cmd('cl /nologo /W4 count_threads.c core_threads.c\ncount_threads.exe',
      'clang -Wall -Wextra -o count_threads count_threads.c core_threads.c\n./count_threads',
@@ -204,7 +216,7 @@ S.append(f'''
           <figcaption><span>agent/brain/brain.py · новые части</span></figcaption>
 <pre>{hl_py(BRAIN_PART)}</pre>
         </figure>
-{WK['brain']}
+{more('Разбор новых частей brain.py по строкам', WK['brain'])}
         <p>Блок запуска меняется: мозг запускает ребёнка — Python с четырьмя потоками, каждый спит 3 секунды. Через секунду, пока потоки живы, мозг спрашивает число потоков ребёнка и ищет три самых многопоточных процесса:</p>
         <figure class="code">
           <figcaption><span>agent/brain/brain.py · блок запуска</span></figcaption>
@@ -238,17 +250,17 @@ git push</pre>
 S.append(f'''
         <div class="part" role="separator"><span><b>3</b>Код от помощника ИИ</span></div>
         <h2 id="s7"><span class="sec">§7</span>Запрос к помощнику ИИ</h2>
-        <p>Код с потоками помощник пишет быстро, и он работает: компилируется, потоки запускаются и завершаются. Ошибка сидит в общих данных. Если несколько потоков меняют одну переменную, итог зависит от того, как система раздала им ядра. Запрос в режиме Р2 из главы 0.3:</p>
+        <p>Код с потоками помощник пишет быстро, и он даже работает. Ошибка прячется в общей переменной, которую меняют сразу несколько потоков. Запрос в режиме Р2 из главы 0.3:</p>
         <figure class="code">
           <figcaption><span>запрос помощнику</span></figcaption>
 <pre>Напиши на C для <span data-os="win">Windows</span><span data-os="mac">macOS</span><span data-os="linux">Linux</span> программу: 4 потока по миллиону раз
 увеличивают общий счётчик, в конце напечатать его значение.</pre>
         </figure>
-        <p>Частый ответ — счётчик <code>volatile long long counter</code> и <code>counter++</code> в цикле. <code>volatile</code> велит компилятору каждый раз читать переменную из памяти и не держать её копию в регистре процессора. Помощник ставит его, чтобы «потоки видели изменения». Но <code>counter++</code> — это три действия, и между ними другой поток может вклиниться:</p>
+        <p>Частый ответ — <code>volatile long long counter</code> и <code>counter++</code> в цикле. <code>volatile</code> заставляет каждый раз читать переменную из памяти — помощник ставит его, «чтобы потоки видели изменения». Но <code>counter++</code> — три действия: прочитать, прибавить, записать. Между ними вклинивается другой поток:</p>
 {PIC_RACE}
-        <p>Таблица читается сверху вниз. Оба потока прочитали 41, оба записали 42 — одна прибавка пропала. <code>volatile</code> этого не исправляет: чтение и запись по-прежнему разделены. Такая ошибка называется <span class="term">гонкой</span>: итог зависит от того, какой поток успел первым. Правильная прибавка — атомарная: процессор выполняет чтение, сложение и запись как одно неделимое действие, и другой поток не может вклиниться. Так написан <code>race.c</code>:</p>
+        <p>Читаем сверху вниз: оба потока прочитали 41, оба записали 42 — одна прибавка пропала. Это <span class="term">гонка</span>: итог зависит от того, кто успел первым. <code>volatile</code> её не лечит. Лечит <span class="term">атомарная прибавка</span> — процессор делает все три действия за один неделимый шаг. Так написан <code>race.c</code>:</p>
 {cfile('race', 'win mac linux', 'agent/core/race.c · все системы')}
-{WK['race']}
+{more('Разбор race.c по строкам', WK['race'])}
         <p>Вариант помощника получается из <code>race.c</code> заменой двух строк. Собираем оба и запускаем вариант помощника дважды:</p>
 {cmd('powershell -c "(gc race.c) -replace \'static long long counter\',\'static volatile long long counter\' -replace \'ADD\\(&counter\\);\',\'counter++;\' | sc ai_race.c"\ncl /nologo /W4 race.c\ncl /nologo /W4 ai_race.c\nfc race.c ai_race.c\nrace.exe\nai_race.exe\nai_race.exe',
      "sed 's/static long long counter/static volatile long long counter/; s/ADD(&counter);/counter++;/' race.c > ai_race.c\nclang -Wall -Wextra -o race race.c\nclang -Wall -Wextra -o ai_race ai_race.c\ndiff race.c ai_race.c\n./race\n./ai_race\n./ai_race",
@@ -261,7 +273,7 @@ S.append(f'''
          linux='терминал: diff, race 4000000, ai_race 1822571 и 1316327'))}
         <p>Результаты трёх систем рядом:</p>
 {PIC_AI}
-        <p>Атомарная прибавка даёт ровно 4 000 000 на трёх системах. <code>counter++</code> теряет от четверти до трёх четвертей прибавок, и каждый запуск даёт новое число. Компилятор не предупреждает: для него это обычный код. На одном ядре или с одним потоком ошибка не видна вовсе, поэтому её часто находят уже на сервере с многими ядрами.</p>
+        <p>Атомарная прибавка — ровно 4 000 000 везде. <code>counter++</code> теряет от четверти до трёх четвертей прибавок, и каждый запуск — новое число. Компилятор молчит, а на одном ядре ошибки не видно вовсе: её находят уже на сервере.</p>
 {SIMPLE_RACE}
         <ul class="checklist">
           <li>каждая переменная, которую меняют несколько потоков, меняется атомарной операцией или под замком: <span data-os="win"><code>InterlockedIncrement64</code>, <code>SRWLOCK</code></span><span data-os="mac linux"><code>__atomic_fetch_add</code>, <code>pthread_mutex_t</code></span>;</li>
@@ -275,6 +287,8 @@ S.append(f'''
 S.append(f'''
         <div class="part" role="separator"><span><b>4</b>Справка</span></div>
         <h2 id="s8"><span class="sec">§8</span>Справка: функции и команды</h2>
+        <details class="more">
+          <summary>Таблица функций трёх систем</summary>
         <div class="table-scroll">
           <table>
             <thead><tr><th>Что нужно</th><th>Windows</th><th>macOS и Linux</th></tr></thead>
@@ -289,9 +303,12 @@ S.append(f'''
             </tbody>
           </table>
         </div>
+        </details>
 
         <div class="part" role="separator"><span><b>5</b>Проверка себя</span></div>
         <h2 id="s9"><span class="sec">§9</span>Частые вопросы</h2>
+        <details class="more">
+          <summary>Четыре частых заблуждения о потоках</summary>
         <div class="myths">
           <div class="myth">
             <div class="myth__no"><b>Обычно думают</b><code>volatile</code> делает переменную безопасной для потоков.</div>
@@ -310,6 +327,7 @@ S.append(f'''
             <div class="myth__yes"><b>На самом деле</b>Сам интерпретатор и библиотеки запускают свои потоки: Python в Windows на кадре держит три служебных.</div>
           </div>
         </div>
+        </details>
 
         <h2 id="s10"><span class="sec">§10</span>Проверьте себя</h2>
         <details>
@@ -343,17 +361,22 @@ S.append(f'''
         </div>
 
         <h3>Итог главы</h3>
-        <p>Ядро агента получило функцию <code>core_proc_threads</code>: по номеру процесса она возвращает число его потоков. <span data-os="win">В Windows число берётся из поля <code>cntThreads</code> снимка процессов.</span><span data-os="mac">В macOS — из поля <code>pti_threadnum</code> ответа <code>proc_pidinfo</code>.</span><span data-os="linux">В Linux — из поля 20 файла <code>/proc/PID/stat</code>.</span> Программа <code>count_threads.c</code> запустила четыре потока функцией <span data-os="win"><code>CreateThread</code></span><span data-os="mac linux"><code>pthread_create</code></span> и показала их число: 1, 5 и снова 1. Мозг нашёл у ребёнка <span data-os="win">8</span><span data-os="mac linux">5</span> потоков и три самых многопоточных процесса. Программа <code>race.c</code> показала гонку: атомарная прибавка даёт 4 000 000, а <code>counter++</code> со словом <code>volatile</code> — каждый раз другое и меньшее число.</p>
+        <ul>
+          <li>Число потоков система хранит сама — <code>core_proc_threads</code> его только читает.</li>
+          <li>Потоки запустили и дождались: 1 → 5 → 1. Не дождаться — утечка.</li>
+          <li>Мозг нашёл у ребёнка <span data-os="win">8</span><span data-os="mac linux">5</span> потоков и три самых многопоточных процесса.</li>
+          <li>Общую переменную из потоков меняют только атомарно или под замком: <code>counter++</code> с <code>volatile</code> теряет прибавки.</li>
+        </ul>
 
-        <div class="sources">
-          <b>Откуда взяты факты</b>
+        <details class="more sources">
+          <summary>Откуда взяты факты</summary>
           <ol>
             <li>Кадры и выводы: macOS 26.1, Apple clang 17, Python 3.9 из Command Line Tools; Linux — контейнер Debian 13, gcc 14.4, Python 3.13; Windows 11 ARM64 в VirtualBox, MSVC 19.44 (программы собраны для ARM64), Python 3.14 для ARM64.</li>
             <li><code>CreateToolhelp32Snapshot</code>, <code>PROCESSENTRY32W.cntThreads</code>, <code>CreateThread</code>, <code>WaitForMultipleObjects</code>, <code>InterlockedIncrement64</code> — <a href="https://learn.microsoft.com/windows/win32/api/tlhelp32/ns-tlhelp32-processentry32w">Microsoft Learn, PROCESSENTRY32W</a> и соседние страницы.</li>
             <li><code>proc_taskinfo.pti_threadnum</code> — заголовок <code>sys/proc_info.h</code> SDK macOS; <code>pthread_create</code>, <code>pthread_join</code> — <a href="https://man7.org/linux/man-pages/man3/pthread_create.3.html">man 3 pthread_create</a>.</li>
             <li>Поле 20 <code>num_threads</code> — <a href="https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html">man 5 proc_pid_stat</a>; <code>__atomic_fetch_add</code> — <a href="https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html">GCC, __atomic Builtins</a>.</li>
           </ol>
-        </div>
+        </details>
 
         <div class="pager">
           <a href="../19-laboratornaya-7/index.html">← ЛР 7 Потоки Python и GIL</a>
@@ -371,9 +394,8 @@ CONTENTS = [('s1', 'Задача главы'), ('s2', 'Шаг 1. Объявит�
             ('s7', 'Запрос к помощнику ИИ'), ('s8', 'Справка: функции и команды'), ('s9', 'Частые вопросы'), ('s10', 'Проверьте себя'),
             ('s11', 'Шпаргалка по главе')]
 TOC = '\n'.join(f'            <li><a href="#{a}">{t}</a></li>' for a, t in CONTENTS)
-LEAD = ('В главе ядро агента получает функцию <code>core_proc_threads</code>: она возвращает число потоков процесса. Разобрано, где это число '
-        'хранят Windows, macOS и Linux, как программа на C запускает потоки и дожидается их и как мозг находит процессы с наибольшим числом '
-        'потоков. В конце четыре потока прибавляют единицу к общему счётчику, и код от помощника ИИ теряет до трёх четвертей прибавок.')
+LEAD = ('Агент учится считать потоки процесса, а программа на C сама запускает потоки и дожидается их. '
+        'В конце — гонка: четыре потока теряют до трёх четвертей общих прибавок.')
 
 PAGE = f'''<!doctype html>
 <html lang="ru">
@@ -410,6 +432,8 @@ PAGE = f'''<!doctype html>
           <div><dt>Что получится</dt><dd><code>agent/core/core_threads.c</code>, <code>count_threads.c</code>, новый <code>brain.py</code></dd></div>
           <div><dt>Сколько занимает</dt><dd>Пара 7, около сорока пяти минут за компьютером</dd></div>
         </dl>
+
+{GIST}
 
         <nav class="contents">
           <b>Порядок действий</b>
