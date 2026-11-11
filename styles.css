@@ -771,6 +771,17 @@ table.labmap td:nth-child(2) b { font-size: 15px; }
 .report { margin: 18px 0; padding: 14px 16px; background: var(--ink); color: #E8E6F2; font: 400 13.5px/1.7 var(--mono); white-space: pre-wrap; }
 .report .blank { color: var(--ng-bright); }
 @media (max-width: 760px) { .lab__notes { grid-template-columns: 1fr; } .lab__notes > div + div { border-left: 0; border-top: 2px solid var(--rule); } .lab__do { grid-template-columns: 1fr; } .lab__do::before { grid-row: auto; justify-self: start; } }
+/* Подпись под каждым кадром и общий вывод шага. */
+.lab__see { margin: 10px 0 0; padding: 10px 12px; border: 2px solid var(--rule); border-top: 0; font-size: 14.5px; line-height: 1.55; }
+.lab__see + img { margin-top: 16px; }
+.lab__see > b, .lab__means > b { display: block; margin-bottom: 4px; font: 600 10.5px/1.4 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--ink-faint); }
+.lab__see p { margin: 0 0 6px; }
+.lab__see .see { margin: 0; padding: 0; list-style: none; }
+.lab__see .see li { display: grid; grid-template-columns: 26px minmax(0, 1fr); margin: 0 0 5px; }
+.lab__see .mk { display: inline-grid; place-items: center; width: 20px; height: 20px; background: #E62828; color: #fff; font: 700 11.5px/1 var(--mono); }
+.lab__means { margin: 14px 16px 16px; padding: 10px 12px; border-left: 5px solid var(--acc); background: var(--acc-pale); font-size: 15px; line-height: 1.55; }
+.lab__means > b { color: var(--acc); }
+.lab__means p { margin: 0 0 6px; } .lab__means p:last-child { margin: 0; }
 .lab__shot.shot { margin: 0; border: 0; box-shadow: none; background: none; }
 
 /* ── 9. Главы-инструкции модуля 1 (по образцу справочника по Git) ──

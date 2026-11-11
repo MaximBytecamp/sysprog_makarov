@@ -42,9 +42,19 @@ def step(st, note=''):
     if st.get('why'):
         out.append(f'<p class="purpose"><b>Зачем этот шаг</b>{st["why"]}</p>')
     shots = per_os(st['shot'])
-    for o in OS:
-        out.append(f'<figure class="lab__shot shot" data-os="{o}">{shot(shots[o], o)}</figure>')
-    out.append(block(st['notes'], lambda v, o: f'<div class="lab__notes"{attr(o)}><div><b>Что на кадре</b>{v[0]}</div><div><b>Что изменилось</b>{v[1]}</div></div>'))
+    if st.get('see'):
+        # У каждой картинки своя подпись «Что на кадре», под шагом — общий вывод «Что это значит».
+        see = per_os(st['see'])
+        for o in OS:
+            imgs = shots[o] if isinstance(shots[o], (list, tuple)) else [shots[o]]
+            caps = see[o] if isinstance(see[o], (list, tuple)) else [see[o]]
+            body = ''.join(f'{shot(i, o)}<div class="lab__see"><b>Что на кадре</b>{c}</div>' for i, c in zip(imgs, caps, strict=True))
+            out.append(f'<figure class="lab__shot shot" data-os="{o}">{body}</figure>')
+        out.append(block(st['notes'], lambda v, o: f'<div class="lab__means"{attr(o)}><b>Что это значит</b>{v[1]}</div>'))
+    else:
+        for o in OS:
+            out.append(f'<figure class="lab__shot shot" data-os="{o}">{shot(shots[o], o)}</figure>')
+        out.append(block(st['notes'], lambda v, o: f'<div class="lab__notes"{attr(o)}><div><b>Что на кадре</b>{v[0]}</div><div><b>Что изменилось</b>{v[1]}</div></div>'))
     if st.get('q'):
         out.append(block(st['q'], lambda v, o: f'<p class="lab-q"{attr(o)}><b>В отчёт.</b> {v}</p>'))
     if note:
@@ -66,3 +76,9 @@ def gist(cards, do):
           <div class="gist__cards">{items}</div>
           <p class="gist__do"><b>В работе:</b>{do}</p>
         </section>'''
+
+
+def see(lead, *marks):
+    """Подпись под кадром: lead — что это за окно и где оно, marks — по рамке: что в ней и как это читать."""
+    items = ''.join(f'<li><span class="mk">{i}</span><span>{m}</span></li>' for i, m in enumerate(marks, 1))
+    return f'<p>{lead}</p>' + (f'<ul class="see">{items}</ul>' if marks else '')
