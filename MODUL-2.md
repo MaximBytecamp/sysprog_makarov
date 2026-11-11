@@ -161,3 +161,24 @@ ARM64 Windows путь студента: Python install manager `py install 3.14
 Шаблон: labs/07-python-threads (README, report.md, spin.py, threads.py, wait.py, 4 заглушки), строка в labs/README.md, LABS в run_checks.py.
 Оглавление: ЛР 7 «делать»; пейджер 2.3 → ЛР 7, ЛР 7 → 2.4 (`temy/20-potoki`, ещё нет). Вычитка: антитезы убраны, схемы проверены на 390 px.
 Дальше — глава 2.4 «Потоки»: ядро на C запускает потоки (CreateThread / pthread_create), ctypes отпускает GIL (src_lab7/burn.c, cburn.py).
+
+## Пара 7, глава 2.4 «Потоки» (в работе, 11.11.2026)
+
+Код — `tools/src24`: core.h + `core_proc_threads(pid, int32_t *count)`; Windows — снимок Toolhelp32 TH32CS_SNAPPROCESS, `cntThreads`
+(нет процесса — 87); macOS — proc_pidinfo PROC_PIDTASKINFO `pti_threadnum`; Linux — /proc/PID/stat поле 20 (`num_threads`).
+`count_threads.c` (CreateThread / pthread_create, 4 потока спят 1 с): start 1, running 5, joined 1 — на трёх системах.
+`race.c` (часть ИИ): 4 потока × 1 000 000 прибавок через ADD = InterlockedIncrement64 / __atomic_fetch_add → 4 000 000; вариант помощника —
+sed: `volatile` + `counter++` → macOS 1 057 542 и 1 055 383, Linux 2 382 836 и 1 377 286. Linux: собирать с -pthread.
+brain.py: proc_threads, most_threads(n); блок запуска — ребёнок Python с 4 потоками time.sleep(3): child_threads 5 (macOS), most_threads —
+Telegram 105, Code 61, Yandex 58. Windows ISO `win/m24.iso` + start24.cmd (стенд Documents\sp24).
+Кадры 2.4 macOS и Linux сняты 11.11 (`~/sysprog-shots/m24`, shoot24.py; кадр 04 — терминал развёрнут: при обычной панели начало diff уезжает):
+01-core-h (объявление core_proc_threads), 02-count (start 1 / running 5 / joined 1 на обеих), 03-brain — mac child 1212, child_threads 5,
+most_threads Telegram 104, Code 59, Yandex 59; linux child 436, child_threads 5, most_threads code 39, code 21, code 21 (контейнер);
+04-race — race 4 000 000; ai_race mac 1 050 345 и 1 159 969, linux 1 822 571 и 1 316 327.
+Кадры 2.4 Windows сняты 11.11 (m24/win24.py, рамки winmark24.py): 02-count 1/5/1; 03-brain child 1204, child_threads 8 (служебные потоки
+Python в Windows, как в ЛР 7), most_threads System 162, Code.exe 59, msedgewebview2.exe 51; 04-race 4 000 000, ai_race 1 307 579 и 3 058 075
+(fc показывает вторую разницу, первая уехала вверх). Все кадры главы 2.4 — temy/20-potoki/img. Дальше: walk24.py, ch24.py.
+Глава 2.4 написана и вычитана 11.11: `tools/ch24.py` + `walk24.py` → `temy/20-potoki` (схемы: путь вопроса, источники числа потоков,
+жизнь count_threads 1→5→1, гонка counter++ по шагам, итоги race/ai_race). Новой проверки в паре 7 нет. Шаблон: конспект
+lectures/chapter-2-4-threads.md, agent/README.md (core_threads.c, count_threads.c, proc_threads, most_threads). Оглавление: 2.4 «Потоки».
+**Пара 7 закрыта 11.11.** Дальше — пара 8: ЛР 8 «Карта памяти», глава 2.5 «Память процесса», проверка 3 «Память процесса растёт без остановки».

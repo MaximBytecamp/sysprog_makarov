@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>2.4 Потоки · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 2 · Процессы, потоки и память</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 2 · процессы</p>
+          <p class="running__folio">2.4</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">2.4</span>
+          <h1>Потоки</h1>
+          <p class="lead">В главе ядро агента получает функцию <code>core_proc_threads</code>: она возвращает число потоков процесса. Разобрано, где это число хранят Windows, macOS и Linux, как программа на C запускает потоки и дожидается их и как мозг находит процессы с наибольшим числом потоков. В конце четыре потока прибавляют единицу к общему счётчику, и код от помощника ИИ теряет до трёх четвертей прибавок.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Категория</dt><dd>Процессы</dd></div>
+          <div><dt>Уровень</dt><dd>Начальный</dd></div>
+          <div><dt>Что получится</dt><dd><code>agent/core/core_threads.c</code>, <code>count_threads.c</code>, новый <code>brain.py</code></dd></div>
+          <div><dt>Сколько занимает</dt><dd>Пара 7, около сорока пяти минут за компьютером</dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>Порядок действий</b>
+          <ol>
+            <li><a href="#s1">Задача главы</a></li>
+            <li><a href="#s2">Шаг 1. Объявить функцию в core.h</a></li>
+            <li><a href="#s3">Шаг 2. Написать core_threads.c</a></li>
+            <li><a href="#s4">Шаг 3. Запустить потоки из C</a></li>
+            <li><a href="#s5">Шаг 4. Число потоков в Python</a></li>
+            <li><a href="#s6">Шаг 5. Отправить в репозиторий</a></li>
+            <li><a href="#s7">Запрос к помощнику ИИ</a></li>
+            <li><a href="#s8">Справка: функции и команды</a></li>
+            <li><a href="#s9">Частые вопросы</a></li>
+            <li><a href="#s10">Проверьте себя</a></li>
+            <li><a href="#s11">Шпаргалка по главе</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Задача главы</h2>
+        <p>В ЛР 7 потоки процесса считали мониторы: <span data-os="win">Монитор ресурсов и PowerShell</span><span data-os="mac">Мониторинг системы и <code>ps -M</code></span><span data-os="linux"><code>top</code></span>. В этой главе ядро агента получает функцию <code>core_proc_threads</code>: она возвращает число потоков процесса по его номеру. Чтобы её проверить, программа на C сама запускает потоки — функцией <span data-os="win"><code>CreateThread</code></span><span data-os="mac linux"><code>pthread_create</code></span>. Мозг находит процессы, у которых потоков больше всего.</p>
+        <div class="analogy"><div>
+          <b>Сравнение из жизни</b>
+          <p>В цехе работает бригада. Начальник смены смотрит в табель: сколько человек сейчас на смене. Если в обычный день их десять, а сегодня двести, что-то пошло не так — работников набрали и забыли отпустить.</p>
+          <p class="miss">Рабочие в цехе берут инструменты по очереди. Потоки процесса работают с одной памятью одновременно, и без договорённости портят общие данные — это видно в части 3.</p>
+        </div></div>
+        <p>Схема показывает путь вопроса от мозга до системы и обратно.</p>
+        <figure class="scheme">
+          <p class="scheme__head">Путь вопроса «сколько потоков»</p>
+          <div class="scheme__body">
+<div class="vsteps"><div class="vcard is-py"><h5>мозг</h5><b><code>proc_threads(pid)</code></b><small>номер процесса</small></div><div class="varr">pid</div><div class="vcard is-c"><h5>ядро агента</h5><b><code>core_proc_threads</code></b><small><span data-os="win">снимок Toolhelp32</span><span data-os="mac">proc_pidinfo</span><span data-os="linux">/proc/PID/stat</span></small></div><div class="varr">запрос</div><div class="vcard is-sys"><h5>система</h5><b>запись о процессе</b><small>сколько потоков сейчас</small></div><div class="varr">число</div><div class="vcard is-py"><h5>мозг</h5><b><code>most_threads()</code></b><small>у кого потоков больше всего</small></div></div>
+          </div>
+          <p class="scheme__note">Бирюзовые карточки — Python, янтарная — ядро на C, серая — система. Ответ — одно целое число, переводить единицы не нужно.</p>
+        </figure>
+        <p>По схеме видно, что путь короче, чем в главе 2.3: система отдаёт готовое число, и ядру остаётся его передать. <span class="term">Поток</span> — ход выполнения кода внутри процесса, как в ЛР 7. У процесса есть хотя бы один поток — главный, с него начинается <code>main</code>. Остальные потоки программа запускает сама или их запускают библиотеки.</p>
+        <div class="why">
+          <p class="why__head">Зачем это нужно в работе</p>
+          <ul class="why__list">
+            <li><b>Находить утечку потоков.</b> Служба, которая запускает поток на каждый запрос и не завершает его, копит потоки, пока не упрётся в предел системы.</li>
+            <li><b>Понимать загрузку.</b> 400% у процесса в ЛР 7 получились, потому что у него четыре занятых потока. Число потоков объясняет, сколько ядер процесс может занять.</li>
+            <li><b>Проверять код с потоками.</b> Ошибки потоков не видны на одном запуске. Программа, которая запускает потоки и сверяет итог, ловит их раньше пользователей.</li>
+          </ul>
+        </div>
+        <p>Глава продолжает репозиторий <code>sysprog-start</code> после главы 2.3: в <code>agent/core</code> лежат <code>core.h</code>, <code>core_info.c</code>, <code>core_procs.c</code>, <code>core_spawn.c</code> и <code>core_cpu.c</code>, в <code>agent/brain</code> — <code>brain.py</code> с подсчётом загрузки. <span data-os="win">Команды выполняются во встроенном терминале VS Code, запущенного из окна <b>x64 Native Tools Command Prompt for VS 2022</b>.</span><span data-os="mac linux">Команды выполняются во встроенном терминале VS Code в папке <code>agent/core</code>.</span></p>
+        <p class="bridge">Первая часть начинается с объявления новой функции в <code>core.h</code>.</p>
+
+        <div class="part" role="separator"><span><b>1</b>Ядро: число потоков</span></div>
+        <h2 id="s2"><span class="sec">§2</span>Шаг 1. Объявить функцию в core.h</h2>
+        <p>Ответ функции — одно число, поэтому новая структура не нужна: ядро запишет число потоков по адресу <code>count</code>. Тип — <code>int32_t</code>: потоков у процесса бывают тысячи, но не миллиарды.</p>
+        <div class="code-pair">
+          <figure class="code code--was" data-read>
+            <figcaption><span>agent/core/core.h</span><span>было</span></figcaption>
+<pre>CORE_API <span class="k">int</span> <span class="f">core_proc_cpu</span>(<span class="t">int64_t</span> pid, <span class="k">struct</span> core_cpu *out);</pre>
+          </figure>
+          <figure class="code code--now" data-read>
+            <figcaption><span>agent/core/core.h</span><span>стало</span></figcaption>
+<pre>CORE_API <span class="k">int</span> <span class="f">core_proc_cpu</span>(<span class="t">int64_t</span> pid, <span class="k">struct</span> core_cpu *out);
+<mark>CORE_API <span class="k">int</span> <span class="f">core_proc_threads</span>(<span class="t">int64_t</span> pid, <span class="t">int32_t</span> *count);</mark></pre>
+          </figure>
+        </div>
+        <p>Договор тот же, что у <code>core_proc_cpu</code>: 0 — число записано, иначе код ошибки системы. Процесса нет — <span data-os="win">87</span><span data-os="mac">3</span><span data-os="linux">2</span>, ошибка в параметрах — <span data-os="win">87</span><span data-os="mac linux">22</span>.</p>
+        <figure class="shot" data-os="win">
+          <img src="img/win/01-core-h.png" alt="VS Code с core.h: объявление core_proc_threads в рамке" loading="lazy">
+          <figcaption><span class="mk">1</span> Объявление новой функции.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/01-core-h.png" alt="VS Code с core.h: объявление core_proc_threads в рамке" loading="lazy">
+          <figcaption><span class="mk">1</span> Объявление новой функции.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/01-core-h.png" alt="VS Code с core.h: объявление core_proc_threads в рамке" loading="lazy">
+          <figcaption><span class="mk">1</span> Объявление новой функции.</figcaption>
+        </figure>
+        <p class="step-done"><b>Что получилось.</b>В <code>core.h</code> объявлена функция числа потоков. Теперь её нужно написать для своей системы.</p>
+
+        <h2 id="s3"><span class="sec">§3</span>Шаг 2. Написать core_threads.c</h2>
+        <p>Функция — в новом файле <code>agent/core/core_threads.c</code>. Число потоков каждая система уже хранит в записи о процессе, и источники знакомы по прошлым главам:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Где система хранит число потоков процесса</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th>Система</th><th>Откуда</th><th>Поле</th><th>Нет процесса</th></tr></thead><tbody><tr><td>Windows</td><td>снимок <code>TH32CS_SNAPPROCESS</code></td><td><code>cntThreads</code></td><td>87</td></tr><tr><td>macOS</td><td><code>proc_pidinfo(PROC_PIDTASKINFO)</code></td><td><code>pti_threadnum</code></td><td>3</td></tr><tr><td>Linux</td><td><code>/proc/PID/stat</code></td><td>поле 20 <code>num_threads</code></td><td>2</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note">macOS и Linux берут число из тех же источников, что процессорное время в главе 2.3, Windows — из того же снимка, что список процессов в главе 2.1.</p>
+        </figure>
+        <p>В каждой строке таблицы — откуда взять число и в каком поле оно лежит. Последний столбец — ответ, когда процесса нет: коды те же, что у <code>core_proc_cpu</code>. Поэтому файл короче <code>core_cpu.c</code>: найти процесс, взять поле, вернуть.</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>agent/core/core_threads.c · Windows</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> &lt;tlhelp32.h&gt;
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_proc_threads</span>(<span class="t">int64_t</span> pid, <span class="t">int32_t</span> *count) {
+    PROCESSENTRY32W pe;
+
+    <span class="k">if</span> (count == NULL || pid &lt; <span class="n">0</span>)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="t">HANDLE</span> snap = <span class="f">CreateToolhelp32Snapshot</span>(TH32CS_SNAPPROCESS, <span class="n">0</span>);
+    <span class="k">if</span> (snap == INVALID_HANDLE_VALUE)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    pe.dwSize = <span class="k">sizeof</span> pe;
+    <span class="t">BOOL</span> ok = <span class="f">Process32FirstW</span>(snap, &amp;pe);
+    while (ok &amp;&amp; pe.th32ProcessID != (<span class="t">DWORD</span>)pid)
+        ok = <span class="f">Process32NextW</span>(snap, &amp;pe);
+    <span class="f">CloseHandle</span>(snap);
+    <span class="k">if</span> (!ok)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    *count = (<span class="t">int32_t</span>)pe.cntThreads;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>agent/core/core_threads.c · macOS</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;libproc.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_proc_threads</span>(<span class="t">int64_t</span> pid, <span class="t">int32_t</span> *count) {
+    <span class="k">struct</span> proc_taskinfo ti;
+
+    <span class="k">if</span> (count == NULL || pid &lt; <span class="n">0</span>)
+        <span class="k">return</span> EINVAL;
+    <span class="k">int</span> n = <span class="f">proc_pidinfo</span>((<span class="k">int</span>)pid, PROC_PIDTASKINFO, <span class="n">0</span>, &amp;ti, <span class="k">sizeof</span> ti);
+    <span class="k">if</span> (n &lt;= <span class="n">0</span>)
+        <span class="k">return</span> errno != <span class="n">0</span> ? errno : ESRCH;
+    <span class="k">if</span> (n &lt; (<span class="k">int</span>)<span class="k">sizeof</span> ti)
+        <span class="k">return</span> ESRCH;
+    *count = ti.pti_threadnum;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>agent/core/core_threads.c · Linux</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_proc_threads</span>(<span class="t">int64_t</span> pid, <span class="t">int32_t</span> *count) {
+    <span class="k">char</span> path[<span class="n">64</span>], line[<span class="n">512</span>];
+    <span class="k">long</span> threads;
+
+    <span class="k">if</span> (count == NULL || pid &lt; <span class="n">0</span>)
+        <span class="k">return</span> EINVAL;
+    <span class="f">snprintf</span>(path, <span class="k">sizeof</span> path, <span class="s">&quot;/proc/%lld/stat&quot;</span>, (<span class="k">long</span> <span class="k">long</span>)pid);
+    FILE *f = <span class="f">fopen</span>(path, <span class="s">&quot;r&quot;</span>);
+    <span class="k">if</span> (f == NULL)
+        <span class="k">return</span> errno;
+    <span class="t">size_t</span> len = <span class="f">fread</span>(line, <span class="n">1</span>, <span class="k">sizeof</span> line - <span class="n">1</span>, f);
+    <span class="f">fclose</span>(f);
+    line[len] = <span class="s">&#x27;\0&#x27;</span>;
+
+    <span class="k">char</span> *close = <span class="f">strrchr</span>(line, <span class="s">&#x27;)&#x27;</span>);
+    <span class="k">if</span> (close == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="k">if</span> (<span class="f">sscanf</span>(close + <span class="n">2</span>, <span class="s">&quot;%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %ld&quot;</span>, &amp;threads) != <span class="n">1</span>)
+        <span class="k">return</span> EINVAL;
+    *count = (<span class="t">int32_t</span>)threads;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <div class="trace" data-os="win">
+          <p class="trace__head"><span>Разбор core_threads.c по шагам</span><span>Windows</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Узнать, сколько потоков у процесса с данным номером.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>снимок</b><small>все процессы</small></span><span><b>pid</b><small>поиск записи</small></span><span><b>cntThreads</b><small>число потоков</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#include</span> &lt;tlhelp32.h&gt;
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_proc_threads</span>(<span class="t">int64_t</span> pid, <span class="t">int32_t</span> *count) {
+    PROCESSENTRY32W pe;
+
+    <span class="k">if</span> (count == NULL || pid &lt; <span class="n">0</span>)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    <span class="t">HANDLE</span> snap = <span class="f">CreateToolhelp32Snapshot</span>(TH32CS_SNAPPROCESS, <span class="n">0</span>);
+    <span class="k">if</span> (snap == INVALID_HANDLE_VALUE)
+        <span class="k">return</span> (<span class="k">int</span>)<span class="f">GetLastError</span>();
+    pe.dwSize = <span class="k">sizeof</span> pe;
+    <span class="t">BOOL</span> ok = <span class="f">Process32FirstW</span>(snap, &amp;pe);
+    while (ok &amp;&amp; pe.th32ProcessID != (<span class="t">DWORD</span>)pid)
+        ok = <span class="f">Process32NextW</span>(snap, &amp;pe);
+    <span class="f">CloseHandle</span>(snap);
+    <span class="k">if</span> (!ok)
+        <span class="k">return</span> ERROR_INVALID_PARAMETER;
+    *count = (<span class="t">int32_t</span>)pe.cntThreads;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-3"><b>Подключить заголовочные файлы</b><p><code>tlhelp32.h</code> — снимок процессов Toolhelp32, тот же, что дал список процессов в главе 2.1.</p></li>
+              <li data-lines="5-9"><b>Начать функцию и проверить параметры</b><p><code>PROCESSENTRY32W pe</code> — запись о процессе в снимке. Без места для ответа или с отрицательным номером — код 87.</p></li>
+              <li data-lines="10-12"><b>Снять снимок процессов</b><p><code>CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)</code> записывает состояние всех процессов на этот момент. В записи о каждом процессе есть поле <code>cntThreads</code> — число его потоков.</p></li>
+              <li data-lines="13-16"><b>Найти процесс по номеру</b><p><code>dwSize</code> сообщает Windows размер записи, без него <code>Process32FirstW</code> откажет. Цикл перебирает записи, пока номер не совпадёт или записи не кончатся: тогда <code>ok</code> станет <code>FALSE</code>.</p></li>
+              <li data-lines="17-21"><b>Закрыть снимок и ответить</b><p>Снимок — объект системы, его дескриптор закрывается до ответа. Процесса в снимке нет — код 87, как у <code>core_proc_cpu</code>. Иначе в <code>count</code> записывается <code>cntThreads</code>.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="mac">
+          <p class="trace__head"><span>Разбор core_threads.c по шагам</span><span>macOS</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Узнать, сколько потоков у процесса с данным номером.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>pid</b><small>номер</small></span><span><b>proc_pidinfo</b><small>proc_taskinfo</small></span><span><b>pti_threadnum</b><small>число потоков</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;libproc.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_proc_threads</span>(<span class="t">int64_t</span> pid, <span class="t">int32_t</span> *count) {
+    <span class="k">struct</span> proc_taskinfo ti;
+
+    <span class="k">if</span> (count == NULL || pid &lt; <span class="n">0</span>)
+        <span class="k">return</span> EINVAL;
+    <span class="k">int</span> n = <span class="f">proc_pidinfo</span>((<span class="k">int</span>)pid, PROC_PIDTASKINFO, <span class="n">0</span>, &amp;ti, <span class="k">sizeof</span> ti);
+    <span class="k">if</span> (n &lt;= <span class="n">0</span>)
+        <span class="k">return</span> errno != <span class="n">0</span> ? errno : ESRCH;
+    <span class="k">if</span> (n &lt; (<span class="k">int</span>)<span class="k">sizeof</span> ti)
+        <span class="k">return</span> ESRCH;
+    *count = ti.pti_threadnum;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-3"><b>Подключить заголовочные файлы</b><p><code>libproc.h</code> — <code>proc_pidinfo</code>, как в главе 2.3.</p></li>
+              <li data-lines="5-9"><b>Начать функцию и проверить параметры</b><p>Без места для ответа или с отрицательным номером — код 22, <code>EINVAL</code>.</p></li>
+              <li data-lines="10-14"><b>Прочитать сведения о процессе</b><p>Тот же вызов <code>proc_pidinfo</code> с <code>PROC_PIDTASKINFO</code>, что в главе 2.3. Ошибки те же: 3 — процесса нет, 1 — процесс чужой.</p></li>
+              <li data-lines="15-16"><b>Взять число потоков</b><p>В той же структуре <code>proc_taskinfo</code>, где лежит процессорное время, есть поле <code>pti_threadnum</code> — сколько потоков у процесса сейчас.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trace" data-os="linux">
+          <p class="trace__head"><span>Разбор core_threads.c по шагам</span><span>Linux</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Узнать, сколько потоков у процесса с данным номером.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>pid</b><small>номер</small></span><span><b>/proc/PID/stat</b><small>строка</small></span><span><b>поле 20</b><small>число потоков</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;errno.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+<span class="k">int</span> <span class="f">core_proc_threads</span>(<span class="t">int64_t</span> pid, <span class="t">int32_t</span> *count) {
+    <span class="k">char</span> path[<span class="n">64</span>], line[<span class="n">512</span>];
+    <span class="k">long</span> threads;
+
+    <span class="k">if</span> (count == NULL || pid &lt; <span class="n">0</span>)
+        <span class="k">return</span> EINVAL;
+    <span class="f">snprintf</span>(path, <span class="k">sizeof</span> path, <span class="s">&quot;/proc/%lld/stat&quot;</span>, (<span class="k">long</span> <span class="k">long</span>)pid);
+    FILE *f = <span class="f">fopen</span>(path, <span class="s">&quot;r&quot;</span>);
+    <span class="k">if</span> (f == NULL)
+        <span class="k">return</span> errno;
+    <span class="t">size_t</span> len = <span class="f">fread</span>(line, <span class="n">1</span>, <span class="k">sizeof</span> line - <span class="n">1</span>, f);
+    <span class="f">fclose</span>(f);
+    line[len] = <span class="s">&#x27;\0&#x27;</span>;
+
+    <span class="k">char</span> *close = <span class="f">strrchr</span>(line, <span class="s">&#x27;)&#x27;</span>);
+    <span class="k">if</span> (close == NULL)
+        <span class="k">return</span> EINVAL;
+    <span class="k">if</span> (<span class="f">sscanf</span>(close + <span class="n">2</span>, <span class="s">&quot;%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %ld&quot;</span>, &amp;threads) != <span class="n">1</span>)
+        <span class="k">return</span> EINVAL;
+    *count = (<span class="t">int32_t</span>)threads;
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-4"><b>Подключить заголовочные файлы</b><p>Те же, что у <code>core_cpu.c</code> в главе 2.3, кроме <code>unistd.h</code>: единицы переводить не нужно.</p></li>
+              <li data-lines="6-11"><b>Начать функцию и проверить параметры</b><p><code>threads</code> — число потоков из файла. Без места для ответа или с отрицательным номером — код 22, <code>EINVAL</code>.</p></li>
+              <li data-lines="12-18"><b>Прочитать /proc/PID/stat</b><p>Тот же файл, что в главе 2.3. Процесса нет — нет файла, код 2.</p></li>
+              <li data-lines="20-24"><b>Взять поле 20</b><p>После последней скобки пропускаются поля с 3-го по 19-е: состояние, 5 полей <code>%*d</code>, 7 полей <code>%*u</code> — среди них время из главы 2.3 — и ещё 4 поля <code>%*d</code>. Двадцатое поле, <code>num_threads</code>, читается в <code>threads</code>.</p></li>
+              <li data-lines="25-26"><b>Записать ответ</b><p>Число потоков переводится в <code>int32_t</code>, как в договоре.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p class="step-done"><b>Что получилось.</b>Функция написана для своей системы. Чтобы проверить её, нужен процесс, у которого число потоков меняется на глазах.</p>
+
+        <h2 id="s4"><span class="sec">§4</span>Шаг 3. Запустить потоки из C</h2>
+        <p>Программа <code>agent/core/count_threads.c</code> сама меняет число своих потоков. Она спрашивает ядро о своём процессе трижды: до запуска потоков, пока четыре потока работают и после того, как все они завершились.</p>
+        <figure class="code" data-os="win mac linux">
+          <figcaption><span>agent/core/count_threads.c · все системы</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;inttypes.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+#ifdef _WIN32
+<span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#define</span> <span class="f">pid_self</span>() ((<span class="t">int64_t</span>)<span class="f">GetCurrentProcessId</span>())
+<span class="k">static</span> <span class="t">DWORD</span> WINAPI <span class="f">worker</span>(LPVOID arg) {
+    (<span class="k">void</span>)arg;
+    <span class="f">Sleep</span>(<span class="n">1000</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}
+#else
+<span class="k">#include</span> <span class="s">&lt;pthread.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+<span class="k">#define</span> <span class="f">pid_self</span>() ((<span class="t">int64_t</span>)<span class="f">getpid</span>())
+<span class="k">static</span> <span class="k">void</span> *<span class="f">worker</span>(<span class="k">void</span> *arg) {
+    (<span class="k">void</span>)arg;
+    <span class="f">sleep</span>(<span class="n">1</span>);
+    <span class="k">return</span> NULL;
+}
+<span class="k">#endif</span>
+
+<span class="k">#define</span> WORKERS <span class="n">4</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">show</span>(<span class="k">const</span> <span class="k">char</span> *when) {
+    <span class="t">int32_t</span> n;
+    <span class="k">int</span> err = <span class="f">core_proc_threads</span>(<span class="f">pid_self</span>(), &amp;n);
+    <span class="k">if</span> (err != <span class="n">0</span>)
+        <span class="f">printf</span>(<span class="s">&quot;%s: error %d\n&quot;</span>, when, err);
+    else
+        <span class="f">printf</span>(<span class="s">&quot;%s: %d threads\n&quot;</span>, when, n);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">show</span>(<span class="s">&quot;start&quot;</span>);
+#ifdef _WIN32
+    <span class="t">HANDLE</span> t[WORKERS];
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++) {
+        t[i] = <span class="f">CreateThread</span>(NULL, <span class="n">0</span>, worker, NULL, <span class="n">0</span>, NULL);
+        <span class="k">if</span> (t[i] == NULL) {
+            <span class="f">printf</span>(<span class="s">&quot;CreateThread: error %lu\n&quot;</span>, <span class="f">GetLastError</span>());
+            <span class="k">return</span> <span class="n">1</span>;
+        }
+    }
+    <span class="f">show</span>(<span class="s">&quot;running&quot;</span>);
+    <span class="f">WaitForMultipleObjects</span>(WORKERS, t, TRUE, INFINITE);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">CloseHandle</span>(t[i]);
+#else
+    pthread_t t[WORKERS];
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++) {
+        <span class="k">int</span> err = <span class="f">pthread_create</span>(&amp;t[i], NULL, worker, NULL);
+        <span class="k">if</span> (err != <span class="n">0</span>) {
+            <span class="f">printf</span>(<span class="s">&quot;pthread_create: error %d\n&quot;</span>, err);
+            <span class="k">return</span> <span class="n">1</span>;
+        }
+    }
+    <span class="f">show</span>(<span class="s">&quot;running&quot;</span>);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">pthread_join</span>(t[i], NULL);
+<span class="k">#endif</span>
+    <span class="f">show</span>(<span class="s">&quot;joined&quot;</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор count_threads.c по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Проверить ядро на своём процессе: запустить четыре потока и посмотреть, как меняется их число до запуска, во время работы и после.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>show</b><small>1 поток</small></span><span><b>создать × 4</b><small>5 потоков</small></span><span><b>join × 4</b><small>1 поток</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;inttypes.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&quot;core.h&quot;</span>
+
+#ifdef _WIN32
+<span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#define</span> <span class="f">pid_self</span>() ((<span class="t">int64_t</span>)<span class="f">GetCurrentProcessId</span>())
+<span class="k">static</span> <span class="t">DWORD</span> WINAPI <span class="f">worker</span>(LPVOID arg) {
+    (<span class="k">void</span>)arg;
+    <span class="f">Sleep</span>(<span class="n">1000</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}
+#else
+<span class="k">#include</span> <span class="s">&lt;pthread.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;unistd.h&gt;</span>
+<span class="k">#define</span> <span class="f">pid_self</span>() ((<span class="t">int64_t</span>)<span class="f">getpid</span>())
+<span class="k">static</span> <span class="k">void</span> *<span class="f">worker</span>(<span class="k">void</span> *arg) {
+    (<span class="k">void</span>)arg;
+    <span class="f">sleep</span>(<span class="n">1</span>);
+    <span class="k">return</span> NULL;
+}
+<span class="k">#endif</span>
+
+<span class="k">#define</span> WORKERS <span class="n">4</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">show</span>(<span class="k">const</span> <span class="k">char</span> *when) {
+    <span class="t">int32_t</span> n;
+    <span class="k">int</span> err = <span class="f">core_proc_threads</span>(<span class="f">pid_self</span>(), &amp;n);
+    <span class="k">if</span> (err != <span class="n">0</span>)
+        <span class="f">printf</span>(<span class="s">&quot;%s: error %d\n&quot;</span>, when, err);
+    else
+        <span class="f">printf</span>(<span class="s">&quot;%s: %d threads\n&quot;</span>, when, n);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+    <span class="f">show</span>(<span class="s">&quot;start&quot;</span>);
+#ifdef _WIN32
+    <span class="t">HANDLE</span> t[WORKERS];
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++) {
+        t[i] = <span class="f">CreateThread</span>(NULL, <span class="n">0</span>, worker, NULL, <span class="n">0</span>, NULL);
+        <span class="k">if</span> (t[i] == NULL) {
+            <span class="f">printf</span>(<span class="s">&quot;CreateThread: error %lu\n&quot;</span>, <span class="f">GetLastError</span>());
+            <span class="k">return</span> <span class="n">1</span>;
+        }
+    }
+    <span class="f">show</span>(<span class="s">&quot;running&quot;</span>);
+    <span class="f">WaitForMultipleObjects</span>(WORKERS, t, TRUE, INFINITE);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">CloseHandle</span>(t[i]);
+#else
+    pthread_t t[WORKERS];
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++) {
+        <span class="k">int</span> err = <span class="f">pthread_create</span>(&amp;t[i], NULL, worker, NULL);
+        <span class="k">if</span> (err != <span class="n">0</span>) {
+            <span class="f">printf</span>(<span class="s">&quot;pthread_create: error %d\n&quot;</span>, err);
+            <span class="k">return</span> <span class="n">1</span>;
+        }
+    }
+    <span class="f">show</span>(<span class="s">&quot;running&quot;</span>);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">pthread_join</span>(t[i], NULL);
+<span class="k">#endif</span>
+    <span class="f">show</span>(<span class="s">&quot;joined&quot;</span>);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="5-12"><b>Работа потока в Windows</b><p>Функция потока в Windows получает один параметр <code>LPVOID</code> — адрес любых данных — и возвращает <code>DWORD</code>. <code>WINAPI</code> — договор о вызове, которого ждёт <code>CreateThread</code>. Поток спит секунду и завершается. <code>pid_self</code> — номер своего процесса: <code>GetCurrentProcessId</code>.</p></li>
+              <li data-lines="13-22"><b>Работа потока в macOS и Linux</b><p>Функция потока POSIX получает и возвращает <code>void *</code> — адрес любых данных. Поток тоже спит секунду. Номер своего процесса — <code>getpid</code>.</p></li>
+              <li data-lines="26-33"><b>Показать число потоков</b><p><code>show</code> спрашивает ядро о своём процессе и печатает ответ с подписью: <code>start</code>, <code>running</code> или <code>joined</code>.</p></li>
+              <li data-lines="37-49"><b>Запустить и дождаться потоков в Windows</b><p><code>CreateThread</code> создаёт поток и сразу его запускает. Параметры: права доступа по умолчанию, размер стека по умолчанию (0), функция, её параметр, флаги и куда записать номер потока. Ответ — дескриптор потока; <code>NULL</code> — ошибка. <code>WaitForMultipleObjects(…, TRUE, INFINITE)</code> ждёт все четыре потока сразу, затем дескрипторы закрываются.</p></li>
+              <li data-lines="50-61"><b>Запустить и дождаться потоков в macOS и Linux</b><p><code>pthread_create</code> записывает номер потока в <code>t[i]</code> и запускает в нём <code>worker</code>. Ошибку функция возвращает сама, как <code>posix_spawnp</code> в главе 2.2. <code>pthread_join</code> ждёт поток и освобождает запись о нём — то же, что <code>waitpid</code> для процесса.</p><p class="like">Бригадир раздаёт задания четырём рабочим и уходит со смены, только когда каждый сдал работу.</p></li>
+              <li data-lines="63"><b>Число потоков после</b><p>После <code>join</code> потоки завершены, и у процесса снова один поток — главный.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p>Собираем программу из двух файлов<span data-os="linux">; ключ <code>-pthread</code> подключает библиотеку потоков</span>:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 count_threads.c core_threads.c
+count_threads.exe</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>clang -Wall -Wextra -o count_threads count_threads.c core_threads.c
+./count_threads</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>gcc -Wall -Wextra -pthread -o count_threads count_threads.c core_threads.c
+./count_threads</pre>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/02-count.png" alt="терминал: start 1 threads, running 5 threads, joined 1 threads" loading="lazy">
+          <figcaption><span class="mk">1</span> До запуска — 1 поток. <span class="mk">2</span> Во время работы — 5. <span class="mk">3</span> После ожидания — снова 1.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/02-count.png" alt="терминал: start 1 threads, running 5 threads, joined 1 threads" loading="lazy">
+          <figcaption><span class="mk">1</span> До запуска — 1 поток. <span class="mk">2</span> Во время работы — 5. <span class="mk">3</span> После ожидания — снова 1.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/02-count.png" alt="терминал: start 1 threads, running 5 threads, joined 1 threads" loading="lazy">
+          <figcaption><span class="mk">1</span> До запуска — 1 поток. <span class="mk">2</span> Во время работы — 5. <span class="mk">3</span> После ожидания — снова 1.</figcaption>
+        </figure>
+        <p>Три числа складываются в картину жизни процесса:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Сколько потоков у count_threads в каждый момент</p>
+          <div class="scheme__body">
+<div class="vsteps"><div class="vcard is-sys"><h5>start</h5><b>1 поток</b><small>только главный</small></div><div class="varr">создать × 4</div><div class="vcard is-c"><h5>running</h5><b>5 потоков</b><small>главный и четыре рабочих</small></div><div class="varr">join × 4</div><div class="vcard is-sys"><h5>joined</h5><b>1 поток</b><small>рабочие завершены</small></div></div>
+          </div>
+          <p class="scheme__note">Числа одинаковы на трёх системах — так на кадрах шага 3.</p>
+        </figure>
+        <p>Главный поток есть всегда, рабочие появляются при создании и исчезают после ожидания. Если бы программа не дождалась потоков и не освободила их, число не вернулось бы к единице: так выглядит утечка потоков.</p>
+        <p class="step-done"><b>Что получилось.</b>Ядро видит, как у процесса появляются и исчезают потоки. Можно подключать функцию к мозгу.</p>
+
+        <div class="part" role="separator"><span><b>2</b>Мозг: у кого больше всего потоков</span></div>
+        <h2 id="s5"><span class="sec">§5</span>Шаг 4. Число потоков в Python</h2>
+        <p>Библиотека ядра теперь собирается из пяти файлов:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cl /nologo /W4 /LD core_info.c core_procs.c core_spawn.c core_cpu.c core_threads.c /Fe:sentry_core.dll</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>clang -Wall -Wextra -shared -fPIC -o libsentry_core.dylib core_info.c core_procs.c core_spawn.c core_cpu.c core_threads.c</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>gcc -Wall -Wextra -shared -fPIC -o libsentry_core.so core_info.c core_procs.c core_spawn.c core_cpu.c core_threads.c</pre>
+        </figure>
+        <p>В <code>brain.py</code> добавляются типы новой функции после типов <code>core_proc_cpu</code> и функции <code>proc_threads</code> и <code>most_threads</code> после <code>cpu_load</code>:</p>
+        <figure class="code">
+          <figcaption><span>agent/brain/brain.py · новые части</span></figcaption>
+<pre>core.core_proc_threads.argtypes = [ctypes.c_int64, ctypes.<span class="f">POINTER</span>(ctypes.c_int32)]
+core.core_proc_threads.restype = ctypes.c_int
+
+<span class="k">def</span> <span class="f">proc_threads</span>(pid):
+    count = ctypes.<span class="f">c_int32</span>()
+    <span class="k">if</span> core.<span class="f">core_proc_threads</span>(pid, ctypes.<span class="f">byref</span>(count)) != <span class="n">0</span>:
+        <span class="k">return</span> <span class="k">None</span>
+    <span class="k">return</span> count.value
+
+<span class="k">def</span> <span class="f">most_threads</span>(n=<span class="n">3</span>):
+    found = []
+    <span class="k">for</span> p <span class="k">in</span> <span class="f">list_procs</span>():
+        count = <span class="f">proc_threads</span>(p[<span class="s">&quot;pid&quot;</span>])
+        <span class="k">if</span> count is <span class="k">not</span> <span class="k">None</span>:
+            found.<span class="f">append</span>({<span class="s">&quot;pid&quot;</span>: p[<span class="s">&quot;pid&quot;</span>], <span class="s">&quot;name&quot;</span>: p[<span class="s">&quot;name&quot;</span>], <span class="s">&quot;threads&quot;</span>: count})
+    <span class="k">return</span> <span class="f">sorted</span>(found, key=lambda x: x[<span class="s">&quot;threads&quot;</span>], reverse=<span class="k">True</span>)[:n]</pre>
+        </figure>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор brain.py · новые части по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Дать мозгу две функции: <code>proc_threads</code> — число потоков одного процесса, <code>most_threads</code> — процессы, у которых потоков больше всего.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>list_procs</b><small>номера</small></span><span><b>proc_threads</b><small>потоки каждого</small></span><span><b>sorted</b><small>больше всего</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code">core.core_proc_threads.argtypes = [ctypes.c_int64, ctypes.<span class="f">POINTER</span>(ctypes.c_int32)]
+core.core_proc_threads.restype = ctypes.c_int
+
+<span class="k">def</span> <span class="f">proc_threads</span>(pid):
+    count = ctypes.<span class="f">c_int32</span>()
+    <span class="k">if</span> core.<span class="f">core_proc_threads</span>(pid, ctypes.<span class="f">byref</span>(count)) != <span class="n">0</span>:
+        <span class="k">return</span> <span class="k">None</span>
+    <span class="k">return</span> count.value
+
+<span class="k">def</span> <span class="f">most_threads</span>(n=<span class="n">3</span>):
+    found = []
+    <span class="k">for</span> p <span class="k">in</span> <span class="f">list_procs</span>():
+        count = <span class="f">proc_threads</span>(p[<span class="s">&quot;pid&quot;</span>])
+        <span class="k">if</span> count is <span class="k">not</span> <span class="k">None</span>:
+            found.<span class="f">append</span>({<span class="s">&quot;pid&quot;</span>: p[<span class="s">&quot;pid&quot;</span>], <span class="s">&quot;name&quot;</span>: p[<span class="s">&quot;name&quot;</span>], <span class="s">&quot;threads&quot;</span>: count})
+    <span class="k">return</span> <span class="f">sorted</span>(found, key=lambda x: x[<span class="s">&quot;threads&quot;</span>], reverse=<span class="k">True</span>)[:n]</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="1-2"><b>Описать функцию ядра</b><p>Номер процесса — <code>c_int64</code>, ответ — адрес <code>c_int32</code>.</p></li>
+              <li data-lines="4-8"><b>proc_threads: число потоков</b><p><code>ctypes.c_int32()</code> — место для ответа, <code>byref</code> передаёт его адрес. Если процесс не читается, функция возвращает <code>None</code>, как <code>proc_cpu</code> в главе 2.3.</p></li>
+              <li data-lines="10-17"><b>most_threads: самые многопоточные</b><p>Для каждого процесса из <code>list_procs</code> берётся число потоков; недоступные пропускаются. Список сортируется по убыванию, срез <code>[:n]</code> оставляет первые <code>n</code>.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p>Блок запуска меняется: мозг запускает ребёнка — Python с четырьмя потоками, каждый спит 3 секунды. Через секунду, пока потоки живы, мозг спрашивает число потоков ребёнка и ищет три самых многопоточных процесса:</p>
+        <figure class="code">
+          <figcaption><span>agent/brain/brain.py · блок запуска</span></figcaption>
+<pre><span class="k">if</span> __name__ == <span class="s">&quot;__main__&quot;</span>:
+    child = <span class="f">spawn</span>([sys.executable, <span class="s">&quot;-c&quot;</span>, <span class="s">&quot;import threading, time\n&quot;</span>
+                   <span class="s">&quot;ts = [threading.Thread(target=time.sleep, args=(3,)) for _ in range(4)]\n&quot;</span>
+                   <span class="s">&quot;for t in ts: t.start()\n&quot;</span>
+                   <span class="s">&quot;for t in ts: t.join()&quot;</span>])
+    time.<span class="f">sleep</span>(<span class="n">1</span>)
+    message = {<span class="s">&quot;event&quot;</span>: <span class="s">&quot;agent_started&quot;</span>, <span class="s">&quot;os&quot;</span>: sys.platform, **<span class="f">get_info</span>(),
+               <span class="s">&quot;child&quot;</span>: child.pid, <span class="s">&quot;child_threads&quot;</span>: <span class="f">proc_threads</span>(child.pid), <span class="s">&quot;most_threads&quot;</span>: <span class="f">most_threads</span>(<span class="n">3</span>)}
+    <span class="f">wait</span>(child, <span class="n">5000</span>)
+    <span class="f">print</span>(json.<span class="f">dumps</span>(message, ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+    <span class="k">if</span> <span class="f">len</span>(sys.argv) &gt; <span class="n">1</span>:
+        status, body = <span class="f">send</span>(message, sys.argv[<span class="n">1</span>])
+        <span class="f">print</span>(<span class="s">&quot;n8n:&quot;</span>, status, body)</pre>
+        </figure>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>cd ..\brain
+python brain.py</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>cd ../brain
+python3 brain.py</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code</span></figcaption>
+<pre>cd ../brain
+python3 brain.py</pre>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/03-brain.png" alt="терминал: child_threads 8, most_threads System 162, Code.exe 59, msedgewebview2.exe 51" loading="lazy">
+          <figcaption><span class="mk">1</span> У ребёнка 8 потоков. <span class="mk">2</span> Больше всего потоков у <code>System</code> — 162, у <code>Code.exe</code> — 59, у <code>msedgewebview2.exe</code> — 51.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/03-brain.png" alt="терминал: child_threads 5, most_threads Telegram 104, Code 59, Yandex 59" loading="lazy">
+          <figcaption><span class="mk">1</span> У ребёнка 5 потоков. <span class="mk">2</span> Больше всего потоков у <code>Telegram</code> — 104, у <code>Code</code> и <code>Yandex</code> — по 59.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/03-brain.png" alt="терминал: child_threads 5, most_threads code 39, code 21, code 21" loading="lazy">
+          <figcaption><span class="mk">1</span> У ребёнка 5 потоков. <span class="mk">2</span> Больше всего потоков у процессов VS Code <code>code</code> — 39, 21 и 21.</figcaption>
+        </figure>
+        <p><span data-os="mac linux">Пять потоков ребёнка — четыре спящих и главный, как в ЛР 7.</span><span data-os="win">Восемь потоков ребёнка — четыре спящих, главный и три служебных потока, которые Python держит в Windows, как в ЛР 7.</span> Первые места в списке занимают <span data-os="win">ядро системы <code>System</code> и программы с встроенным браузером</span><span data-os="mac">мессенджер, редактор и браузер</span><span data-os="linux">процессы VS Code — в контейнере других программ нет</span>: у больших программ десятки потоков. Тревожный признак — число, которое растёт и не падает.</p>
+        <p class="step-done"><b>Что получилось.</b>Мозг знает число потоков любого доступного процесса и находит самые многопоточные. Осталось отправить работу в репозиторий.</p>
+
+        <h2 id="s6"><span class="sec">§6</span>Шаг 5. Отправить в репозиторий</h2>
+        <p>В репозиторий уходят исходники: <code>core.h</code>, <code>core_threads.c</code>, <code>count_threads.c</code> и <code>brain.py</code>. В <code>agent/core/README.md</code> дописываем строку о <code>core_threads.c</code> и сборке библиотеки из пяти файлов.</p>
+        <figure class="code">
+          <figcaption><span>терминал в папке sysprog-start</span><span>то же, что плюс, Commit и Sync Changes</span></figcaption>
+<pre>git add agent/core/core.h agent/core/core_threads.c agent/core/count_threads.c agent/core/README.md agent/brain/brain.py
+git commit -m "core: core_proc_threads — число потоков, brain: proc_threads и most_threads"
+git push</pre>
+        </figure>
+        <p>Перед <code>git add</code> посмотрите <code>git status</code>: собранную <span data-os="win"><code>count_threads.exe</code> и файлы <code>.obj</code>, <code>.lib</code>, <code>.exp</code></span><span data-os="mac linux"><code>count_threads</code></span> допишите в <code>.gitignore</code>, если их там нет. Новой проверки в этой паре нет: «Проверки» собирают библиотеку с <code>core_threads.c</code> и прогоняют проверки 1 и 2.</p>
+        <p class="step-done"><b>Что получилось.</b>Ядро и мозг с числом потоков в репозитории. Последняя часть — ошибка, которую помощник ИИ допускает в коде с потоками.</p>
+
+        <div class="part" role="separator"><span><b>3</b>Код от помощника ИИ</span></div>
+        <h2 id="s7"><span class="sec">§7</span>Запрос к помощнику ИИ</h2>
+        <p>Код с потоками помощник пишет быстро, и он работает: компилируется, потоки запускаются и завершаются. Ошибка сидит в общих данных. Если несколько потоков меняют одну переменную, итог зависит от того, как система раздала им ядра. Запрос в режиме Р2 из главы 0.3:</p>
+        <figure class="code">
+          <figcaption><span>запрос помощнику</span></figcaption>
+<pre>Напиши на C для <span data-os="win">Windows</span><span data-os="mac">macOS</span><span data-os="linux">Linux</span> программу: 4 потока по миллиону раз
+увеличивают общий счётчик, в конце напечатать его значение.</pre>
+        </figure>
+        <p>Частый ответ — счётчик <code>volatile long long counter</code> и <code>counter++</code> в цикле. <code>volatile</code> велит компилятору каждый раз читать переменную из памяти и не держать её копию в регистре процессора. Помощник ставит его, чтобы «потоки видели изменения». Но <code>counter++</code> — это три действия, и между ними другой поток может вклиниться:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Как два потока теряют одну прибавку</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th>Шаг</th><th>Поток A</th><th>Поток B</th><th>counter в памяти</th></tr></thead><tbody><tr><td>1</td><td>прочитал 41</td><td></td><td>41</td></tr><tr><td>2</td><td></td><td>прочитал 41</td><td>41</td></tr><tr><td>3</td><td>прибавил, записал 42</td><td></td><td class="is-ok">42</td></tr><tr><td>4</td><td></td><td>прибавил, записал 42</td><td class="is-bad">42</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note"><code>counter++</code> — три действия: прочитать, прибавить, записать. Между ними другой поток успевает прочитать старое значение. Две прибавки — а счётчик вырос на одну.</p>
+        </figure>
+        <p>Таблица читается сверху вниз. Оба потока прочитали 41, оба записали 42 — одна прибавка пропала. <code>volatile</code> этого не исправляет: чтение и запись по-прежнему разделены. Такая ошибка называется <span class="term">гонкой</span>: итог зависит от того, какой поток успел первым. Правильная прибавка — атомарная: процессор выполняет чтение, сложение и запись как одно неделимое действие, и другой поток не может вклиниться. Так написан <code>race.c</code>:</p>
+        <figure class="code" data-os="win mac linux">
+          <figcaption><span>agent/core/race.c · все системы</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+#ifdef _WIN32
+<span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#define</span> <span class="f">ADD</span>(p) <span class="f">InterlockedIncrement64</span>(p)
+<span class="k">#define</span> THREAD_FN <span class="t">DWORD</span> WINAPI
+<span class="k">#define</span> THREAD_END <span class="n">0</span>
+#else
+<span class="k">#include</span> <span class="s">&lt;pthread.h&gt;</span>
+<span class="k">#define</span> <span class="f">ADD</span>(p) <span class="f">__atomic_fetch_add</span>(p, <span class="n">1</span>, __ATOMIC_SEQ_CST)
+<span class="k">#define</span> THREAD_FN <span class="k">void</span> *
+<span class="k">#define</span> THREAD_END NULL
+<span class="k">#endif</span>
+
+<span class="k">#define</span> WORKERS <span class="n">4</span>
+<span class="k">#define</span> STEPS <span class="n">1000000</span>
+
+<span class="k">static</span> <span class="k">long</span> <span class="k">long</span> counter = <span class="n">0</span>;
+
+<span class="k">static</span> THREAD_FN <span class="f">worker</span>(<span class="k">void</span> *arg) {
+    (<span class="k">void</span>)arg;
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; STEPS; i++)
+        <span class="f">ADD</span>(&amp;counter);
+    <span class="k">return</span> THREAD_END;
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+#ifdef _WIN32
+    <span class="t">HANDLE</span> t[WORKERS];
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        t[i] = <span class="f">CreateThread</span>(NULL, <span class="n">0</span>, worker, NULL, <span class="n">0</span>, NULL);
+    <span class="f">WaitForMultipleObjects</span>(WORKERS, t, TRUE, INFINITE);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">CloseHandle</span>(t[i]);
+#else
+    pthread_t t[WORKERS];
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">pthread_create</span>(&amp;t[i], NULL, worker, NULL);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">pthread_join</span>(t[i], NULL);
+<span class="k">#endif</span>
+    <span class="f">printf</span>(<span class="s">&quot;counter = %lld, expected %d\n&quot;</span>, counter, WORKERS * STEPS);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <div class="trace" data-os="win mac linux">
+          <p class="trace__head"><span>Разбор race.c по шагам</span><span>все системы</span></p>
+          <p class="trace__goal"><b>Зачем эта программа.</b> Четыре потока по миллиону раз прибавляют единицу к общему счётчику. Должно получиться 4 000 000.</p>
+          <div class="trace__flow" aria-label="Для чего программа"><span><b>4 потока</b><small>общий counter</small></span><span><b>ADD × 1 000 000</b><small>в каждом</small></span><span><b>итог</b><small>4 000 000</small></span></div>
+          <div class="trace__grid">
+<pre class="trace__code"><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+
+#ifdef _WIN32
+<span class="k">#include</span> <span class="s">&lt;windows.h&gt;</span>
+<span class="k">#define</span> <span class="f">ADD</span>(p) <span class="f">InterlockedIncrement64</span>(p)
+<span class="k">#define</span> THREAD_FN <span class="t">DWORD</span> WINAPI
+<span class="k">#define</span> THREAD_END <span class="n">0</span>
+#else
+<span class="k">#include</span> <span class="s">&lt;pthread.h&gt;</span>
+<span class="k">#define</span> <span class="f">ADD</span>(p) <span class="f">__atomic_fetch_add</span>(p, <span class="n">1</span>, __ATOMIC_SEQ_CST)
+<span class="k">#define</span> THREAD_FN <span class="k">void</span> *
+<span class="k">#define</span> THREAD_END NULL
+<span class="k">#endif</span>
+
+<span class="k">#define</span> WORKERS <span class="n">4</span>
+<span class="k">#define</span> STEPS <span class="n">1000000</span>
+
+<span class="k">static</span> <span class="k">long</span> <span class="k">long</span> counter = <span class="n">0</span>;
+
+<span class="k">static</span> THREAD_FN <span class="f">worker</span>(<span class="k">void</span> *arg) {
+    (<span class="k">void</span>)arg;
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; STEPS; i++)
+        <span class="f">ADD</span>(&amp;counter);
+    <span class="k">return</span> THREAD_END;
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">void</span>) {
+#ifdef _WIN32
+    <span class="t">HANDLE</span> t[WORKERS];
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        t[i] = <span class="f">CreateThread</span>(NULL, <span class="n">0</span>, worker, NULL, <span class="n">0</span>, NULL);
+    <span class="f">WaitForMultipleObjects</span>(WORKERS, t, TRUE, INFINITE);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">CloseHandle</span>(t[i]);
+#else
+    pthread_t t[WORKERS];
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">pthread_create</span>(&amp;t[i], NULL, worker, NULL);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; WORKERS; i++)
+        <span class="f">pthread_join</span>(t[i], NULL);
+<span class="k">#endif</span>
+    <span class="f">printf</span>(<span class="s">&quot;counter = %lld, expected %d\n&quot;</span>, counter, WORKERS * STEPS);
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+            <div class="trace__panel">
+            <ol class="trace__steps">
+              <li data-lines="3-13"><b>Атомарная прибавка и функция потока</b><p><code>ADD</code> прибавляет единицу так, что другой поток не вклинится посередине: <code>InterlockedIncrement64</code> в Windows, <code>__atomic_fetch_add</code> в clang и gcc. <code>THREAD_FN</code> и <code>THREAD_END</code> скрывают разницу между функциями потоков двух систем, чтобы <code>worker</code> была написана один раз.</p></li>
+              <li data-lines="15-18"><b>Общий счётчик</b><p><code>counter</code> объявлен вне функций: он один на весь процесс, и все потоки работают с ним. 4 потока по 1 000 000 шагов должны дать 4 000 000.</p></li>
+              <li data-lines="20-25"><b>Работа потока</b><p>Миллион раз <code>ADD(&amp;counter)</code>.</p></li>
+              <li data-lines="27-41"><b>Запустить и дождаться потоков</b><p>Так же, как в <code>count_threads.c</code>, только без проверки ошибок: программа короткая и служит только для опыта.</p></li>
+              <li data-lines="42"><b>Сверить итог</b><p>Печатается счётчик и ожидаемое значение.</p></li>
+            </ol>
+            <div class="trace__nav"></div>
+            </div>
+          </div>
+        </div>
+        <p>Вариант помощника получается из <code>race.c</code> заменой двух строк. Собираем оба и запускаем вариант помощника дважды:</p>
+        <figure class="code" data-os="win">
+          <figcaption><span>x64 Native Tools Command Prompt</span></figcaption>
+<pre>powershell -c &quot;(gc race.c) -replace &#x27;static long long counter&#x27;,&#x27;static volatile long long counter&#x27; -replace &#x27;ADD\(&amp;counter\);&#x27;,&#x27;counter++;&#x27; | sc ai_race.c&quot;
+cl /nologo /W4 race.c
+cl /nologo /W4 ai_race.c
+fc race.c ai_race.c
+race.exe
+ai_race.exe
+ai_race.exe</pre>
+        </figure>
+        <figure class="code" data-os="mac">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>sed &#x27;s/static long long counter/static volatile long long counter/; s/ADD(&amp;counter);/counter++;/&#x27; race.c &gt; ai_race.c
+clang -Wall -Wextra -o race race.c
+clang -Wall -Wextra -o ai_race ai_race.c
+diff race.c ai_race.c
+./race
+./ai_race
+./ai_race</pre>
+        </figure>
+        <figure class="code" data-os="linux">
+          <figcaption><span>терминал VS Code в agent/core</span></figcaption>
+<pre>sed &#x27;s/static long long counter/static volatile long long counter/; s/ADD(&amp;counter);/counter++;/&#x27; race.c &gt; ai_race.c
+gcc -Wall -Wextra -pthread -o race race.c
+gcc -Wall -Wextra -pthread -o ai_race ai_race.c
+diff race.c ai_race.c
+./race
+./ai_race
+./ai_race</pre>
+        </figure>
+        <figure class="shot" data-os="win">
+          <img src="img/win/04-race.png" alt="терминал: fc, race 4000000, ai_race 1307579 и 3058075" loading="lazy">
+          <figcaption><span class="mk">1</span> Вторая разница файлов: <code>ADD(&amp;counter)</code> и <code>counter++</code>; первая, со словом <code>volatile</code>, уехала вверх. <span class="mk">2</span> <code>race.exe</code>: 4 000 000. <span class="mk">3</span> <code>ai_race.exe</code>: 1 307 579 и 3 058 075.</figcaption>
+        </figure>
+        <figure class="shot" data-os="mac">
+          <img src="img/mac/04-race.png" alt="терминал: diff, race 4000000, ai_race 1050345 и 1159969" loading="lazy">
+          <figcaption><span class="mk">1</span> Файлы отличаются двумя строками: <code>volatile</code> и <code>counter++</code>. <span class="mk">2</span> <code>race</code>: 4 000 000. <span class="mk">3</span> <code>ai_race</code>: 1 050 345 и 1 159 969.</figcaption>
+        </figure>
+        <figure class="shot" data-os="linux">
+          <img src="img/linux/04-race.png" alt="терминал: diff, race 4000000, ai_race 1822571 и 1316327" loading="lazy">
+          <figcaption><span class="mk">1</span> Файлы отличаются двумя строками: <code>volatile</code> и <code>counter++</code>. <span class="mk">2</span> <code>race</code>: 4 000 000. <span class="mk">3</span> <code>ai_race</code>: 1 822 571 и 1 316 327.</figcaption>
+        </figure>
+        <p>Результаты трёх систем рядом:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Один и тот же счётчик: атомарная прибавка и counter++</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th>Система</th><th>race.c — ADD</th><th>ai_race.c — counter++, запуск 1</th><th>запуск 2</th></tr></thead><tbody><tr><td>Windows</td><td class="is-ok">4 000 000</td><td class="is-bad">1 307 579</td><td class="is-bad">3 058 075</td></tr><tr><td>macOS</td><td class="is-ok">4 000 000</td><td class="is-bad">1 050 345</td><td class="is-bad">1 159 969</td></tr><tr><td>Linux</td><td class="is-ok">4 000 000</td><td class="is-bad">1 822 571</td><td class="is-bad">1 316 327</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note">Числа — с кадров. Ожидается 4 000 000; у счётчика с <code>volatile</code> результат каждый раз другой.</p>
+        </figure>
+        <p>Атомарная прибавка даёт ровно 4 000 000 на трёх системах. <code>counter++</code> теряет от четверти до трёх четвертей прибавок, и каждый запуск даёт новое число. Компилятор не предупреждает: для него это обычный код. На одном ядре или с одним потоком ошибка не видна вовсе, поэтому её часто находят уже на сервере с многими ядрами.</p>
+        <ul class="checklist">
+          <li>каждая переменная, которую меняют несколько потоков, меняется атомарной операцией или под замком: <span data-os="win"><code>InterlockedIncrement64</code>, <code>SRWLOCK</code></span><span data-os="mac linux"><code>__atomic_fetch_add</code>, <code>pthread_mutex_t</code></span>;</li>
+          <li><code>volatile</code> не считается защитой от гонки;</li>
+          <li>каждый запущенный поток дожидаются: <span data-os="win"><code>WaitForMultipleObjects</code> и <code>CloseHandle</code></span><span data-os="mac linux"><code>pthread_join</code></span>;</li>
+          <li>программа проверки сверяет итог с ожидаемым и запускается несколько раз на компьютере с несколькими ядрами.</li>
+        </ul>
+        <p>Первые три пункта проверяются чтением кода, последний — запуском.</p>
+
+        <div class="part" role="separator"><span><b>4</b>Справка</span></div>
+        <h2 id="s8"><span class="sec">§8</span>Справка: функции и команды</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Что нужно</th><th>Windows</th><th>macOS и Linux</th></tr></thead>
+            <tbody>
+              <tr><td>Число потоков процесса</td><td>снимок Toolhelp32, <code>cntThreads</code></td><td><code>pti_threadnum</code> / поле 20 <code>/proc/PID/stat</code></td></tr>
+              <tr><td>Запустить поток</td><td><code>CreateThread</code></td><td><code>pthread_create</code></td></tr>
+              <tr><td>Функция потока</td><td><code>DWORD WINAPI f(LPVOID)</code></td><td><code>void *f(void *)</code></td></tr>
+              <tr><td>Дождаться потоков</td><td><code>WaitForMultipleObjects</code>, затем <code>CloseHandle</code></td><td><code>pthread_join</code></td></tr>
+              <tr><td>Атомарная прибавка</td><td><code>InterlockedIncrement64</code></td><td><code>__atomic_fetch_add</code></td></tr>
+              <tr><td>Номер своего процесса</td><td><code>GetCurrentProcessId</code></td><td><code>getpid</code></td></tr>
+              <tr><td>Собрать программу с потоками</td><td><code>cl</code> без ключей</td><td>macOS — без ключей, Linux — <code>gcc -pthread</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="part" role="separator"><span><b>5</b>Проверка себя</span></div>
+        <h2 id="s9"><span class="sec">§9</span>Частые вопросы</h2>
+        <div class="myths">
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b><code>volatile</code> делает переменную безопасной для потоков.</div>
+            <div class="myth__yes"><b>На самом деле</b><code>volatile</code> только запрещает компилятору держать копию в регистре. <code>counter++</code> остаётся тремя действиями, и на кадрах из 4 000 000 прибавок дошло от 1 050 345 до 3 058 075.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Если программа один раз дала верный ответ, гонки в ней нет.</div>
+            <div class="myth__yes"><b>На самом деле</b>Итог гонки зависит от того, как система раздала ядра. На одном ядре ошибка может не проявиться ни разу. На сервере с многими ядрами она проявляется почти при каждом запуске.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>Много потоков у процесса — признак ошибки.</div>
+            <div class="myth__yes"><b>На самом деле</b>У больших программ десятки и сотни потоков. Признак утечки — число, которое растёт и не возвращается назад.</div>
+          </div>
+          <div class="myth">
+            <div class="myth__no"><b>Обычно думают</b>У программы на Python без потоков ровно один поток.</div>
+            <div class="myth__yes"><b>На самом деле</b>Сам интерпретатор и библиотеки запускают свои потоки: Python в Windows на кадре держит три служебных.</div>
+          </div>
+        </div>
+
+        <h2 id="s10"><span class="sec">§10</span>Проверьте себя</h2>
+        <details>
+          <summary>Почему у <code>core_proc_threads</code> нет своей структуры?</summary>
+          <p>Ответ — одно целое число. Его записывают по адресу <code>count</code>, как <code>count</code> у <code>core_list_procs</code> в главе 2.1.</p>
+        </details>
+        <details>
+          <summary>Сколько потоков покажет <code>count_threads</code> во время работы и почему?</summary>
+          <p>Пять: главный поток и четыре рабочих. До их запуска и после ожидания — один.</p>
+        </details>
+        <details>
+          <summary>Что будет, если не вызвать <span data-os="win"><code>WaitForMultipleObjects</code></span><span data-os="mac linux"><code>pthread_join</code></span>?</summary>
+          <p><code>main</code> завершится раньше рабочих потоков, и процесс закончится вместе с ними. В программе, которая работает долго, незавершённые и не освобождённые потоки копятся — это утечка.</p>
+        </details>
+        <details>
+          <summary>Почему <code>counter++</code> из четырёх потоков теряет прибавки?</summary>
+          <p>Это чтение, сложение и запись. Два потока читают одно и то же значение, каждый прибавляет единицу и записывает — одна прибавка пропадает.</p>
+        </details>
+        <details>
+          <summary>Чем атомарная прибавка отличается от <code>counter++</code>?</summary>
+          <p>Процессор выполняет чтение, сложение и запись как одно неделимое действие, и другой поток не может вклиниться посередине.</p>
+        </details>
+
+        <h2 id="s11"><span class="sec">§11</span>Шпаргалка по главе</h2>
+        <div class="cheat">
+          <div><b>Число потоков</b><span><code>core_proc_threads(pid, &amp;count)</code></span><span data-os="win"><code>cntThreads</code></span><span data-os="mac"><code>pti_threadnum</code></span><span data-os="linux">поле 20 <code>stat</code></span></div>
+          <div><b>Запуск потока</b><span data-os="win"><code>CreateThread</code> → дескриптор</span><span data-os="mac linux"><code>pthread_create(&amp;t, NULL, f, arg)</code></span><span data-os="win"><code>WaitForMultipleObjects</code>, <code>CloseHandle</code></span><span data-os="mac linux"><code>pthread_join</code></span></div>
+          <div><b>Жизнь потоков</b><span>1 → 5 → 1</span><span>главный есть всегда</span></div>
+          <div><b>Мозг</b><span><code>proc_threads(pid)</code> — число или <code>None</code></span><span><code>most_threads(3)</code> — самые многопоточные</span></div>
+          <div><b>Гонка</b><span><code>counter++</code> из потоков теряет прибавки</span><span>атомарная операция или замок</span></div>
+        </div>
+
+        <h3>Итог главы</h3>
+        <p>Ядро агента получило функцию <code>core_proc_threads</code>: по номеру процесса она возвращает число его потоков. <span data-os="win">В Windows число берётся из поля <code>cntThreads</code> снимка процессов.</span><span data-os="mac">В macOS — из поля <code>pti_threadnum</code> ответа <code>proc_pidinfo</code>.</span><span data-os="linux">В Linux — из поля 20 файла <code>/proc/PID/stat</code>.</span> Программа <code>count_threads.c</code> запустила четыре потока функцией <span data-os="win"><code>CreateThread</code></span><span data-os="mac linux"><code>pthread_create</code></span> и показала их число: 1, 5 и снова 1. Мозг нашёл у ребёнка <span data-os="win">8</span><span data-os="mac linux">5</span> потоков и три самых многопоточных процесса. Программа <code>race.c</code> показала гонку: атомарная прибавка даёт 4 000 000, а <code>counter++</code> со словом <code>volatile</code> — каждый раз другое и меньшее число.</p>
+
+        <div class="sources">
+          <b>Откуда взяты факты</b>
+          <ol>
+            <li>Кадры и выводы: macOS 26.1, Apple clang 17, Python 3.9 из Command Line Tools; Linux — контейнер Debian 13, gcc 14.4, Python 3.13; Windows 11 ARM64 в VirtualBox, MSVC 19.44 (программы собраны для ARM64), Python 3.14 для ARM64.</li>
+            <li><code>CreateToolhelp32Snapshot</code>, <code>PROCESSENTRY32W.cntThreads</code>, <code>CreateThread</code>, <code>WaitForMultipleObjects</code>, <code>InterlockedIncrement64</code> — <a href="https://learn.microsoft.com/windows/win32/api/tlhelp32/ns-tlhelp32-processentry32w">Microsoft Learn, PROCESSENTRY32W</a> и соседние страницы.</li>
+            <li><code>proc_taskinfo.pti_threadnum</code> — заголовок <code>sys/proc_info.h</code> SDK macOS; <code>pthread_create</code>, <code>pthread_join</code> — <a href="https://man7.org/linux/man-pages/man3/pthread_create.3.html">man 3 pthread_create</a>.</li>
+            <li>Поле 20 <code>num_threads</code> — <a href="https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html">man 5 proc_pid_stat</a>; <code>__atomic_fetch_add</code> — <a href="https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html">GCC, __atomic Builtins</a>.</li>
+          </ol>
+        </div>
+
+        <div class="pager">
+          <a href="../19-laboratornaya-7/index.html">← ЛР 7 Потоки Python и GIL</a>
+          <a href="../../index.html">Оглавление</a>
+        </div>
+
+        <div class="colophon">
+          <span>Глава 2.4 · Потоки · Справочник по системному программированию</span>
+          <span class="author-line">Автор: Макаров Максим Николаевич</span>
+        </div>
+
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+</body>
+</html>
