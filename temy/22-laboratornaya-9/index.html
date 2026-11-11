@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F0EEE8">
+  <title>Лабораторная работа 9. Разбор падения · Справочник по системному программированию</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,600;0,7..72,700;1,7..72,400&family=Pixelify+Sans:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="book">
+    <div class="book__body">
+      <div class="spine"><span>Модуль 2 · Лабораторная работа 9</span></div>
+
+      <main class="leaf">
+        <div class="running">
+          <p class="eyebrow"><a href="../../index.html" style="text-decoration:none;color:inherit">Справочник по системному программированию</a> · модуль 2 · лабораторная работа</p>
+          <p class="running__folio">ЛР 9</p>
+        </div>
+
+        <header class="chapter-head">
+          <span class="chapter-num">ЛР 9</span>
+          <h1>Разбор<br>падения</h1>
+          <p class="lead">Программа на C с тремя ошибками памяти: одна убивает процесс, две другие проходят молча и портят данные. В работе видно, как система сообщает о падении и где его записывает, почему Python падает вместе с кодом на C, который вызывает, и как AddressSanitizer превращает молчаливую ошибку в отчёт с номером строки.</p>
+        </header>
+
+        <dl class="passport">
+          <div><dt>Пара</dt><dd>9</dd></div>
+          <div><dt>Время</dt><dd>35–40 минут</dd></div>
+          <div><dt>Программы</dt><dd><span data-os="win">MSVC (<code>cl</code>), PowerShell</span><span data-os="mac">clang, Терминал</span><span data-os="linux">gcc, терминал</span>, Python, AddressSanitizer</dd></div>
+          <div><dt>Сдать</dt><dd><code>report.md</code> и 4 снимка в <code>screenshots/</code> в папке <code>labs/09-crash</code> репозитория <code>sysprog-start</code></dd></div>
+        </dl>
+
+        <nav class="contents">
+          <b>В этой работе</b>
+          <ol>
+            <li><a href="#s1">Подготовка</a></li>
+            <li><a href="#s2">Три ошибки памяти</a></li>
+            <li><a href="#s3">Ход работы</a></li>
+            <li><a href="#s4">Что получилось</a></li>
+            <li><a href="#s5">Отчёт</a></li>
+            <li><a href="#s6">Проверьте себя</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="s1"><span class="sec">§1</span>Подготовка</h2>
+
+        <p>Нужны компилятор C из модуля 1 и Python. <span data-os="win">AddressSanitizer входит в MSVC и включается ключом <code>/fsanitize=address</code> на компьютерах с x64. На компьютере с ARM этот ключ компилятор пропускает, и проверку в шагах 4–5 заменяет вывод с x64 в конце хода работы.</span><span data-os="mac">AddressSanitizer входит в clang из Command Line Tools.</span><span data-os="linux">AddressSanitizer входит в gcc; если сборка с <code>-fsanitize=address</code> пишет, что нет <code>libasan</code>, поставьте её: <code>sudo apt install libasan8</code>.</span> В шаблоне в папке <code>labs/09-crash</code> лежат бланк, папка <code>screenshots/</code> и две программы. Главная — <code>crash.c</code>:</p>
+        <figure class="code"><figcaption><span>labs/09-crash/crash.c</span></figcaption>
+<pre><span class="k">#include</span> <span class="s">&lt;stdio.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;stdlib.h&gt;</span>
+<span class="k">#include</span> <span class="s">&lt;string.h&gt;</span>
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">null_write</span>(<span class="k">void</span>) {
+    <span class="k">int</span> *p = NULL;
+    <span class="f">printf</span>(<span class="s">&quot;writing to address %p\n&quot;</span>, (<span class="k">void</span> *)p);
+    *p = <span class="n">42</span>;
+    <span class="f">printf</span>(<span class="s">&quot;not reached\n&quot;</span>);
+}
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">overflow</span>(<span class="k">void</span>) {
+    <span class="k">struct</span> { <span class="k">int</span> data[<span class="n">4</span>]; <span class="k">int</span> limit; } s = {{<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>}, <span class="n">100</span>};
+    <span class="f">printf</span>(<span class="s">&quot;limit before: %d\n&quot;</span>, s.limit);
+    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt;= <span class="n">4</span>; i++)
+        s.data[i] = <span class="n">7</span>;
+    <span class="f">printf</span>(<span class="s">&quot;limit after:  %d\n&quot;</span>, s.limit);
+}
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">heap_overflow</span>(<span class="k">void</span>) {
+    <span class="k">int</span> *data = <span class="f">malloc</span>(<span class="n">4</span> * <span class="k">sizeof</span>(<span class="k">int</span>));
+    <span class="k">int</span> i;
+    <span class="k">for</span> (i = <span class="n">0</span>; i &lt;= <span class="n">4</span>; i++)
+        data[i] = <span class="n">7</span>;
+    <span class="f">printf</span>(<span class="s">&quot;wrote %d numbers into room for 4\n&quot;</span>, i);
+    <span class="f">free</span>(data);
+}
+
+<span class="k">static</span> <span class="k">void</span> <span class="f">use_after_free</span>(<span class="k">void</span>) {
+    <span class="k">char</span> *name = <span class="f">malloc</span>(<span class="n">16</span>);
+    <span class="f">strcpy</span>(name, <span class="s">&quot;agent&quot;</span>);
+    <span class="f">free</span>(name);
+    <span class="f">printf</span>(<span class="s">&quot;name after free: %s\n&quot;</span>, name);
+}
+
+<span class="k">int</span> <span class="f">main</span>(<span class="k">int</span> argc, <span class="k">char</span> *argv[]) {
+    <span class="k">const</span> <span class="k">char</span> *mode = argc &gt; <span class="n">1</span> ? argv[<span class="n">1</span>] : <span class="s">&quot;&quot;</span>;
+    <span class="k">if</span> (<span class="f">strcmp</span>(mode, <span class="s">&quot;null&quot;</span>) == <span class="n">0</span>)
+        <span class="f">null_write</span>();
+    else <span class="k">if</span> (<span class="f">strcmp</span>(mode, <span class="s">&quot;overflow&quot;</span>) == <span class="n">0</span>)
+        <span class="f">overflow</span>();
+    else <span class="k">if</span> (<span class="f">strcmp</span>(mode, <span class="s">&quot;heap&quot;</span>) == <span class="n">0</span>)
+        <span class="f">heap_overflow</span>();
+    else <span class="k">if</span> (<span class="f">strcmp</span>(mode, <span class="s">&quot;uaf&quot;</span>) == <span class="n">0</span>)
+        <span class="f">use_after_free</span>();
+    else {
+        <span class="f">printf</span>(<span class="s">&quot;usage: crash null|overflow|heap|uaf\n&quot;</span>);
+        <span class="k">return</span> <span class="n">1</span>;
+    }
+    <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+        </figure>
+        <p>Четыре функции, по одной на ошибку, выбираются словом в командной строке. <code>null_write</code> пишет по пустому указателю. <code>overflow</code> пишет пять чисел в массив <code>data</code> на четыре, а за массивом в той же структуре лежит <code>limit</code>. <code>heap_overflow</code> делает то же с памятью из <code>malloc</code>. <code>use_after_free</code> освобождает строку и печатает её. Вторая программа, <code>ctypes_crash.py</code>, пишет по адресу 0 из Python через <code>ctypes</code>:</p>
+        <figure class="code"><figcaption><span>labs/09-crash/ctypes_crash.py</span></figcaption>
+<pre><span class="k">import</span> ctypes
+<span class="k">import</span> faulthandler
+
+
+<span class="k">def</span> <span class="f">save</span>(address):
+    ctypes.<span class="f">memset</span>(address, <span class="n">0</span>, <span class="n">8</span>)
+
+
+faulthandler.<span class="f">enable</span>()
+<span class="f">print</span>(<span class="s">&quot;writing 8 bytes to address 0&quot;</span>, flush=<span class="k">True</span>)
+<span class="f">save</span>(<span class="n">0</span>)
+<span class="f">print</span>(<span class="s">&quot;not reached&quot;</span>)</pre>
+        </figure>
+        <p><code>faulthandler.enable()</code> велит Python при падении напечатать, на какой строке Python он был.</p>
+
+        <div class="margin-note">
+          <b>Как читать шаг</b>
+          <p>Вверху шага — действие. Ниже — кадр экрана после действия; красные рамки отмечают места, о которых идёт речь. Слева под кадром — что на нём видно, справа — что изменилось. Строка «В отчёт» — что записать в <code>report.md</code>. Адреса в отчётах у вас будут другими, а номера строк — те же.</p>
+        </div>
+
+        <h2 id="s2"><span class="sec">§2</span>Три ошибки памяти</h2>
+
+        <p>Процесс может работать только с той памятью, которую ему выдала система. Попытка обратиться к памяти, которой у процесса нет, — например, по адресу 0, — <span class="term">падение</span>: процессор останавливает команду, и система завершает процесс. Но большинство ошибок памяти падения не вызывают: запись за границу массива попадает в соседнюю переменную того же процесса, и это разрешено.</p>
+        <figure class="scheme">
+          <p class="scheme__head">Как пятая запись портит соседнюю переменную</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th></th><th>data[0]</th><th>data[1]</th><th>data[2]</th><th>data[3]</th><th>limit</th></tr></thead><tbody><tr><td>до цикла</td><td>0</td><td>0</td><td>0</td><td>0</td><td>100</td></tr><tr><td>после i ≤ 4</td><td>7</td><td>7</td><td>7</td><td>7</td><td class="is-bad">7</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note">Поля структуры лежат подряд, по 4 байта. Места у массива на 4 числа; запись <code>data[4]</code> попадает в следующие 4 байта — в <code>limit</code>.</p>
+        </figure>
+        <p>Слева — четыре ячейки массива, справа — <code>limit</code>. После цикла с условием <code>i &lt;= 4</code> пятая семёрка лежит там, где было 100. Такие ошибки ловит <span class="term">AddressSanitizer</span> — проверка, которую компилятор встраивает в программу по ключу <code>-fsanitize=address</code>: перед каждым обращением к памяти программа проверяет, своё ли это место. Что видно с проверкой и без неё:</p>
+        <figure class="scheme">
+          <p class="scheme__head">Три ошибки памяти: что видно без проверки и с AddressSanitizer</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th>Ошибка</th><th>Без проверки</th><th>С AddressSanitizer</th></tr></thead><tbody><tr><td>запись по адресу 0</td><td class="is-bad">процесс убит системой</td><td>то же</td></tr><tr><td>запись за границу</td><td class="is-bad">работает, данные испорчены</td><td class="is-ok">отчёт и остановка</td></tr><tr><td>чтение после free</td><td class="is-bad">работает, печатает мусор</td><td class="is-ok">отчёт и остановка</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note">Розовое — ошибка без сообщения об ошибке или смерть процесса. AddressSanitizer — проверка памяти, которую компилятор встраивает в программу.</p>
+        </figure>
+        <p>Первая строка — шаги 1–2, вторая — шаги 3–4, третья — шаг 5. Шаг 6 показывает, как проверка подтверждает исправление.</p>
+        <details class="simple">
+          <summary>Что происходит при записи по адресу 0</summary>
+          <p>Память процесса — длинный коридор с дверями-страницами. Самая первая дверь, с номером 0, заколочена специально: туда ходят только по ошибке, когда указатель забыли заполнить. Процесс пытается войти — процессор поднимает тревогу, система приходит и выводит процесс из здания.</p>
+          <p>Код 139 — это «выведен за попытку войти в чужую дверь»: 128 значит «убит сигналом», 11 — номер сигнала SIGSEGV. В Windows то же называется кодом 0xC0000005.</p>
+<div class="vsteps"><div class="vcard is-c"><h5>программа</h5><b><code>*p = 42</code></b><small>p = NULL, адрес 0</small></div><div class="varr"></div><div class="vcard is-sys"><h5>процессор</h5><b>страницы 0 нет</b><small>тревога</small></div><div class="varr"></div><div class="vcard is-sys"><h5>система</h5><b>убивает процесс</b><small>код 139 / 0xC0000005</small></div></div>
+          <p class="simple__map"><b>Что есть что.</b> Заколоченная дверь — нулевая страница, которую система не отдаёт ни одному процессу. Тревога — исключение процессора, вывод из здания — сигнал SIGSEGV.</p>
+        </details>
+
+        <h2 id="s3"><span class="sec">§3</span>Ход работы</h2>
+
+        <ol class="lab">
+        <li>
+<div class="lab__do" data-os="win"><b>Уроните программу</b><span>В папке <code>labs/09-crash</code> соберите программу: <code>cl /nologo /Zi /W4 crash.c</code>. Выполните <code>crash.exe null</code>: функция <code>null_write</code> записывает число по пустому указателю. Затем <code>echo %errorlevel%</code> — код завершения.</span></div><div class="lab__do" data-os="mac"><b>Уроните программу</b><span>В папке <code>labs/09-crash</code> соберите программу: <code>clang -g -O0 -Wall -Wextra -o crash crash.c</code>. Выполните <code>./crash null</code>: функция <code>null_write</code> записывает число по пустому указателю. Затем <code>echo $?</code> — код завершения.</span></div><div class="lab__do" data-os="linux"><b>Уроните программу</b><span>В папке <code>labs/09-crash</code> соберите программу: <code>gcc -g -O0 -Wall -Wextra -o crash crash.c</code>. Выполните <code>./crash null</code>: функция <code>null_write</code> записывает число по пустому указателю. Затем <code>echo $?</code> — код завершения.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/01-null.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/01-null.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/01-null.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p><span class="mk">1</span> — программа напечатала адрес <code>0000000000000000</code>, строки <code>not reached</code> нет; код завершения −1073741819.</p></div><div><b>Что изменилось</b><p>Сообщения о падении командная строка не печатает, оно видно только по коду. −1073741819 — это 0xC0000005, «нарушение доступа»: процесс обратился к памяти, которой у него нет.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>writing to address 0x0</code>, затем <code>zsh: segmentation fault ./crash null</code> и код 139.</p></div><div><b>Что изменилось</b><p>Система убила процесс сигналом SIGSEGV, номер 11. Оболочка сообщила об этом и записала код 128 + 11 = 139.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p>Выше — предупреждение gcc: <code>pointer 'name' used after 'free'</code> в строке 33 — оно пригодится в шаге 5. <span class="mk">1</span> — <code>writing to address (nil)</code>, <code>Segmentation fault</code>, код 139.</p></div><div><b>Что изменилось</b><p>Система убила процесс сигналом SIGSEGV, номер 11, а оболочка записала код 128 + 11 = 139.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> что напечатала программа и код завершения.</p>
+<p class="lab-snap"><b>Снимок в отчёт · 01</b> Сохраните окно как <code>screenshots/01_crash.png</code>. На снимке должно быть видно: запуск crash null и код завершения.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Уроните Python и найдите запись о падении</b><span>Выполните <code>python ctypes_crash.py</code>: программа через <code>ctypes</code> пишет 8 байт по адресу 0. Затем выполните<br><code>powershell -c "Get-WinEvent -FilterHashtable @{LogName='Application';Id=1000} -MaxEvents 1 | Select -Expand Message"</code><br>— последнее событие 1000 «Сбой приложения» из журнала Windows.</span></div><div class="lab__do" data-os="mac"><b>Уроните Python и найдите запись о падении</b><span>Выполните <code>python3 ctypes_crash.py 2&gt;&amp;1 | head -6</code>: программа через <code>ctypes</code> пишет 8 байт по адресу 0, <code>head -6</code> оставляет начало сообщения. Затем выполните<br><code>grep -o '"exception"[^}]*}' $(ls -t ~/Library/Logs/DiagnosticReports/crash-* | head -1)</code><br>— причина из последнего отчёта о падении программы <code>crash</code>.</span></div><div class="lab__do" data-os="linux"><b>Уроните Python</b><span>Выполните <code>python3 ctypes_crash.py 2&gt;&amp;1 | head -6</code>: программа через <code>ctypes</code> пишет 8 байт по адресу 0, <code>head -6</code> оставляет начало сообщения.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/02-python.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/02-python.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/02-python.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p><span class="mk">1</span> — стек Python от <code>faulthandler</code>: строка 6 в <code>save</code>, строка 11. <span class="mk">2</span> — <code>OSError: exception: access violation writing 0x0000000000000000</code>. <span class="mk">3</span> — событие журнала: сбойное приложение <code>crash.exe</code>, код исключения <code>0xc0000005</code>.</p></div><div><b>Что изменилось</b><p>В Windows Python пережил ошибку: <code>ctypes</code> перехватил нарушение доступа и превратил его в исключение <code>OSError</code>, которое можно поймать в <code>try</code>. А падение <code>crash.exe</code> из шага 1 Windows записала в журнал «Приложение» с тем же кодом 0xC0000005.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>Fatal Python error: Segmentation fault</code> и стек Python: строка 6 в <code>save</code>, строка 11. <span class="mk">2</span> — из отчёта: <code>"type":"EXC_BAD_ACCESS","signal":"SIGSEGV","subtype":"KERN_INVALID_ADDRESS at 0x0000000000000000"</code>.</p></div><div><b>Что изменилось</b><p>Python упал так же, как программа на C, но <code>faulthandler</code> успел напечатать, в какой строке Python это случилось. macOS после каждого падения пишет отчёт: причина — неверный адрес 0.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>Fatal Python error: Segmentation fault</code> и стек Python: строка 6 в <code>save</code>, строка 11 в <code>&lt;module&gt;</code>.</p></div><div><b>Что изменилось</b><p>Python упал так же, как программа на C: ошибка внутри <code>ctypes</code> убивает весь процесс. <code>faulthandler.enable()</code> успел напечатать, на какой строке Python это случилось, — без него было бы только <code>Segmentation fault</code>.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> что напечатал Python и где система записала падение.</p>
+<p class="lab-snap"><b>Снимок в отчёт · 02</b> Сохраните окно как <code>screenshots/02_python_crash.png</code>. На снимке должно быть видно: вывод ctypes_crash.py и запись системы о падении.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Запишите за границу массива</b><span>Выполните <code>crash.exe overflow</code> и снова посмотрите код завершения. Функция <code>overflow</code> пишет пять чисел в массив на четыре.</span></div><div class="lab__do" data-os="mac linux"><b>Запишите за границу массива</b><span>Выполните <code>./crash overflow</code> и снова посмотрите код завершения. Функция <code>overflow</code> пишет пять чисел в массив на четыре.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/03-overflow.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/03-overflow.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/03-overflow.png" alt="" loading="lazy"></figure>
+<div class="lab__notes"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>limit before: 100</code>, <code>limit after: 7</code>. <span class="mk">2</span> — код завершения 0.</p></div><div><b>Что изменилось</b><p>Программа не упала и сообщила об успехе. При этом переменная <code>limit</code>, которую никто не трогал, стала 7. Это хуже падения: ошибка тихо испортила данные.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> значение limit до и после и код завершения.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Включите AddressSanitizer</b><span>Выполните <code>crash.exe heap</code>: функция <code>heap_overflow</code> пишет пять чисел в память, выделенную <code>malloc</code> на четыре. Затем соберите программу с проверкой: <code>cl /nologo /Zi /fsanitize=address crash.c /Fe:crash_asan.exe</code> и выполните <code>crash_asan.exe heap</code>. Ключ <code>/fsanitize=address</code> работает на компьютерах с x64; на ARM компилятор Microsoft его пропускает с предупреждением D9002 — тогда смотрите вывод ниже, после хода работы.</span></div><div class="lab__do" data-os="mac"><b>Включите AddressSanitizer</b><span>Выполните <code>./crash heap</code>: функция <code>heap_overflow</code> пишет пять чисел в память, выделенную <code>malloc</code> на четыре. Затем соберите программу с проверкой: <code>clang -g -O0 -fsanitize=address -o crash_asan crash.c</code> и выполните <code>./crash_asan heap 2&gt;&amp;1 | head -8</code>.</span></div><div class="lab__do" data-os="linux"><b>Включите AddressSanitizer</b><span>Выполните <code>./crash heap</code>: функция <code>heap_overflow</code> пишет пять чисел в память, выделенную <code>malloc</code> на четыре. Затем соберите программу с проверкой: <code>gcc -g -O0 -fsanitize=address -o crash_asan crash.c</code> и выполните <code>./crash_asan heap 2&gt;&amp;1 | head -8</code>.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/04-heap.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/04-heap.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/04-heap.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Кадр — компьютер с ARM, проверки нет. <span class="mk">1</span> — <code>wrote 5 numbers into room for 4</code>: программа не заметила ошибки. На x64 <code>crash_asan.exe heap</code> печатает <code>ERROR: AddressSanitizer: heap-buffer-overflow</code>, <code>WRITE of size 4</code> и строку <code>crash.c:24</code> — вывод ниже, после хода работы.</p></div><div><b>Что изменилось</b><p>Без проверки запись за границу кучи проходит молча, как в шаге 3. AddressSanitizer останавливает программу на первой же лишней записи и называет строку.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p><span class="mk">1</span> — без проверки: <code>wrote 5 numbers into room for 4</code>. <span class="mk">2</span> — с проверкой: <code>ERROR: AddressSanitizer: heap-buffer-overflow</code>, <code>WRITE of size 4</code>, <code>in heap_overflow crash.c:24</code>.</p></div><div><b>Что изменилось</b><p>Без проверки ошибка прошла молча. С проверкой программа остановилась на лишней записи: 4 байта, строка 24 — <code>data[i] = 7</code> при <code>i = 4</code>. Ниже в полном выводе: адрес находится «0 bytes after 16-byte region» — сразу за 16 байтами, которые выдал <code>malloc</code>.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — без проверки: <code>wrote 5 numbers into room for 4</code>. <span class="mk">2</span> — с проверкой: <code>ERROR: AddressSanitizer: heap-buffer-overflow</code>, <code>WRITE of size 4</code>, <code>in heap_overflow …/crash.c:24</code>.</p></div><div><b>Что изменилось</b><p>Без проверки ошибка прошла молча. С проверкой программа остановилась на лишней записи: 4 байта, строка 24 — <code>data[i] = 7</code> при <code>i = 4</code>.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> что напечатала программа без проверки и с AddressSanitizer, какую строку он назвал.</p>
+<p class="lab-snap"><b>Снимок в отчёт · 03</b> Сохраните окно как <code>screenshots/03_asan.png</code>. На снимке должно быть видно: вывод crash heap без проверки и с AddressSanitizer (на Windows с ARM — без проверки).</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Найдите чтение освобождённой памяти</b><span>Выполните <code>crash.exe uaf</code>: функция <code>use_after_free</code> освобождает строку и потом печатает её. На x64 выполните также <code>crash_asan.exe uaf</code>.</span></div><div class="lab__do" data-os="mac linux"><b>Найдите чтение освобождённой памяти</b><span>Выполните<br><code>./crash_asan uaf 2&gt;&amp;1 | grep -E "ERROR|in use_after_free|freed by|in main" | head -6</code><br>Функция <code>use_after_free</code> освобождает строку и потом печатает её; <code>grep</code> оставляет главные строки отчёта.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/04-heap.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/05-uaf.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/05-uaf.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p>Тот же кадр. <span class="mk">2</span> — без проверки: <code>name after free: name after free: name af</code> — вместо <code>agent</code> напечатан мусор. На x64 AddressSanitizer печатает <code>heap-use-after-free</code>, обращение в <code>crash.c:33</code> и освобождение в <code>crash.c:32</code>.</p></div><div><b>Что изменилось</b><p>Освобождённую память куча уже отдала под другие данные — под текст самого <code>printf</code>. Программа не упала и напечатала чужое.</p></div></div><div class="lab__notes" data-os="mac"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>ERROR: AddressSanitizer: heap-use-after-free</code>. <span class="mk">2</span> — <code>freed by thread T0 here</code>: память освобождена в <code>use_after_free crash.c:32</code>; выше — обращение в <code>crash.c:33</code>.</p></div><div><b>Что изменилось</b><p>Отчёт называет обе строки: где память освободили (32, <code>free(name)</code>) и где к ней обратились (33, <code>printf</code>). По ним ошибка находится без отладчика.</p></div></div><div class="lab__notes" data-os="linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — <code>ERROR: AddressSanitizer: heap-use-after-free</code>; ниже — обращение в <code>crash.c:33</code>. <span class="mk">2</span> — освобождено в <code>use_after_free …/crash.c:32</code>.</p></div><div><b>Что изменилось</b><p>Отчёт называет обе строки: где память освободили (32) и где к ней обратились (33). Ту же ошибку gcc заметил ещё при сборке в шаге 1 — предупреждение <code>-Wuse-after-free</code>. Компилятор видит такие ошибки не всегда, проверка при запуске — надёжнее.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> какой вид ошибки назвал AddressSanitizer и какие две строки.</p>
+</li>
+        <li>
+<div class="lab__do" data-os="win"><b>Исправьте и проверьте</b><span>Выполните <code>powershell -c "(gc crash.c) -replace 'i &lt;= 4','i &lt; 4' | sc crash_fixed.c"</code>: в копии оба цикла идут до <code>i &lt; 4</code>. Затем <code>fc crash.c crash_fixed.c</code>, соберите <code>cl /nologo /Zi /W4 crash_fixed.c</code> и выполните <code>crash_fixed.exe heap</code> и <code>crash_fixed.exe overflow</code>.</span></div><div class="lab__do" data-os="mac"><b>Исправьте и проверьте</b><span>Выполните <code>sed 's/i &lt;= 4/i &lt; 4/g' crash.c &gt; crash_fixed.c</code>: в копии оба цикла идут до <code>i &lt; 4</code>. Затем <code>diff crash.c crash_fixed.c</code>, соберите копию с проверкой: <code>clang -g -O0 -fsanitize=address -o crash_fixed crash_fixed.c</code> и выполните <code>./crash_fixed heap</code> и <code>./crash_fixed overflow</code>.</span></div><div class="lab__do" data-os="linux"><b>Исправьте и проверьте</b><span>Выполните <code>sed 's/i &lt;= 4/i &lt; 4/g' crash.c &gt; crash_fixed.c</code>: в копии оба цикла идут до <code>i &lt; 4</code>. Затем <code>diff crash.c crash_fixed.c</code>, соберите копию с проверкой: <code>gcc -g -O0 -fsanitize=address -o crash_fixed crash_fixed.c</code> и выполните <code>./crash_fixed heap</code> и <code>./crash_fixed overflow</code>.</span></div>
+<figure class="lab__shot shot" data-os="win"><img src="img/win/06-fixed.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="mac"><img src="img/mac/06-fixed.png" alt="" loading="lazy"></figure>
+<figure class="lab__shot shot" data-os="linux"><img src="img/linux/06-fixed.png" alt="" loading="lazy"></figure>
+<div class="lab__notes" data-os="win"><div><b>Что на кадре</b><p><span class="mk">1</span> — разница файлов: <code>i &lt;= 4</code> заменено на <code>i &lt; 4</code>. <span class="mk">2</span> — <code>wrote 4 numbers into room for 4</code>. <span class="mk">3</span> — <code>limit before: 100</code>, <code>limit after: 100</code>.</p></div><div><b>Что изменилось</b><p>Исправленная программа пишет четыре числа и не трогает <code>limit</code>. На x64 соберите её ещё и с <code>/fsanitize=address</code>: проверка должна промолчать. Так проверяют любое исправление: тот же запуск с проверкой, и отчёта нет.</p></div></div><div class="lab__notes" data-os="mac linux"><div><b>Что на кадре</b><p><span class="mk">1</span> — разница файлов: <code>i &lt;= 4</code> заменено на <code>i &lt; 4</code>. <span class="mk">2</span> — <code>wrote 4 numbers into room for 4</code>. <span class="mk">3</span> — <code>limit before: 100</code>, <code>limit after: 100</code>.</p></div><div><b>Что изменилось</b><p>Исправленная программа пишет четыре числа и не трогает <code>limit</code>. Собрана с AddressSanitizer — и он молчит: лишних записей больше нет. Так проверяют любое исправление: тот же запуск с проверкой, и отчёта нет.</p></div></div>
+<p class="lab-q"><b>В отчёт.</b> что изменилось в коде и что напечатала исправленная программа.</p>
+<p class="lab-snap"><b>Снимок в отчёт · 04</b> Сохраните окно как <code>screenshots/04_fixed.png</code>. На снимке должно быть видно: разница файлов и вывод исправленной программы.</p>
+</li>
+        </ol>
+        <figure class="code" data-os="win"><figcaption><span>вывод crash_asan.exe heap и uaf · Windows x64, GitHub Actions</span><span>строки отчётов, остальное опущено</span></figcaption>
+<pre>=== heap
+==9016==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x129ab5fa01a0 at pc 0x7ff6c7081590 bp 0x00bdc9aff870 sp 0x00bdc9aff878
+WRITE of size 4 at 0x129ab5fa01a0 thread T0
+    #0 0x7ff6c708158f in heap_overflow crash.c:24
+=== uaf
+    #1 0x7ff6c7081519 in heap_overflow crash.c:21
+SUMMARY: AddressSanitizer: heap-buffer-overflow crash.c:24 in heap_overflow
+==9016==ABORTING
+==904==ERROR: AddressSanitizer: heap-use-after-free on address 0x1244cc9a0190 at pc 0x7ffe5b47e546 bp 0x0074554ff6f0 sp 0x0074554fee90
+READ of size 2 at 0x1244cc9a0190 thread T0
+    #12 0x7ff6c708160e in use_after_free crash.c:33
+freed by thread T0 here:
+    #1 0x7ff6c70815fd in use_after_free crash.c:32
+    #1 0x7ff6c70815dd in use_after_free crash.c:30
+SUMMARY: AddressSanitizer: heap-use-after-free minkernel\crts\ucrt\inc\corecrt_internal_stdio_output.h:2353 in __crt_stdio_output::output_processor&lt;ch
+==904==ABORTING</pre>
+        </figure>
+        <details class="simple">
+          <summary>Почему запись за границу не падает</summary>
+          <p>Комод с четырьмя ящиками для носков, а под ним — ящик с деньгами. Пятую пару носков засунули «в пятый ящик» — а пятого нет, следующий — ящик с деньгами. Носки легли поверх денег, и никто не закричал: ящик-то существует, дверь открыта.</p>
+          <p>Система ловит только попытку войти в чужую дверь. Соседняя переменная — своя память процесса, и запись туда разрешена. Поэтому программа работает дальше с испорченным <code>limit</code> = 7 — и узнают об этом, когда что-то сломается гораздо позже.</p>
+
+          <p class="simple__map"><b>Что есть что.</b> Ящики для носков — <code>data[0..3]</code>, ящик с деньгами — <code>limit</code>, пятая пара — <code>data[4] = 7</code>.</p>
+        </details>
+        <details class="simple">
+          <summary>Как AddressSanitizer находит ошибку</summary>
+          <p>AddressSanitizer обтягивает каждый выданный кусок памяти красной лентой — по краям оставляет запретные байты. Перед каждой записью и чтением программа сверяется с картой лент. Наступил на ленту — программа останавливается и печатает, какой байт тронут, в какой строке и где этот кусок был выдан.</p>
+          <p>Освобождённую память он какое-то время держит под лентой «освобождено» и никому не выдаёт. Кто полез туда после <code>free</code> — попался тоже, и в отчёте видно и строку обращения, и строку <code>free</code>.</p>
+<div class="vsteps"><div class="vcard is-c"><h5>malloc(16)</h5><b>16 байт и ленты по краям</b></div><div class="varr">запись data[4]</div><div class="vcard is-sys"><h5>проверка</h5><b>байт под лентой</b></div><div class="varr"></div><div class="vcard is-py"><h5>отчёт</h5><b>heap-buffer-overflow</b><small>crash.c:24</small></div></div>
+          <p class="simple__map"><b>Что есть что.</b> Лента — «красная зона» (redzone), карта лент — теневая память ASan, отчёт — строки <code>ERROR: AddressSanitizer</code>.</p>
+        </details>
+
+        <h2 id="s4"><span class="sec">§4</span>Что получилось</h2>
+
+        <figure class="scheme">
+          <p class="scheme__head">Как система сообщает о падении</p>
+          <div class="scheme__body">
+<table class="vtab"><thead><tr><th></th><th>Windows</th><th>macOS</th><th>Linux</th></tr></thead><tbody><tr><td>код завершения</td><td>−1073741819 = 0xC0000005, «нарушение доступа»</td><td>139 = 128 + 11, сигнал SIGSEGV</td><td>139 = 128 + 11, сигнал SIGSEGV</td></tr><tr><td>сообщение</td><td>нет</td><td><code>zsh: segmentation fault</code></td><td><code>Segmentation fault</code></td></tr><tr><td>запись о падении</td><td>журнал «Приложение», событие 1000</td><td>отчёт <code>~/Library/Logs/DiagnosticReports/*.ips</code></td><td>—</td></tr></tbody></table>
+          </div>
+          <p class="scheme__note">SIGSEGV — сигнал «нарушение сегментации»: процесс обратился к памяти, которой у него нет. 0xC0000005 — то же в Windows.</p>
+        </figure>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Шаг</th><th>Windows</th><th>macOS</th><th>Linux</th></tr></thead>
+            <tbody>
+              <tr><td>Запись по адресу 0</td><td>код −1073741819, событие 1000 в журнале</td><td>139, отчёт EXC_BAD_ACCESS</td><td>139, Segmentation fault</td></tr>
+              <tr><td>То же из Python</td><td>исключение OSError, Python жив</td><td colspan="2">Fatal Python error, процесс убит</td></tr>
+              <tr><td>Запись за границу, без проверки</td><td colspan="3">limit 100 → 7, код 0; «wrote 5 numbers into room for 4»</td></tr>
+              <tr><td>С AddressSanitizer</td><td>x64: heap-buffer-overflow, crash.c:24</td><td colspan="2">heap-buffer-overflow, crash.c:24</td></tr>
+              <tr><td>Чтение после free</td><td>без проверки — мусор; x64: heap-use-after-free, 33 и 32</td><td colspan="2">heap-use-after-free, обращение 33, освобождение 32</td></tr>
+              <tr><td>После исправления</td><td colspan="3">wrote 4 numbers, limit 100, отчётов нет</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Из трёх ошибок только одна дала знать о себе сама — падением с кодом 139 или 0xC0000005. Две другие программа пережила, вернула код 0 и испортила данные. AddressSanitizer превращает их в отчёт с видом ошибки и номером строки, поэтому программы на C, особенно те, что вызываются из Python через <code>ctypes</code>, проверяют сборкой с <code>-fsanitize=address</code> — и после исправления запускают тот же опыт ещё раз.</p>
+
+        <h2 id="s5"><span class="sec">§5</span>Отчёт</h2>
+
+        <p>Бланк — в <code>labs/09-crash/report.md</code>. Замените каждый пропуск <code>___</code> данными со своего экрана, снимки положите в <code>screenshots/</code>. Коммит — <code>labs 09: разбор падения, отчёт</code>.</p>
+
+        <pre class="report"># ЛР 9. Разбор падения
+
+Система: <span class="blank">___</span>
+Компилятор: <span class="blank">___</span>
+
+## Падение
+crash null: что напечатано и код завершения: <span class="blank">___</span>
+ctypes_crash.py: что напечатал Python: <span class="blank">___</span>
+Где система записала падение: <span class="blank">___</span>
+
+## Молчаливые ошибки
+crash overflow: limit до и после, код: <span class="blank">___</span>
+crash heap без проверки: <span class="blank">___</span>
+AddressSanitizer для heap: вид ошибки и строка: <span class="blank">___</span>
+AddressSanitizer для uaf: вид ошибки и две строки: <span class="blank">___</span>
+
+## Исправление
+Что изменено и что напечатала исправленная программа: <span class="blank">___</span>
+
+Не получилось: <span class="blank">___</span>
+
+## Снимки экрана
+![1. Падение](screenshots/01_crash.png)
+![2. Падение Python](screenshots/02_python_crash.png)
+![3. Отчёт AddressSanitizer](screenshots/03_asan.png)
+![4. Исправление](screenshots/04_fixed.png)</pre>
+
+        <p>Кроме чисел в отчёт кладутся 4 снимков экрана. В папке <code>labs/09-crash/screenshots</code> уже лежат заглушки с нужными именами, а в <code>report.md</code> — ссылки на них с подписями. Сделайте снимок окна после шага из таблицы и сохраните его поверх заглушки с тем же именем: подпись и ссылку менять не нужно, на GitHub отчёт сразу покажет ваш снимок. В каждом шаге такой снимок отмечен оранжевой строкой «Снимок в отчёт».</p>
+        <p>Как снять окно: <span data-os="win"><kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> → «Окно», затем сохранить из «Ножниц» как PNG</span><span data-os="mac"><kbd>⌘</kbd>+<kbd>⇧</kbd>+<kbd>4</kbd>, затем <kbd>Пробел</kbd> и щелчок по окну — PNG появится на Рабочем столе</span><span data-os="linux"><kbd>PrtSc</kbd> → «Окно», PNG сохраняется в папку «Изображения/Снимки экрана»</span>. Снимок — всё окно программы, без обрезки; имя файла — строго из таблицы.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>№</th><th>После шага</th><th>Файл</th><th>Что должно быть видно</th></tr></thead>
+            <tbody>
+              <tr><td class="num-cell">01</td><td>1</td><td><code>01_crash.png</code></td><td>запуск crash null и код завершения</td></tr>
+              <tr><td class="num-cell">02</td><td>2</td><td><code>02_python_crash.png</code></td><td>вывод ctypes_crash.py и запись системы о падении</td></tr>
+              <tr><td class="num-cell">03</td><td>4</td><td><code>03_asan.png</code></td><td>вывод crash heap без проверки и с AddressSanitizer (на Windows с ARM — без проверки)</td></tr>
+              <tr><td class="num-cell">04</td><td>6</td><td><code>04_fixed.png</code></td><td>разница файлов и вывод исправленной программы</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="s6"><span class="sec">§6</span>Проверьте себя</h2>
+
+        <details>
+          <summary>Почему код завершения после падения — 139?</summary>
+          <p>Процесс убит сигналом SIGSEGV с номером 11, а оболочка записывает такой код как 128 + номер сигнала.</p>
+        </details>
+        <details>
+          <summary>Почему запись за границу массива в шаге 3 не уронила программу?</summary>
+          <p>Пятое число попало в соседнюю переменную <code>limit</code> — это своя память процесса, и система её не охраняет. Падение бывает только при обращении к памяти, которой у процесса нет.</p>
+        </details>
+        <details>
+          <summary>Что сообщает AddressSanitizer в отчёте?</summary>
+          <p>Вид ошибки (heap-buffer-overflow, heap-use-after-free), размер обращения, строку, где оно произошло, и строку, где память выделили или освободили.</p>
+        </details>
+        <details>
+          <summary>Почему ошибка в коде на C роняет программу на Python?</summary>
+          <p>Через <code>ctypes</code> функция на C работает внутри процесса Python. Если она обращается к чужой памяти, система убивает весь процесс. В Windows <code>ctypes</code> перехватывает нарушение доступа и поднимает <code>OSError</code>, но данные к этому моменту могли быть уже испорчены.</p>
+        </details>
+        <details>
+          <summary>Как проверить, что ошибка исправлена?</summary>
+          <p>Собрать исправленную программу с AddressSanitizer и повторить тот же запуск: отчёта нет, и результат правильный.</p>
+        </details>
+
+        <div class="pager">
+          <a href="../21-laboratornaya-8/index.html">← ЛР 8 Карта памяти</a>
+          <a href="../../index.html">Оглавление</a>
+        </div>
+
+        <div class="colophon">
+          <span>Справочник по системному программированию</span>
+          <span class="author-line">© Макаров Максим Николаевич</span>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../../book.js"></script>
+</body>
+</html>

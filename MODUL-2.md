@@ -219,3 +219,20 @@ VM_ALLOCATE 303.0M, resident 2640K, SWAPPED 299.9M — **macOS сразу сжа
 ЛР 8 написана и вычитана 11.11: `tools/lab8.py` → `temy/21-laboratornaya-8` (6 шагов, 3 схемы, 3 блока «По-простому»: гостиница и бронь,
 вакуумный пакет macOS, постоялец с коробками), рамки src_lab8/mark8.py, SNAPS '08-memory-map' (шаги 2, 3, 4, 6), шаблон labs/08-memory-map.
 Оглавление: ЛР 8, строки 2.5/2.6 убраны; пейджер 2.4 → ЛР 8, ЛР 8 → ЛР 9 (`temy/22-laboratornaya-9`). Дальше — ЛР 9 «Разбор падения».
+
+## ЛР 9 «Разбор падения» (в работе, 11.11.2026)
+
+Программы `tools/src_lab9`: crash.c (null — запись в NULL; overflow — 5-я запись в struct {int data[4]; int limit;} портит limit 100 → 7,
+ASan внутри структуры не ловит; heap — 5 чисел в malloc на 4; uaf — printf освобождённой строки), ctypes_crash.py (memset(0,…) из Python;
+string_at(0, 8) на macOS НЕ падает — вернул нули). Опыт: код 139 (macOS, Linux), Windows -1073741819 (0xC0000005); gcc сам пишет
+-Wuse-after-free; ASan: heap-buffer-overflow crash.c:23 / heap-use-after-free crash.c:32 (освобождено в 31). Исправление: sed 's/i <= 4/i < 4/g'.
+macOS отчёт о падении: ~/Library/Logs/DiagnosticReports/crash-*.ips, "type":"EXC_BAD_ACCESS","signal":"SIGSEGV","subtype":"KERN_INVALID_ADDRESS at 0x0".
+**Windows ARM64: MSVC не знает /fsanitize=address (D9002), x64-сборка с ASan под эмуляцией падает 0xC0000005** — вывод ASan для Windows
+взят с windows-latest x64 (sysprog-win-shots, workflow l9.yml, запуск 43003642381; лог — src_lab9/win_asan_log.txt), в ЛР — текстом с пометкой.
+Ubuntu Live: после savestate ВМ не восстанавливается (aborted), apt с ports.ubuntu.com виснет на Translation-en и gcc не ставится —
+шаги C для Linux снимать в VS Code в контейнере sp-lab2-linux (gcc 14, libasan), журнал ядра — в ВМ (dmesg после падения Python).
+ЛР 9 написана и вычитана 11.11: `tools/lab9.py` → `temy/22-laboratornaya-9` (6 шагов, 3 схемы, 3 блока «По-простому»), кадры macOS/Linux —
+VS Code (m9/shoot9.py, mark.py), Windows — ВМ (m9/winmark9.py; шаг 5 Windows — тот же кадр 04-heap, рамка 2), вывод ASan Windows x64 — текстом.
+Находка Windows: ctypes перехватывает нарушение доступа → OSError, Python не умирает; событие 1000 журнала Application (crash.exe, 0xc0000005).
+Linux: записи ядра о падении в работе нет (ВМ не поднялась, в контейнере dmesg закрыт). SNAPS '09-crash' (шаги 1, 2, 4, 6), шаблон labs/09-crash.
+**Модуль 2 по лабораторным закрыт 11.11.**

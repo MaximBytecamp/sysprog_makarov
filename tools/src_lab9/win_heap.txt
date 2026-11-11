@@ -1,0 +1,23 @@
+=== heap
+=================================================================
+==5192==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x122452ca01a0 at pc 0x7ff619d41590 bp 0x004174b4f710 sp 0x004174b4f718
+WRITE of size 4 at 0x122452ca01a0 thread T0
+    #0 0x7ff619d4158f in heap_overflow D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:23
+    #1 0x7ff619d416ff in main D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:42
+    #2 0x7ff619d43cce in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #3 0x7ff619d43cce in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #4 0x7ffb9ee2dd36  (C:\Windows\System32\KERNEL32.DLL+0x18002dd36)
+    #5 0x7ffba095f2bb  (C:\Windows\SYSTEM32\ntdll.dll+0x18003f2bb)
+
+0x122452ca01a0 is located 0 bytes after 16-byte region [0x122452ca0190,0x122452ca01a0)
+allocated by thread T0 here:
+    #0 0x7ffb648c28e2 in malloc D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_malloc_win.cpp:467
+    #1 0x7ff619d41519 in heap_overflow D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:21
+    #2 0x7ff619d416ff in main D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:42
+    #3 0x7ff619d43cce in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #4 0x7ff619d43cce in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #5 0x7ffb9ee2dd36  (C:\Windows\System32\KERNEL32.DLL+0x18002dd36)
+    #6 0x7ffba095f2bb  (C:\Windows\SYSTEM32\ntdll.dll+0x18003f2bb)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:23 in heap_overflow
+Shadow bytes around the buggy address:

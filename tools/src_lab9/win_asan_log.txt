@@ -1,0 +1,359 @@
+﻿2026-11-11T13:21:03.7304993Z Current runner version: '2.338.2'
+##[group]Runner Image Provisioner
+Hosted Compute Agent
+Version: 20261103.629
+Commit: 15dbd9ccb5dbf34fae002b6ed1a2670f52df37bc
+Build Date: 2026-11-03T17:26:59Z
+Worker ID: {191025c8-4157-457b-8986-46dfd5c59a9d}
+Region: eastus2
+Cloud: Azure
+##[endgroup]
+##[group]Operating System
+Microsoft Windows Server 2025
+10.0.26100
+Datacenter
+##[endgroup]
+##[group]Runner Image
+Image: windows-2025-vs2026
+Version: 20261103.298.1
+Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261103.298/images/windows/Windows2025-VS2026-Readme.md
+Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261103.298
+##[endgroup]
+##[group]GITHUB_TOKEN Permissions
+Contents: read
+Metadata: read
+Packages: read
+##[endgroup]
+Secret source: Actions
+Cache mode: write
+Prepare workflow directory
+Prepare all required actions
+Getting action download info
+Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+Download action repository 'ilammy/msvc-dev-cmd@v1' (SHA:0b201ec74fa43914dc39ae48a89fd1d8cb592756)
+Complete job name: win
+﻿2026-11-11T13:21:04.7586382Z ##[group]Run actions/checkout@v4
+with:
+  repository: MaximBytecamp/sysprog-win-shots
+  token: ***
+  ssh-strict: true
+  ssh-user: git
+  persist-credentials: true
+  clean: true
+  sparse-checkout-cone-mode: true
+  fetch-depth: 1
+  fetch-tags: false
+  show-progress: true
+  lfs: false
+  submodules: false
+  set-safe-directory: true
+  allow-unsafe-pr-checkout: false
+##[endgroup]
+Syncing repository: MaximBytecamp/sysprog-win-shots
+##[group]Getting Git version info
+Working directory is 'D:\a\sysprog-win-shots\sysprog-win-shots'
+[command]"C:\Program Files\Git\bin\git.exe" version
+git version 2.56.0.windows.4
+##[endgroup]
+Temporarily overriding HOME='D:\a\_temp\63f57d85-42b5-4852-a420-fc3aef223518' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+[command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\sysprog-win-shots\sysprog-win-shots
+Deleting the contents of 'D:\a\sysprog-win-shots\sysprog-win-shots'
+##[group]Initializing the repository
+[command]"C:\Program Files\Git\bin\git.exe" init D:\a\sysprog-win-shots\sysprog-win-shots
+Initialized empty Git repository in D:/a/sysprog-win-shots/sysprog-win-shots/.git/
+[command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/MaximBytecamp/sysprog-win-shots
+##[endgroup]
+##[group]Disabling automatic garbage collection
+[command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+##[endgroup]
+##[group]Setting up auth
+[command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+[command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+[command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+[command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+[command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+[command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+[command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+##[endgroup]
+##[group]Fetching the repository
+[command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +4999b779adceca8fc310720d4e811321c1ef749a:refs/remotes/origin/main
+From https://github.com/MaximBytecamp/sysprog-win-shots
+ * [new ref]         4999b779adceca8fc310720d4e811321c1ef749a -> origin/main
+##[endgroup]
+##[group]Determining the checkout info
+##[endgroup]
+[command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+[command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+##[group]Checking out the ref
+[command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force -B main refs/remotes/origin/main
+Switched to a new branch 'main'
+branch 'main' set up to track 'origin/main'.
+##[endgroup]
+[command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+4999b779adceca8fc310720d4e811321c1ef749a
+﻿2026-11-11T13:21:10.4157190Z ##[group]Run ilammy/msvc-dev-cmd@v1
+with:
+  arch: x64
+##[endgroup]
+Found with vswhere: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Auxiliary\Build\vcvarsall.bat
+##[group]Environment variables
+Setting CommandPromptType
+Setting DevEnvDir
+Setting ExtensionSdkDir
+Setting EXTERNAL_INCLUDE
+Setting Framework40Version
+Setting FrameworkDir
+Setting FrameworkDir64
+Setting FrameworkVersion
+Setting FrameworkVersion64
+Setting FSHARPINSTALLDIR
+Setting HTMLHelpDir
+Setting INCLUDE
+Setting LIB
+Setting LIBPATH
+Setting llvmArm64
+Setting llvmX64
+Setting NETFXSDKDir
+Setting Path
+Setting Platform
+Setting UCRTVersion
+Setting UniversalCRTSdkDir
+Setting use_x64_llvm
+Setting VCIDEInstallDir
+Setting VCINSTALLDIR
+Setting VCPKG_ROOT
+Setting VCToolsInstallDir
+Setting VCToolsRedistDir
+Setting VCToolsVersion
+Setting VisualStudioVersion
+Setting VS180COMNTOOLS
+Setting VSCMD_ARG_app_plat
+Setting VSCMD_ARG_HOST_ARCH
+Setting VSCMD_ARG_TGT_ARCH
+Setting VSCMD_VER
+Setting VSINSTALLDIR
+Setting VSSDK150INSTALL
+Setting VSSDKINSTALL
+Setting WindowsLibPath
+Setting WindowsSdkBinPath
+Setting WindowsSdkDir
+Setting WindowsSDKLibVersion
+Setting WindowsSdkVerBinPath
+Setting WindowsSDKVersion
+Setting WindowsSDK_ExecutablePath_x64
+Setting WindowsSDK_ExecutablePath_x86
+Setting __DOTNET_ADD_64BIT
+Setting __DOTNET_PREFERRED_BITNESS
+Setting __VSCMD_PREINIT_PATH
+##[endgroup]
+Configured Developer Command Prompt
+﻿2026-11-11T13:21:16.1809560Z ##[group]Run cl /nologo /Zi /fsanitize=address crash.c /Fe:crash_asan.exe
+^[[36;1mcl /nologo /Zi /fsanitize=address crash.c /Fe:crash_asan.exe^[[0m
+^[[36;1mecho === heap^[[0m
+^[[36;1mcrash_asan.exe heap^[[0m
+^[[36;1mecho code %errorlevel%^[[0m
+^[[36;1mecho === uaf^[[0m
+^[[36;1mcrash_asan.exe uaf^[[0m
+^[[36;1mecho code %errorlevel%^[[0m
+^[[36;1mexit /b 0^[[0m
+shell: C:\Windows\system32\cmd.EXE /D /E:ON /V:OFF /S /C "CALL "{0}""
+env:
+  CommandPromptType: Native
+  DevEnvDir: C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\
+  ExtensionSdkDir: C:\Program Files (x86)\Microsoft SDKs\Windows Kits\10\ExtensionSDKs
+  EXTERNAL_INCLUDE: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\ATLMFC\include;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Auxiliary\VS\include;C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\um;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\shared;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\winrt;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\cppwinrt;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8.1\include\um
+  Framework40Version: v4.0
+  FrameworkDir: C:\Windows\Microsoft.NET\Framework64\
+  FrameworkDir64: C:\Windows\Microsoft.NET\Framework64\
+  FrameworkVersion: v4.0.30319
+  FrameworkVersion64: v4.0.30319
+  FSHARPINSTALLDIR: C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools
+  HTMLHelpDir: C:\Program Files (x86)\HTML Help Workshop
+  INCLUDE: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\ATLMFC\include;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Auxiliary\VS\include;C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\um;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\shared;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\winrt;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\cppwinrt;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8.1\include\um
+  LIB: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\ATLMFC\lib\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\lib\x64;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8.1\lib\um\x64;C:\Program Files (x86)\Windows Kits\10\lib\10.0.26100.0\ucrt\x64;C:\Program Files (x86)\Windows Kits\10\\lib\10.0.26100.0\\um\x64
+  LIBPATH: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\ATLMFC\lib\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\lib\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\lib\x86\store\references;C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.26100.0;C:\Program Files (x86)\Windows Kits\10\References\10.0.26100.0;C:\Windows\Microsoft.NET\Framework64\v4.0.30319
+  llvmArm64: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\Llvm\ARM64\bin
+  llvmX64: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\Llvm\x64\bin
+  NETFXSDKDir: C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8.1\
+  Path: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\bin\HostX64\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\VC\VCPackages;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\TestWindow;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer;C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\bin\Roslyn;C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8.1 Tools\x64\;C:\Program Files (x86)\HTML Help Workshop;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Team Tools\DiagnosticsHub\Collector;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\Extensions\Microsoft\CodeCoverage.Console;C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\\x64;C:\Program Files (x86)\Windows Kits\10\bin\\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\\MSBuild\Current\Bin\amd64;C:\Windows\Microsoft.NET\Framework64\v4.0.30319;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\Tools\;C:\Program Files\MongoDB\Server\7.0\bin;C:\vcpkg;C:\tools\zstd;C:\hostedtoolcache\windows\stack\3.11.1\x64;C:\cabal\bin;C:\\ghcup\bin;C:\mingw64\bin;C:\Program Files\dotnet;C:\Program Files\MySQL\MySQL Server 8.4\bin;C:\Program Files\R\R-4.6.2\bin\x64;C:\SeleniumWebDrivers\GeckoDriver;C:\SeleniumWebDrivers\EdgeDriver\;C:\SeleniumWebDrivers\ChromeDriver;C:\Program Files (x86)\sbt\bin;C:\Program Files (x86)\GitHub CLI;C:\Program Files\Git\bin;C:\Program Files (x86)\pipx_bin;C:\npm\prefix;C:\hostedtoolcache\windows\go\1.24.13\x64\bin;C:\hostedtoolcache\windows\Python\3.12.10\x64\Scripts;C:\hostedtoolcache\windows\Python\3.12.10\x64;C:\hostedtoolcache\windows\Ruby\3.3.13\x64\bin;C:\Program Files\OpenSSL\bin;C:\tools\kotlinc\bin;C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\17.0.21-9\x64\bin;C:\Program Files\ImageMagick-7.1.2-Q16-HDRI;C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;C:\ProgramData\kind;C:\ProgramData\Chocolatey\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\WSL\;C:\Program Files\PowerShell\7\;C:\Program Files\Microsoft\Web Platform Installer\;C:\Program Files\Microsoft SQL Server\170\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\dotnet\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\WiX Toolset v3.14\bin;C:\Program Files\Microsoft SQL Server\130\DTS\Binn\;C:\Program Files\Microsoft SQL Server\140\DTS\Binn\;C:\Program Files\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files\Microsoft SQL Server\160\DTS\Binn\;C:\Program Files\Microsoft SQL Server\170\DTS\Binn\;C:\ProgramData\chocolatey\lib\pulumi\tools\Pulumi\bin;C:\Program Files\CMake\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.16\bin;C:\Program Files\Microsoft Service Fabric\bin\Fabric\Fabric.Code;C:\Program Files\Microsoft SDKs\Service Fabric\Tools\ServiceFabricLocalClusterManager;C:\Program Files\LLVM\bin;C:\Program Files (x86)\LLVM\bin;C:\Program Files\nodejs\;C:\Program Files\Git\cmd;C:\Program Files\Git\ucrt64\bin;C:\Program Files\Git\usr\bin;C:\Program Files\GitHub CLI\;c:\tools\php;C:\Program Files\Amazon\AWSCLIV2\;C:\Program Files\Amazon\SessionManagerPlugin\bin\;C:\Program Files\Amazon\AWSSAMCLI\bin\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\mongosh\;C:\Users\runneradmin\.dotnet\tools;C:\Users\runneradmin\.cargo\bin;C:\Users\runneradmin\AppData\Local\Microsoft\WindowsApps;C:\Program Files (x86)\Microsoft Visual Studio\Installer;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\Llvm\x64\bin;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\VC\Linux\bin\ConnectionManagerExe;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\vcpkg
+  Platform: x64
+  UCRTVersion: 10.0.26100.0
+  UniversalCRTSdkDir: C:\Program Files (x86)\Windows Kits\10\
+  use_x64_llvm: true
+  VCIDEInstallDir: C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\VC\
+  VCINSTALLDIR: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\
+  VCPKG_ROOT: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\vcpkg
+  VCToolsInstallDir: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\
+  VCToolsRedistDir: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Redist\MSVC\14.51.36231\
+  VCToolsVersion: 14.51.36231
+  VisualStudioVersion: 18.0
+  VS180COMNTOOLS: C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\Tools\
+  VSCMD_ARG_app_plat: Desktop
+  VSCMD_ARG_HOST_ARCH: x64
+  VSCMD_ARG_TGT_ARCH: x64
+  VSCMD_VER: 18.11.3
+  VSINSTALLDIR: C:\Program Files\Microsoft Visual Studio\18\Enterprise\
+  VSSDK150INSTALL: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VSSDK
+  VSSDKINSTALL: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VSSDK
+  WindowsLibPath: C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.26100.0;C:\Program Files (x86)\Windows Kits\10\References\10.0.26100.0
+  WindowsSdkBinPath: C:\Program Files (x86)\Windows Kits\10\bin\
+  WindowsSdkDir: C:\Program Files (x86)\Windows Kits\10\
+  WindowsSDKLibVersion: 10.0.26100.0\
+  WindowsSdkVerBinPath: C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\
+  WindowsSDKVersion: 10.0.26100.0\
+  WindowsSDK_ExecutablePath_x64: C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8.1 Tools\x64\
+  WindowsSDK_ExecutablePath_x86: C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8.1 Tools\
+  __DOTNET_ADD_64BIT: 1
+  __DOTNET_PREFERRED_BITNESS: 64
+  __VSCMD_PREINIT_PATH: C:\Program Files\MongoDB\Server\7.0\bin;C:\vcpkg;C:\tools\zstd;C:\hostedtoolcache\windows\stack\3.11.1\x64;C:\cabal\bin;C:\\ghcup\bin;C:\mingw64\bin;C:\Program Files\dotnet;C:\Program Files\MySQL\MySQL Server 8.4\bin;C:\Program Files\R\R-4.6.2\bin\x64;C:\SeleniumWebDrivers\GeckoDriver;C:\SeleniumWebDrivers\EdgeDriver\;C:\SeleniumWebDrivers\ChromeDriver;C:\Program Files (x86)\sbt\bin;C:\Program Files (x86)\GitHub CLI;C:\Program Files\Git\bin;C:\Program Files (x86)\pipx_bin;C:\npm\prefix;C:\hostedtoolcache\windows\go\1.24.13\x64\bin;C:\hostedtoolcache\windows\Python\3.12.10\x64\Scripts;C:\hostedtoolcache\windows\Python\3.12.10\x64;C:\hostedtoolcache\windows\Ruby\3.3.13\x64\bin;C:\Program Files\OpenSSL\bin;C:\tools\kotlinc\bin;C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\17.0.21-9\x64\bin;C:\Program Files\ImageMagick-7.1.2-Q16-HDRI;C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;C:\ProgramData\kind;C:\ProgramData\Chocolatey\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\WSL\;C:\Program Files\PowerShell\7\;C:\Program Files\Microsoft\Web Platform Installer\;C:\Program Files\Microsoft SQL Server\170\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\dotnet\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\WiX Toolset v3.14\bin;C:\Program Files\Microsoft SQL Server\130\DTS\Binn\;C:\Program Files\Microsoft SQL Server\140\DTS\Binn\;C:\Program Files\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files\Microsoft SQL Server\160\DTS\Binn\;C:\Program Files\Microsoft SQL Server\170\DTS\Binn\;C:\ProgramData\chocolatey\lib\pulumi\tools\Pulumi\bin;C:\Program Files\CMake\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.16\bin;C:\Program Files\Microsoft Service Fabric\bin\Fabric\Fabric.Code;C:\Program Files\Microsoft SDKs\Service Fabric\Tools\ServiceFabricLocalClusterManager;C:\Program Files\LLVM\bin;C:\Program Files (x86)\LLVM\bin;C:\Program Files\nodejs\;C:\Program Files\Git\cmd;C:\Program Files\Git\ucrt64\bin;C:\Program Files\Git\usr\bin;C:\Program Files\GitHub CLI\;c:\tools\php;C:\Program Files (x86)\sbt\bin;C:\Program Files\Amazon\AWSCLIV2\;C:\Program Files\Amazon\SessionManagerPlugin\bin\;C:\Program Files\Amazon\AWSSAMCLI\bin\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\mongosh\;C:\Users\runneradmin\.dotnet\tools;C:\Users\runneradmin\.cargo\bin;C:\Users\runneradmin\AppData\Local\Microsoft\WindowsApps;C:\Program Files (x86)\Microsoft Visual Studio\Installer
+##[endgroup]
+crash.c
+=== heap
+=================================================================
+==9016==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x129ab5fa01a0 at pc 0x7ff6c7081590 bp 0x00bdc9aff870 sp 0x00bdc9aff878
+WRITE of size 4 at 0x129ab5fa01a0 thread T0
+    #0 0x7ff6c708158f in heap_overflow D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:24
+code 1
+    #1 0x7ff6c708170f in main D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:43
+=== uaf
+    #2 0x7ff6c7083cde in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #3 0x7ff6c7083cde in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #4 0x7ffe9646dd36  (C:\Windows\System32\KERNEL32.DLL+0x18002dd36)
+    #5 0x7ffe96c9f2bb  (C:\Windows\SYSTEM32\ntdll.dll+0x18003f2bb)
+
+0x129ab5fa01a0 is located 0 bytes after 16-byte region [0x129ab5fa0190,0x129ab5fa01a0)
+allocated by thread T0 here:
+    #0 0x7ffe5b4928e2 in malloc D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_malloc_win.cpp:467
+    #1 0x7ff6c7081519 in heap_overflow D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:21
+    #2 0x7ff6c708170f in main D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:43
+    #3 0x7ff6c7083cde in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #4 0x7ff6c7083cde in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #5 0x7ffe9646dd36  (C:\Windows\System32\KERNEL32.DLL+0x18002dd36)
+    #6 0x7ffe96c9f2bb  (C:\Windows\SYSTEM32\ntdll.dll+0x18003f2bb)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:24 in heap_overflow
+Shadow bytes around the buggy address:
+  0x129ab5f9ff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x129ab5f9ff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x129ab5fa0000: fa fa fd fd fa fa 00 fa fa fa 00 00 fa fa 00 07
+  0x129ab5fa0080: fa fa 00 05 fa fa 00 06 fa fa 00 00 fa fa 00 00
+  0x129ab5fa0100: fa fa 00 05 fa fa 00 04 fa fa 00 00 fa fa 00 07
+=>0x129ab5fa0180: fa fa 00 00[fa]fa fd fd fa fa fa fa fa fa fa fa
+  0x129ab5fa0200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x129ab5fa0280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x129ab5fa0300: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x129ab5fa0380: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x129ab5fa0400: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==9016==ABORTING
+=================================================================
+==904==ERROR: AddressSanitizer: heap-use-after-free on address 0x1244cc9a0190 at pc 0x7ffe5b47e546 bp 0x0074554ff6f0 sp 0x0074554fee90
+READ of size 2 at 0x1244cc9a0190 thread T0
+    #0 0x7ffe5b47e545 in strnlen D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\sanitizer_common\sanitizer_common_interceptors.inc:445
+    #1 0x7ff6c70c212d in __crt_stdio_output::output_processor<char,__crt_stdio_output::stream_output_adapter<char>,__crt_stdio_output::standard_base<char,__crt_stdio_output::stream_output_adapter<char> > >::type_case_s_compute_narrow_string_length minkernel\crts\ucrt\inc\corecrt_internal_stdio_output.h:2353
+    #2 0x7ff6c70c212d in __crt_stdio_output::output_processor<char, class __crt_stdio_output::stream_output_adapter<char>, class __crt_stdio_output::standard_base<char, class __crt_stdio_output::stream_output_adapter<char>>>::type_case_s(void) minkernel\crts\ucrt\inc\corecrt_internal_stdio_output.h:2340
+    #3 0x7ff6c70bab9c in __crt_stdio_output::output_processor<char, class __crt_stdio_output::stream_output_adapter<char>, class __crt_stdio_output::standard_base<char, class __crt_stdio_output::stream_output_adapter<char>>>::state_case_type(void) minkernel\crts\ucrt\inc\corecrt_internal_stdio_output.h:2066
+    #4 0x7ff6c70b4b90 in __crt_stdio_output::output_processor<char, class __crt_stdio_output::stream_output_adapter<char>, class __crt_stdio_output::standard_base<char, class __crt_stdio_output::stream_output_adapter<char>>>::process(void) minkernel\crts\ucrt\inc\corecrt_internal_stdio_output.h:1704
+    #5 0x7ff6c70b22bd in <lambda_303760bc4008a2b3ec4768a30b06a80c>::operator() minkernel\crts\ucrt\src\appcrt\stdio\output.cpp:48
+    #6 0x7ff6c70a3915 in __crt_seh_guarded_call<int>::operator()<<lambda_d854c62834386a3b23916ad6dae2782d>,<lambda_303760bc4008a2b3ec4768a30b06a80c> &,<lambda_4780a7ea4f8cbd2590aec34bd14e2bbf> > VCCRT\vcruntime\inc\internal_shared.h:204
+    #7 0x7ff6c70c6bed in __acrt_lock_stream_and_call minkernel\crts\ucrt\inc\corecrt_internal_stdio.h:297
+    #8 0x7ff6c70c6bed in common_vfprintf minkernel\crts\ucrt\src\appcrt\stdio\output.cpp:37
+    #9 0x7ff6c70c6bed in __stdio_common_vfprintf minkernel\crts\ucrt\src\appcrt\stdio\output.cpp:61
+    #10 0x7ff6c70817f4 in _vfprintf_l C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\stdio.h:645
+    #11 0x7ff6c7081840 in printf C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\stdio.h:960
+    #12 0x7ff6c708160e in use_after_free D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:33
+    #13 0x7ff6c708172c in main D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:45
+    #14 0x7ff6c7083cde in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #15 0x7ff6c7083cde in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #16 0x7ffe9646dd36  (C:\Windows\System32\KERNEL32.DLL+0x18002dd36)
+    #17 0x7ffe96c9f2bb  (C:\Windows\SYSTEM32\ntdll.dll+0x18003f2bb)
+
+0x1244cc9a0190 is located 0 bytes inside of 16-byte region [0x1244cc9a0190,0x1244cc9a01a0)
+freed by thread T0 here:
+    #0 0x7ffe5b4939c1 in free D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_malloc_win.cpp:698
+code 1
+    #1 0x7ff6c70815fd in use_after_free D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:32
+    #2 0x7ff6c708172c in main D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:45
+    #3 0x7ff6c7083cde in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #4 0x7ff6c7083cde in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #5 0x7ffe9646dd36  (C:\Windows\System32\KERNEL32.DLL+0x18002dd36)
+    #6 0x7ffe96c9f2bb  (C:\Windows\SYSTEM32\ntdll.dll+0x18003f2bb)
+
+previously allocated by thread T0 here:
+    #0 0x7ffe5b4928e2 in malloc D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_malloc_win.cpp:467
+    #1 0x7ff6c70815dd in use_after_free D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:30
+    #2 0x7ff6c708172c in main D:\a\sysprog-win-shots\sysprog-win-shots\l9\crash.c:45
+    #3 0x7ff6c7083cde in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #4 0x7ff6c7083cde in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #5 0x7ffe9646dd36  (C:\Windows\System32\KERNEL32.DLL+0x18002dd36)
+    #6 0x7ffe96c9f2bb  (C:\Windows\SYSTEM32\ntdll.dll+0x18003f2bb)
+
+SUMMARY: AddressSanitizer: heap-use-after-free minkernel\crts\ucrt\inc\corecrt_internal_stdio_output.h:2353 in __crt_stdio_output::output_processor<char,__crt_stdio_output::stream_output_adapter<char>,__crt_stdio_output::standard_base<char,__crt_stdio_output::stream_output_adapter<char> > >::type_case_s_compute_narrow_string_length
+Shadow bytes around the buggy address:
+  0x1244cc99ff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1244cc99ff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1244cc9a0000: fa fa fd fd fa fa 00 fa fa fa 00 00 fa fa 00 07
+  0x1244cc9a0080: fa fa 00 05 fa fa 00 06 fa fa 00 00 fa fa 00 00
+  0x1244cc9a0100: fa fa 00 05 fa fa 00 04 fa fa 00 00 fa fa 00 07
+=>0x1244cc9a0180: fa fa[fd]fd fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1244cc9a0200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1244cc9a0280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1244cc9a0300: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1244cc9a0380: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1244cc9a0400: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==904==ABORTING
+﻿2026-11-11T13:21:23.7354276Z Post job cleanup.
+[command]"C:\Program Files\Git\bin\git.exe" version
+git version 2.56.0.windows.4
+Temporarily overriding HOME='D:\a\_temp\6b0c6f93-88cc-47f6-8875-ff8cf0ca6e39' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+[command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\sysprog-win-shots\sysprog-win-shots
+[command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+[command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+[command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+http.https://github.com/.extraheader
+[command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+[command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+[command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+[command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+﻿2026-11-11T13:21:26.3347032Z Cleaning up orphan processes
+Terminate orphan process: pid (5844) (vctip)
+##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, ilammy/msvc-dev-cmd@v1. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
