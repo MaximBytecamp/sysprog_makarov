@@ -891,6 +891,12 @@ figure.code--out .cmd::before { content: '$ '; color: rgba(220, 230, 245, .45); 
 .trace__flow b { font: 700 12.5px/1.3 var(--mono); }
 .trace__flow small { font-size: 12.5px; line-height: 1.35; color: var(--ink-soft); }
 /* Блок «Если файлов прошлых глав нет»: полный код нужных файлов для того, кто пропустил главу. */
+/* Блок «По-простому»: что происходит в коде разговорным языком и раскадровкой на бытовых аналогиях (viz.simple). */
+details.simple { margin: 18px 0 24px; border: 3px dashed var(--acc); background: var(--acc-pale); }
+details.simple summary::before { content: "По-простому · "; font: 600 10.5px/1 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--acc); }
+details.simple .vsteps { margin: 12px 0; }
+details.simple .vcard small { display: block; margin-top: 4px; }
+details.simple .simple__map { margin: 10px 0 0; padding: 8px 12px; border-left: 4px solid var(--acc); background: #fff; font-size: 14.5px; }
 details.catchup { margin: 18px 0 24px; border: 3px dashed var(--ng); background: var(--ng-pale); }
 details.catchup summary::before { content: "Догнать · "; font: 600 10.5px/1 var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--ng); }
 details.catchup figure.code { margin: 12px 0; }

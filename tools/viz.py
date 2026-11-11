@@ -73,3 +73,14 @@ def tab(head, rows):
 def split(*cols, rows=False):
     """Колонки рядом: [(заголовок, html)]; rows=True — те же части одна под другой."""
     return f'<div class="vsplit{" is-rows" if rows else ""}">' + ''.join(f'<div><h6>{h}</h6>{b}</div>' for h, b in cols) + '</div>'
+
+
+def simple(title, text, strip='', map_=''):
+    """Раскрывающийся блок «По-простому»: text — абзацы разговорным языком, strip — раскадровка (steps), map_ — «что есть что» в коде."""
+    m = f'<p class="simple__map">{map_}</p>' if map_ else ''
+    return f'''        <details class="simple">
+          <summary>{title}</summary>
+{text}
+{strip}
+          {m}
+        </details>'''

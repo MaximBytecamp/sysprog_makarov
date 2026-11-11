@@ -308,6 +308,13 @@
             </div>
           </div>
         </div>
+        <details class="simple">
+          <summary>Как функция узнаёт число потоков</summary>
+          <p>Считать потоки самим не нужно: система и так ведёт учёт. На каждый процесс у неё заведена карточка, и там написано, сколько у процесса потоков прямо сейчас. Функция идёт к этой карточке и переписывает цифру.</p>
+          <p>Так же работает отдел кадров. На вопрос «сколько человек в бригаде номер 1212?» сотрудник открывает папку бригады и читает: «пять». Пересчитывать людей по головам никто не бегает.</p>
+<div class="vsteps"><div class="vcard is-py"><h5>мозг</h5><b>«сколько потоков у 1212?»</b><small>вызывает proc_threads</small></div><div class="varr"></div><div class="vcard is-c"><h5>ядро агента</h5><b>идёт в отдел кадров</b><small>вызов системы</small></div><div class="varr"></div><div class="vcard is-sys"><h5>система</h5><b>открывает карточку 1212</b><small><span data-os="win">запись в снимке процессов</span><span data-os="mac">структура <code>proc_taskinfo</code></span><span data-os="linux">файл <code>/proc/PID/stat</code></span></small></div><div class="varr"></div><div class="vcard is-py"><h5>мозг</h5><b>получает «5»</b><small>число, без перевода единиц</small></div></div>
+          <p class="simple__map"><b>Что есть что.</b> Отдел кадров — система. Папка бригады — <span data-os="win">запись в снимке процессов</span><span data-os="mac">структура <code>proc_taskinfo</code></span><span data-os="linux">файл <code>/proc/PID/stat</code></span>. Строка «сколько человек» — <span data-os="win"><code>cntThreads</code></span><span data-os="mac"><code>pti_threadnum</code></span><span data-os="linux">поле 20</span>. Номер бригады — <code>pid</code>.</p>
+        </details>
         <p class="step-done"><b>Что получилось.</b>Функция написана для своей системы. Чтобы проверить её, нужен процесс, у которого число потоков меняется на глазах.</p>
 
         <h2 id="s4"><span class="sec">§4</span>Шаг 3. Запустить потоки из C</h2>
@@ -500,6 +507,13 @@ count_threads.exe</pre>
           <p class="scheme__note">Числа одинаковы на трёх системах — так на кадрах шага 3.</p>
         </figure>
         <p>Главный поток есть всегда, рабочие появляются при создании и исчезают после ожидания. Если бы программа не дождалась потоков и не освободила их, число не вернулось бы к единице: так выглядит утечка потоков.</p>
+        <details class="simple">
+          <summary>Что делает count_threads</summary>
+          <p><code>main</code> — бригадир. В начале смены он один: 1 поток. Потом он нанимает четырёх рабочих и каждому даёт одно задание — поспать секунду. Пока рабочие на смене, людей пятеро: 5 потоков.</p>
+          <p>Домой бригадир не уходит, пока каждый рабочий не отчитается. Все отчитались и ушли — бригадир снова один: 1 поток. Если бы он не ждал отчётов и не отпускал людей, рабочие так и числились бы на смене — это и есть утечка потоков.</p>
+<div class="vsteps"><div class="vcard is-sys"><h5>start</h5><b>бригадир один</b><small>1 поток</small></div><div class="varr">нанял 4</div><div class="vcard is-c"><h5>running</h5><b>бригадир и 4 рабочих</b><small>5 потоков</small></div><div class="varr">ждёт отчёта</div><div class="vcard is-sys"><h5>joined</h5><b>рабочие ушли</b><small>снова 1 поток</small></div></div>
+          <p class="simple__map"><b>Что есть что.</b> Бригадир — главный поток. Нанять рабочего — <span data-os="win"><code>CreateThread</code></span><span data-os="mac linux"><code>pthread_create</code></span>. Задание — функция <code>worker</code>. Дождаться отчёта — <span data-os="win"><code>WaitForMultipleObjects</code></span><span data-os="mac linux"><code>pthread_join</code></span>.</p>
+        </details>
         <p class="step-done"><b>Что получилось.</b>Ядро видит, как у процесса появляются и исчезают потоки. Можно подключать функцию к мозгу.</p>
 
         <div class="part" role="separator"><span><b>2</b>Мозг: у кого больше всего потоков</span></div>
@@ -803,6 +817,13 @@ diff race.c ai_race.c
           <p class="scheme__note">Числа — с кадров. Ожидается 4 000 000; у счётчика с <code>volatile</code> результат каждый раз другой.</p>
         </figure>
         <p>Атомарная прибавка даёт ровно 4 000 000 на трёх системах. <code>counter++</code> теряет от четверти до трёх четвертей прибавок, и каждый запуск даёт новое число. Компилятор не предупреждает: для него это обычный код. На одном ядре или с одним потоком ошибка не видна вовсе, поэтому её часто находят уже на сервере с многими ядрами.</p>
+        <details class="simple">
+          <summary>Почему теряются прибавки</summary>
+          <p>На доске написано число. Четыре человека должны каждый миллион раз сделать «+1». <code>counter++</code> — это три движения: подойти и посмотреть число, прибавить в уме, стереть и написать новое.</p>
+          <p>Если двое подошли почти одновременно, оба увидели 41, оба прибавили в уме и оба написали 42. Сделано две прибавки, а число выросло на одну. <code>volatile</code> — это правило «смотри на доску, а не вспоминай»: смотрят честно, но подойти вдвоём всё ещё можно. Атомарная прибавка — счётчик-кликер: нажал кнопку, число выросло, и нажать «посередине» чужого нажатия нельзя.</p>
+<div class="vsteps"><div class="vcard is-c"><h5>поток A</h5><b>смотрит: 41</b></div><div class="varr"></div><div class="vcard is-sys"><h5>поток B</h5><b>смотрит: 41</b></div><div class="varr"></div><div class="vcard is-c"><h5>поток A</h5><b>пишет 42</b></div><div class="varr"></div><div class="vcard is-sys"><h5>поток B</h5><b>пишет 42</b><small>вместо 43 на доске 42</small></div></div>
+          <p class="simple__map"><b>Что есть что.</b> Доска — переменная <code>counter</code> в памяти. Посмотреть — чтение, написать — запись. Кликер — <span data-os="win"><code>InterlockedIncrement64</code></span><span data-os="mac linux"><code>__atomic_fetch_add</code></span>.</p>
+        </details>
         <ul class="checklist">
           <li>каждая переменная, которую меняют несколько потоков, меняется атомарной операцией или под замком: <span data-os="win"><code>InterlockedIncrement64</code>, <code>SRWLOCK</code></span><span data-os="mac linux"><code>__atomic_fetch_add</code>, <code>pthread_mutex_t</code></span>;</li>
           <li><code>volatile</code> не считается защитой от гонки;</li>
